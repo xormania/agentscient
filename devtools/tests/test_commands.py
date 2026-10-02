@@ -68,6 +68,33 @@ class CommandTests(CommandFixture, unittest.TestCase):
         self.assertEqual(changed["done_when"], coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(1, len(Work(self.store, "xo").job_list()["jobs"]))
 
+    def test_monitor_usage_does_not_reuse_previous_session_observations(self):
+        self.team()
+        first = self.store.begin_session("coder", os.getpid())
+        self.store.session("coder", generation=first, state="idle", native_id="first-session")
+        self.store.event("coder", "native_usage", observation={"inputTokens": 123})
+        self.assertEqual(123, self.xo.call("monitor", {})["collaborators"][0]["latest_usage"]["observation"]["inputTokens"])
+        self.store.session("coder", generation=first, state="stopped", desired="stopped", pid=None)
+        second = self.store.begin_session("coder", os.getpid())
+        self.store.session("coder", generation=second, state="idle", native_id="second-session")
+        self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_usage"])
+        self.store.event("coder", "native_usage", observation={"inputTokens": 7})
+        latest = self.xo.call("monitor", {})["collaborators"][0]["latest_usage"]
+        self.assertEqual(7, latest["observation"]["inputTokens"])
+        self.assertEqual(second, latest["generation"])
+        self.assertEqual("second-session", latest["native_id"])
+
+    def test_monitor_only_projects_reports_from_current_binding(self):
+        coder = self.team()
+        report = coder.call("work_report", {"text": "Prior assignment progress"})
+        self.assertEqual(report["reference"], self.xo.call("monitor", {})["collaborators"][0]["latest_report"]["reference"])
+        previous = coder.control.snapshot()
+        self.co.control.unbind("coder")
+        self.co.control.bind("coder", "coder", previous["work_order"], job=previous["job"], reports_to="xo")
+        self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_report"])
+        current = coder.call("work_report", {"text": "Current assignment progress"})
+        self.assertEqual(current["reference"], self.xo.call("monitor", {})["collaborators"][0]["latest_report"]["reference"])
+
     def test_co_records_final_receipt_through_mcp_after_xo_is_released(self):
         co, xo = self.client("owner"), self.client("xo")
         co.tool("direct", GOAL)

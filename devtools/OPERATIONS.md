@@ -861,6 +861,14 @@ Services manage paths, hashes, publication and integrity checks; agents receive
 references, useful summaries, and requested content. Schema upgrades preserve
 existing messages, work records and telemetry.
 
+`store.State` owns SQLite connection lifetime and read-only inspection;
+`store.Store` adds writable runtime state and schema upgrades. Configuration,
+consistency and evidence inspection neither create nor upgrade a database.
+Each member's binding revision survives unbinding and process restarts, so an
+old report cannot become current when that member receives the same assignment
+again. Upgrades seed these revisions from retained bindings and proof history
+without changing active binding snapshots.
+
 Saving publishes complete bytes before committing the catalogue and association
 in one database transaction. A retry can reuse a complete blob left by an
 interrupted commit. Failed calls clean up temporary files; a killed process can
@@ -912,6 +920,11 @@ logs, and redacted JSONL transport traces under `telemetry/`. Events record MCP
 operation timing/results, native identity/activity, message submission and
 acknowledgement, and usage observations when the native protocol supplies them.
 Missing usage is unknown, not zero; no estimated cost is fabricated.
+Monitoring selects reports from the current binding and usage from the current
+session generation. Earlier observations remain in history. Configured provider
+credentials are filtered at capture time, including file rotation and role/job
+overrides; an unsafe credential source marks the capture unavailable instead of
+retaining unchecked content. See the [telemetry reference](../docs/runtime-telemetry.md).
 
 Queued, submitted, and acknowledged are distinct. A crash during delivery becomes
 `uncertain` on restart, not an automatic duplicate. Only the sender can explicitly

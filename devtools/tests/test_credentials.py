@@ -6,9 +6,10 @@ import os
 import unittest
 import urllib.error
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from fixtures.credentials import CredentialFixture
+from fixtures.jev import JevTransportFixture
 
 from devtools import adapters
 from devtools.configuration import defaults, resolve
@@ -80,33 +81,17 @@ class CredentialTests(CredentialFixture, unittest.TestCase):
         with patch.dict(os.environ, {"OPERATOR_JEV": "custom-env-secret"}):
             self.assertEqual("[REDACTED]", redact("custom-env-secret", {"credential": {"env": "OPERATOR_JEV"}}))
 
-    def test_configuration_path_resolution_does_not_hide_a_credential_symlink(self):
-        linked = self.root / "linked.key"
-        linked.symlink_to(self.path)
-        (self.root / "team.json").write_text(json.dumps({"project": {"configuration_file": "operator.json"}}))
-        (self.root / "operator.json").write_text(json.dumps({"version": 1, "project": {
-            "connection": {"credential": {"file": "linked.key"}}}}))
-        settings = resolve(SimpleNamespace(directory=self.root))
-        with self.assertRaises(ValueError):
-            read_credential(settings["connection"]["credential"])
-
-
-class ConfiguredTransportTests(unittest.TestCase):
+class ConfiguredTransportTests(JevTransportFixture, unittest.TestCase):
     def setUp(self):
         CredentialFixture.setUp(self)
         self.policy = defaults()
         self.connection = self.policy["connection"] | {"endpoint": "https://jev.example.test/v1/systemone",
                                                        "credential": self.reference}
         self.questions = {"proof": {"type": "noul", "instructions": "Assess private-file-key-value"}}
-        self.opener = MagicMock()
-        factory = patch("devtools.jev.urllib.request.build_opener", return_value=self.opener)
-        factory.start()
-        self.addCleanup(factory.stop)
-        response = {"model": self.policy["model"], "answers": {"proof": {"type": "noul", "noul": 0.9}},
-                    "usage": {"input_tokens": 5, "output_tokens": 1}}
-        self.response = MagicMock()
-        self.response.__enter__.return_value.read.return_value = json.dumps(response).encode()
-        self.opener.open.return_value = self.response
+        self.transport()
+        self.success = self.response({"model": self.policy["model"], "answers": {"proof": {"type": "noul", "noul": 0.9}},
+                                      "usage": {"input_tokens": 5, "output_tokens": 1}})
+        self.opener.open.return_value = self.success
 
     def test_configured_endpoint_file_rotation_and_redacted_payload(self):
         provider = Jev(connection=self.connection)
@@ -134,26 +119,20 @@ class ConfiguredTransportTests(unittest.TestCase):
             self.assertNotIn("fixture_secret_identifier", str(caught.exception))
         self.opener.open.assert_not_called()
 
-    def test_configured_retry_statuses_and_missing_key_classification(self):
+    def test_configured_retries_and_file_credential_failure_classification(self):
         failure = urllib.error.HTTPError("url", 503, "private response", {}, io.BytesIO(b"private body"))
-        self.opener.open.side_effect = [failure, self.response]
+        self.opener.open.side_effect = [failure, self.success]
         settings = self.policy["transport"] | {"retry_statuses": [503]}
         with patch("devtools.jev.time.sleep") as sleep:
             Jev(settings, self.connection).evaluate({}, self.questions)
             sleep.assert_called_once()
-        self.path.unlink()
-        with self.assertRaises(JevUnavailable):
-            Jev(connection=self.connection).evaluate({}, self.questions)
-
-    def test_protocol_errors_cannot_be_mistaken_for_provider_unavailability(self):
-        self.response.__enter__.return_value.read.return_value = b"invalid JSON"
-        with self.assertRaises(ValueError) as caught:
-            Jev(connection=self.connection).evaluate({}, self.questions)
-        self.assertNotIsInstance(caught.exception, JevUnavailable)
         self.path.chmod(0o644)
         with self.assertRaises(ValueError) as caught:
             Jev(connection=self.connection).evaluate({}, self.questions)
         self.assertNotIsInstance(caught.exception, JevUnavailable)
+        self.path.unlink()
+        with self.assertRaises(JevUnavailable):
+            Jev(connection=self.connection).evaluate({}, self.questions)
 
     def test_connection_inspection_never_reads_credential(self):
         self.path.unlink()

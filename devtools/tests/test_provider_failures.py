@@ -9,28 +9,31 @@ import urllib.error
 from unittest.mock import patch
 
 from fixtures import advice as test_advice
-from fixtures.advice import AdviceFixture, JevTransportFixture
+from fixtures.advice import AdviceFixture
+from fixtures.jev import JevTransportFixture
 
 from devtools.failures import Failure, failure_info
 from devtools.jev import MAX_RESPONSE, MODEL, Jev, JevUnavailable, checked_response
 
 
-class ProviderFailureTests(unittest.TestCase):
-    setUp = JevTransportFixture.setUp
-    response = JevTransportFixture.response
+class ProviderFailureTests(JevTransportFixture, unittest.TestCase):
 
     def test_missing_credentials_transport_and_http_have_distinct_recovery_conditions(self):
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}), self.assertRaises(JevUnavailable) as caught:
             Jev().evaluate({}, self.questions)
         self.assertEqual({"category": "evaluation_unavailable", "reason": "credentials_unavailable",
                           "details": {"retryable": False}}, failure_info(caught.exception))
+        self.assertIn("TYPESAFE_API_KEY", str(caught.exception))
         self.opener.open.assert_not_called()
 
-        self.opener.open.side_effect = socket.timeout("private provider diagnostic")
-        with self.assertRaises(JevUnavailable) as caught:
-            Jev().evaluate({}, self.questions)
-        self.assertEqual("transport_unavailable", failure_info(caught.exception)["reason"])
-        self.assertTrue(failure_info(caught.exception)["details"]["retryable"])
+        for error in (socket.timeout("private provider diagnostic"), urllib.error.URLError("private provider diagnostic")):
+            with self.subTest(error=type(error).__name__):
+                self.opener.open.side_effect = error
+                with self.assertRaises(JevUnavailable) as caught:
+                    Jev().evaluate({}, self.questions)
+                self.assertEqual("transport_unavailable", failure_info(caught.exception)["reason"])
+                self.assertTrue(failure_info(caught.exception)["details"]["retryable"])
+                self.assertNotIn("private", str(caught.exception))
 
         for status, retryable in ((401, False), (302, False), (429, True), (529, True)):
             with self.subTest(status=status):
@@ -46,12 +49,14 @@ class ProviderFailureTests(unittest.TestCase):
                     self.assertNotIn("try later", str(caught.exception))
 
     def test_invalid_json_oversize_and_invalid_assessments_are_never_unavailable(self):
-        for body, validation in ((b"not JSON", "invalid_json"), (b"x" * (MAX_RESPONSE + 1), "response_budget_exceeded")):
+        for body, validation, diagnostic in ((b"not JSON", "invalid_json", "invalid JSON"),
+                                             (b"x" * (MAX_RESPONSE + 1), "response_budget_exceeded", "size limit")):
             with self.subTest(validation=validation):
                 self.opener.open.return_value = self.response(body)
                 with self.assertRaises(Failure) as caught:
                     Jev().evaluate({}, self.questions)
                 self.assertNotIsInstance(caught.exception, JevUnavailable)
+                self.assertIn(diagnostic, str(caught.exception))
                 self.assertEqual({"category": "evaluation_invalid", "reason": "invalid_response",
                                   "details": {"validation": validation}}, failure_info(caught.exception))
         response = test_advice.answer({}, self.questions)
@@ -65,6 +70,16 @@ class ProviderFailureTests(unittest.TestCase):
             self.assertEqual("invalid_response", failure_info(caught.exception)["reason"])
             self.assertEqual(validation, failure_info(caught.exception)["details"]["validation"])
 
+        questions = {"q": {"type": "choice", "instructions": "Choose", "criteria": {"a": None, "b": None}}}
+        for change in ({"choice": "invented"}, {"confidence": float("nan")},
+                       {"probabilities": {"a": 0.2, "b": 0.2}}, {"probabilities": {"a": 1, "invented": 0}}):
+            value = test_advice.answer({}, questions)
+            value["answers"]["q"].update(change)
+            with self.subTest(change=change), self.assertRaises(Failure) as caught:
+                checked_response(value, questions, MODEL)
+            self.assertEqual("evaluation_invalid", failure_info(caught.exception)["category"])
+            self.assertEqual("invalid_response", failure_info(caught.exception)["reason"])
+
     def test_request_and_configuration_errors_never_reach_transport(self):
         cases = ((lambda: Jev().evaluate({}, self.questions, "latest"), "invalid_model"),
                  (lambda: Jev().evaluate({}, {}), "invalid_questions"),
@@ -77,6 +92,8 @@ class ProviderFailureTests(unittest.TestCase):
             self.assertNotIsInstance(caught.exception, JevUnavailable)
             self.assertEqual("invalid_request", failure_info(caught.exception)["category"])
             self.assertEqual(reason, failure_info(caught.exception)["reason"])
+            if reason == "request_budget_exceeded":
+                self.assertIn("input budget", str(caught.exception))
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": "invalid key"}), self.assertRaises(Failure) as caught:
             Jev().evaluate({}, self.questions)
         self.assertEqual("invalid_credential_configuration", failure_info(caught.exception)["reason"])

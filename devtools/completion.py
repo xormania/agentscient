@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import json
 
-from .advice import digest
 from .artifacts import Artifacts
-from .assignments import snapshot
+from .assignments import current_update, snapshot
 from .commands import Commands
 from .configuration import resolve
 from .control import Control, binding, includes
 from .decisions import Decisions
 from .failures import Failure, failure_info
 from .role_packages import adapter, names_for_adapter
-from .store import canonical
+from .store import canonical, digest
 from .telemetry import clean
 from .work import record
 
@@ -31,55 +30,44 @@ class Completion:
         self.control = Control(store, member)
         self.artifacts = Artifacts(store, member)
 
+    def _boundary(self, db, scope, boundary, job, assignment):
+        """Resolve current work authority for both policy and proof collection."""
+        if not scope or scope != binding(db, self.member) or adapter(scope["role"]) not in {"xo", "nco"}:
+            raise Failure("Completion requires the current active execution officer.", category="not_permitted", reason="scope_not_permitted")
+        if scope["paused"]:
+            raise Failure("Completion cannot proceed while this work is paused.", category="not_ready", reason="work_paused")
+        team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
+        assigned = None
+        if boundary == "assignment":
+            ident = assignment["id"] if isinstance(assignment, dict) else assignment
+            assigned = record(db, "role_assignments", ident)
+            if assigned["work_order"] != scope["work_order"]:
+                raise Failure("The completion assignment is outside current work.", category="not_permitted", reason="scope_not_permitted")
+            if assigned["job"] is None and assigned["created_by"] not in team:
+                raise Failure("The completion assignment is outside the current command team.", category="not_permitted", reason="scope_not_permitted")
+            job = assigned["job"]
+        work = record(db, "jobs", job) if job is not None else None
+        if work and (not includes(scope, work["work_order"], job) or not Commands._owns_job(db, scope, work)):
+            raise Failure("The completion job is outside current work.", category="not_permitted", reason="scope_not_permitted")
+        if boundary == "job" and job is None or boundary == "work_order" and (job is not None or adapter(scope["role"]) != "xo"):
+            raise Failure("Select the existing job or XO work-order boundary.", category="invalid_request", reason="invalid_boundary")
+        return work, assigned, team
+
     def settings(self, boundary, job=None, assignment=None):
         """Resolve only trusted role/job identities, including disabled gate receipts."""
         scope = self.control.current()
         with self.store.connect() as db:
-            if not scope or scope != binding(db, self.member) or adapter(scope["role"]) not in {"xo", "nco"}:
-                raise Failure("Completion requires the current active execution officer.", category="not_permitted", reason="scope_not_permitted")
-            if scope["paused"]:
-                raise Failure("Completion cannot proceed while this work is paused.", category="not_ready", reason="work_paused")
-            if boundary == "assignment":
-                ident = assignment["id"] if isinstance(assignment, dict) else assignment
-                assigned = record(db, "role_assignments", ident)
-                if assigned["work_order"] != scope["work_order"]:
-                    raise Failure("The completion assignment is outside current work.", category="not_permitted", reason="scope_not_permitted")
-                team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
-                if assigned["job"] is None and assigned["created_by"] not in team:
-                    raise Failure("The completion assignment is outside the current command team.", category="not_permitted", reason="scope_not_permitted")
-                job = assigned["job"]
-            if job is not None:
-                work = record(db, "jobs", job)
-                if not includes(scope, work["work_order"], job) or not Commands._owns_job(db, scope, work):
-                    raise Failure("The completion job is outside current work.", category="not_permitted", reason="scope_not_permitted")
-            if boundary == "job" and job is None or boundary == "work_order" and (job is not None or adapter(scope["role"]) != "xo"):
-                raise Failure("Select the existing job or XO work-order boundary.", category="invalid_request", reason="invalid_boundary")
-        return resolve(self.store, role=scope["role"], job=job), digest(scope)
+            work, _, _ = self._boundary(db, scope, boundary, job, assignment)
+        return resolve(self.store, role=scope["role"], job=work["id"] if work else None), digest(scope)
 
     def collect(self, boundary, job, assignment, revision, mechanical):
         scope = self.control.current()
         with self.store.connect() as db:
-            if not scope or scope != binding(db, self.member) or adapter(scope["role"]) not in {"xo", "nco"}:
-                raise Failure("Completion requires the current active execution officer.", category="not_permitted", reason="scope_not_permitted")
-            if scope["paused"]:
-                raise Failure("Completion cannot proceed while this work is paused.", category="not_ready", reason="work_paused")
+            work, assigned, team = self._boundary(db, scope, boundary, job, assignment)
+            job = work["id"] if work else None
             order = record(db, "work_orders", scope["work_order"])
-            team = {self.member, *(r["member"] for r in Commands._descendants(db, scope))}
             if boundary == "work_order" and db.execute("SELECT 1 FROM member_bindings WHERE work_order=? AND role IN (SELECT value FROM json_each(?)) AND member!=?", (order["id"], canonical(names_for_adapter("xo")), self.member)).fetchone():
                 raise Failure("Completion requires owner-level coordination across independent command teams.", category="not_permitted", reason="scope_not_permitted")
-            if boundary == "assignment":
-                ident = assignment["id"] if isinstance(assignment, dict) else assignment
-                assigned = record(db, "role_assignments", ident)
-                job = assigned["job"]
-                if assigned["work_order"] != order["id"]:
-                    raise Failure("The completion assignment is outside current work.", category="not_permitted", reason="scope_not_permitted")
-            else:
-                assigned = None
-            work = record(db, "jobs", job) if job is not None else None
-            if work and (not includes(scope, work["work_order"], job) or not Commands._owns_job(db, scope, work)):
-                raise Failure("The completion job is outside current work.", category="not_permitted", reason="scope_not_permitted")
-            if boundary == "job" and not work or boundary == "work_order" and (job is not None or adapter(scope["role"]) != "xo"):
-                raise Failure("Select the existing job or XO work-order boundary.", category="invalid_request", reason="invalid_boundary")
             target = json.loads(assigned["brief"]) if assigned else work if work else order
             target = requirements(target)
             if not target["objective"] or not target["done_when"]:
@@ -103,14 +91,13 @@ class Completion:
             scopes = [r for r in scopes if r["member"] in team and r.get("assignment_id") not in arbitration]
             if assigned:
                 scopes = [r for r in scopes if r.get("assignment_id") == assigned["id"]]
-                if assigned["status"] == "active" and not scopes or assigned["job"] is None and assigned["created_by"] not in team:
+                if assigned["status"] == "active" and not scopes:
                     raise Failure("The completion assignment is outside the current command team.", category="not_permitted", reason="scope_not_permitted")
             reports = {}
             for current in scopes:
-                for row in db.execute("SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? AND kind='result' ORDER BY id DESC", (current["member"], order["id"], current["job"])):
-                    if row["binding"] and json.loads(row["binding"]) == snapshot(current):
-                        reports[row["id"]] = dict(row)
-                        break
+                result = current_update(db, current, kind="result")
+                if result:
+                    reports[result["id"]] = result
             for item in assignments:
                 if item["status"] == "done" and item["result_update"]:
                     row = record(db, "work_updates", item["result_update"])

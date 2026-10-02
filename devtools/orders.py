@@ -9,7 +9,7 @@ from .artifacts import Artifacts
 from .codex_reviews import CodexReviews
 from .github import GitHub
 from .role_packages import adapter, require_capability
-from .store import canonical, stamp
+from .store import digest, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
 
@@ -215,8 +215,7 @@ class Orders:
             if pr["state"] != "open":
                 raise ValueError("The work-order PR is closed.")
             thread = review.removeprefix("thread:")
-            key = hashlib.sha256(canonical([context["repository"], context["pr"], thread,
-                                           pr["head"]["sha"], text]).encode()).hexdigest()
+            key = digest([context["repository"], context["pr"], thread, pr["head"]["sha"], text])
             marker = "<!-- agentscient-response:" + key + " -->"
             cursor, existing = None, False
             while True:

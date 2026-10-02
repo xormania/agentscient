@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
+from support import Client
+
 from devtools.api import API
 from devtools.decisions import Decisions, request
 from devtools.failures import Failure, failure_info
@@ -113,6 +115,16 @@ class DecisionLifecycleTests(unittest.TestCase):
         guidance = [json.loads(row["data"]) for row in events if row["kind"] == "skill_guidance_delivered"]
         self.assertEqual(1, len(guidance))
         self.assertIsNone(guidance[0]["failed_call"])
+
+        client = Client(self.state, "xo")
+        try:
+            result = client.call("tools/call", {"name": "work_assess", "arguments": {
+                "proposal": "Copied provider value " + self.secret}})
+        finally:
+            client.close()
+        self.assertTrue(result["isError"])
+        self.assertIn("sensitive_replay_arguments", json.dumps(result))
+        self.assertNotIn(self.secret, (self.state / "telemetry/xo.jsonl").read_text())
 
     def test_encoded_credential_in_replay_questions_is_rejected(self):
         # Encoded JSON strings need the same credential protection as typed data.

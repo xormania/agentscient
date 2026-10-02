@@ -36,6 +36,11 @@ the common MCP server. Project files are accessed through role tools. The CO cal
 for relevant skills not already marked `loaded`. CO then relays xor's instructions
 to XO; XO creates managed tmux sessions for the specialist roles. Claude may show
 its native development-channel consent.
+CO and worker launches share native tool restrictions. Claude uses one command
+builder with the configured role's tool ceiling, so creating a work binding can
+enable reporting without relaunching CO. MCP and hooks authorize each call against
+the current binding. Grok's interactive settings preserve the prepared session
+restrictions when adding the CO's MCP connection.
 Normal native authentication and consent remain in force.
 Supported Codex/Grok file-based login data is retained privately for the same
 member and harness across launches. A changed operator login takes precedence;

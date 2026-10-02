@@ -5,6 +5,7 @@ from pathlib import Path
 
 from support import Client, initialize
 
+from devtools.api import API
 from devtools.store import Store
 
 
@@ -19,14 +20,20 @@ class ControlFixture:
         self.state = root / "state"
         initialize(self.state, workspace, [name + ":external" for name in ("owner", "xo", "coder", "audit", "idle")])
         self.store = Store(self.state)
-        self.operator = self.client("owner", operator=True)
-        self.order = self.operator.invoke(
+        # Arrange trusted state through the real API. Tests open a stdio Client
+        # explicitly when the wire protocol is part of the behavior under test.
+        operator = API(self.state, "owner", operator=True)
+
+        def invoke(capability, **arguments):
+            return operator.call("capability_invoke", {"capability": capability, "arguments": arguments})
+
+        self.order = invoke(
             "work_order_create", title="One", objective="Build the feature", done_when="Works"
         )["work_order"]["id"]
-        self.job = self.operator.invoke(
+        self.job = invoke(
             "job_create", title="Feature", objective="Implement contract", done_when="Checks pass"
         )["job"]["id"]
-        self.other = self.operator.invoke(
+        self.other = invoke(
             "job_create", title="Unrelated", objective="SECRET SIBLING", done_when="Separate"
         )["job"]["id"]
         for member, role, parent, job in (
@@ -40,7 +47,7 @@ class ControlFixture:
                 args["reports_to"] = parent
             if job:
                 args["job"] = job
-            self.operator.invoke("member_bind", **args)
+            invoke("member_bind", **args)
 
     def client(self, member, **args):
         client = Client(self.state, member, **args)

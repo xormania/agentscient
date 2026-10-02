@@ -1,16 +1,13 @@
 import copy
-import io
 import json
 import os
-import socket
 import unittest
-import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from threading import Event
 from unittest.mock import patch
 
-from fixtures.advice import AdviceFixture, JevTransportFixture, answer
+from fixtures.advice import AdviceFixture, answer
 from fixtures.commands import responsibility
 from fixtures.delivery import DeliveryFixture
 from fixtures.workspaces import WorkspaceFixture
@@ -19,7 +16,7 @@ from support import Client, adopt_plan, fixture_work
 from devtools.api import API
 from devtools.configuration import defaults as load_policy
 from devtools.failures import failure_info
-from devtools.jev import MAX_RESPONSE, MODEL, Jev, JevUnavailable, TypeSafeAdapter, checked_response
+from devtools.jev import JevUnavailable, TypeSafeAdapter, checked_response
 from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 from devtools.workspaces import Workspaces
 
@@ -388,8 +385,15 @@ class AdviceTests(AdviceFixture, unittest.TestCase):
 
     def test_effective_configuration_is_inspectable_only_through_operator_surface(self):
         operator = API(self.state, "co", operator=True)
+        # Inspecting references is independent of key availability. The normal
+        # call boundary separately reads keys to redact its retained telemetry.
         with patch("devtools.credentials.read_credential", side_effect=AssertionError("Inspection must not load a key")):
+            inspected = operator.invoke("config_status", {"role": "coder"})
+        secret = "fixture-configuration-inspection-secret"
+        with patch.dict(os.environ, {"TYPESAFE_API_KEY": secret}):
             result = operator.call("capability_invoke", {"capability": "config_status", "arguments": {"role": "coder"}})
+        self.assertEqual(inspected, result)
+        self.assertNotIn(secret, json.dumps(result))
         self.assertTrue(result["features"]["advice"])
         self.assertEqual({"role": "coder", "job": None}, result["selection"])
         self.assertEqual({"env": "TYPESAFE_API_KEY"}, result["connection"]["credential"])
@@ -441,82 +445,3 @@ class AdviceReviewTests(unittest.TestCase):
         self.assertEqual("Delivered implementation\n", source["content"])
         self.assertEqual(self.head, result["results"][0]["source"]["revision"])
         self.assertNotIn("work_save", {row["name"] for row in audit.tools()})
-
-
-class JevTransportTests(JevTransportFixture, unittest.TestCase):
-
-
-    def test_official_endpoint_auth_bounded_io_and_typed_response(self):
-        self.opener.open.return_value = self.response(answer({}, self.questions))
-        result = Jev().evaluate({"text": "source"}, self.questions)
-        request = self.opener.open.call_args.args[0]
-        self.assertEqual("https://api.typesafe.ai/v1/systemone", request.full_url)
-        self.assertEqual("Bearer test-secret-never-log", request.get_header("Authorization"))
-        self.assertEqual(8, self.opener.open.call_args.kwargs["timeout"])
-        self.assertEqual(0.8, result["answers"]["q"]["noul"])
-
-    def test_documented_score_wire_format_and_configured_timeout(self):
-        questions = {"frustration": {"type": "score", "instructions": "How frustrated?",
-                                     "criteria": ["Calm", "Frustrated", "Very angry"]}}
-        value = {"model": MODEL, "answers": {"frustration": {
-            "type": "score", "score": 1.05, "legend": {"0": "Calm", "1": "Frustrated", "2": "Very angry"},
-            "probabilities": {"0": 0.0, "1": 0.95, "2": 0.05}, "confidence": 0.92}},
-            "usage": {"input_tokens": 304, "output_tokens": 18}}
-        self.opener.open.return_value = self.response(value)
-        settings = load_policy()["transport"] | {"timeout": 3}
-        response = Jev(settings).evaluate("Help! My payouts have been failing for 3 days.", questions)
-        self.assertEqual(value, response)
-        self.assertEqual(3, self.opener.open.call_args.kwargs["timeout"])
-        wire = json.loads(self.opener.open.call_args.args[0].data)
-        self.assertEqual({"state", "model", "questions"}, wire.keys())
-        value["answers"]["frustration"].pop("legend")
-        with self.assertRaisesRegex(ValueError, "legend"):
-            checked_response(value, questions, MODEL)
-
-    def test_rate_limit_retry_is_bounded_and_error_body_never_leaks(self):
-        limited = urllib.error.HTTPError("url", 429, "secret", {"Retry-After": "0.5"}, io.BytesIO(b"secret input"))
-        self.opener.open.side_effect = [limited, self.response(answer({}, self.questions))]
-        with patch("devtools.jev.time.sleep") as sleep:
-            Jev().evaluate({}, self.questions)
-            sleep.assert_called_once_with(0.5)
-        self.opener.open.side_effect = urllib.error.HTTPError("url", 529, "secret", {"Retry-After": "60"}, io.BytesIO(b"secret"))
-        with patch("devtools.jev.time.sleep") as sleep, self.assertRaisesRegex(ValueError, "HTTP 529") as caught:
-            Jev().evaluate({}, self.questions)
-        sleep.assert_not_called()
-        self.assertNotIn("secret", str(caught.exception))
-
-    def test_timeout_redirect_and_oversize_fail_without_external_details(self):
-        for error in [socket.timeout("secret"), urllib.error.URLError("secret"),
-                      urllib.error.HTTPError("url", 302, "secret", {}, io.BytesIO(b"secret"))]:
-            self.opener.open.side_effect = error
-            with self.subTest(error=error), self.assertRaises(ValueError) as caught:
-                Jev().evaluate({}, self.questions)
-            self.assertNotIn("secret", str(caught.exception))
-        self.opener.open.side_effect = None
-        self.opener.open.return_value = self.response(b"x" * (MAX_RESPONSE + 1))
-        with self.assertRaisesRegex(ValueError, "size limit"):
-            Jev().evaluate({}, self.questions)
-        self.opener.open.reset_mock()
-        with self.assertRaisesRegex(ValueError, "input budget"):
-            Jev().evaluate("x" * 30000, self.questions)
-        self.opener.open.assert_not_called()
-
-    def test_missing_key_invalid_json_unknown_options_nan_and_model_mismatch(self):
-        with patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}), self.assertRaisesRegex(ValueError, "TYPESAFE_API_KEY"):
-            Jev().evaluate({}, self.questions)
-        self.opener.open.return_value = self.response(b"not JSON")
-        with self.assertRaisesRegex(ValueError, "invalid JSON"):
-            Jev().evaluate({}, self.questions)
-        questions = {"q": {"type": "choice", "instructions": "Choose", "criteria": {"a": None, "b": None}}}
-        for change in [
-            {"choice": "invented"}, {"confidence": float("nan")}, {"probabilities": {"a": 0.2, "b": 0.2}},
-            {"probabilities": {"a": 1, "invented": 0}},
-        ]:
-            value = answer({}, questions)
-            value["answers"]["q"].update(change)
-            with self.subTest(change=change), self.assertRaises(ValueError):
-                checked_response(value, questions, MODEL)
-        for value in [answer({}, questions) | {"model": "jev-latest"},
-                      answer({}, questions) | {"answers": {}}, answer({}, questions) | {"usage": {}}]:
-            with self.assertRaises(ValueError):
-                checked_response(value, questions, MODEL)

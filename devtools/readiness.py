@@ -8,19 +8,19 @@ import re
 import shutil
 import signal
 import socket
-import sqlite3
 import struct
 import subprocess
 import sys
 import uuid
 from pathlib import Path
 
-from .configuration import ConfigurationState, decision_reservations, selections
+from .configuration import decision_reservations, selections
 from .configuration import resolve as resolve_settings
 from .credentials import read_credential
 from .github_http import GitHubHTTP
 from .harnesses import get as harness_adapter
 from .launch import team_config
+from .store import State
 from .telemetry import clean
 from .workspaces import git
 
@@ -29,7 +29,7 @@ ENTRY = Path(__file__).with_name("run.py")
 
 def config(directory, role=None, job=None):
     """Inspect effective settings without opening the configured credential source."""
-    state = ConfigurationState(directory)
+    state = State(directory)
     team_config(state.directory)
     settings = resolve_settings(state, role=role, job=job)
     result = clean(settings)
@@ -199,7 +199,7 @@ def doctor(directory, online=False):
             "State must be private (mode 700) and outside every source workspace.",
         ),
     )
-    settings_state = ConfigurationState(directory)
+    settings_state = State(directory)
     settings = check("assessment configuration", lambda: [
         resolve_settings(settings_state, **selection) for selection in selections(settings_state)
     ])
@@ -393,9 +393,8 @@ def doctor(directory, online=False):
 
 def evidence(directory, work_order):
     """Summarize existing records without upgrading the DB or certifying a model run."""
-    path = Path(directory).expanduser().resolve() / "live.sqlite3"
-    with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as db:
-        db.row_factory = sqlite3.Row
+    state = State(directory)
+    with state.connect() as db:
         db.execute("BEGIN")
         order = db.execute("SELECT id,title,status FROM work_orders WHERE id=?", (work_order,)).fetchone()
         if not order:
@@ -413,14 +412,19 @@ def evidence(directory, work_order):
         rows = db.execute("SELECT actor,kind,data FROM events WHERE work_order=? ORDER BY id", (work_order,))
         sessions, tools, denied, serena = {}, {}, 0, 0
         runtime, actors = [], set()
+        suppressed = {}
         for row in rows:
             actors.add(row["actor"])
             data = json.loads(row["data"])
+            if data.get("capture") == "suppressed":
+                reason = data.get("reason", "unavailable")
+                suppressed[reason] = suppressed.get(reason, 0) + 1
+                continue
             if row["kind"] in {"runtime_requested", "runtime_observed", "mcp_client", "runtime_selected"}:
                 runtime.append({"actor": row["actor"], "kind": row["kind"], **data})
             if row["kind"] in {"native_session", "channel_ready"} and data.get("native_id"):
                 sessions.setdefault(row["actor"], set()).add(data["native_id"])
-            if row["kind"] == "operation_finished":
+            if row["kind"] == "operation_finished" and isinstance(data.get("capability"), str):
                 tool = data["capability"]
                 tools[tool] = tools.get(tool, 0) + 1
             denied += row["kind"] in {"tool_denied", "native_tool_denied", "native_tool_violation"}
@@ -439,8 +443,9 @@ def evidence(directory, work_order):
             else [],
             "native_sessions": {actor: sorted(ids) for actor, ids in sessions.items()},
             "runtime_records": runtime,
-            "telemetry_files": [str(path.parent / "telemetry" / (actor + ".jsonl")) for actor in sorted(actors)
-                                if (path.parent / "telemetry" / (actor + ".jsonl")).is_file()],
+            "suppressed_events": {"total": sum(suppressed.values()), "reasons": suppressed},
+            "telemetry_files": [str(state.directory / "telemetry" / (actor + ".jsonl")) for actor in sorted(actors)
+                                if (state.directory / "telemetry" / (actor + ".jsonl")).is_file()],
             "capture_notes": "Requested/inherited settings are not confirmed settings. Missing native fields are unknown. "
                              "Wire captures contain exposed protocol traffic; Claude transcript capture begins when "
                              "its hook registers a session transcript. External clients expose only their MCP traffic.",

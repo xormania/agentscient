@@ -19,7 +19,7 @@ from .failures import Failure, failure_info
 from .jev import Jev, checked_questions
 from .jev_config import clean_questions, validate_question
 from .role_packages import adapter, require_capability
-from .store import canonical, stamp
+from .store import canonical, digest, stamp
 from .telemetry import clean
 from .workspaces import Workspaces, git
 
@@ -63,10 +63,6 @@ def capabilities(spec, settings=None):
               "questions": {"type": "array", "minItems": 1, "maxItems": assessment["max_questions"], "items": question},
               "proposal": {**text, "maxLength": 2000}}, readonly=True),
     ]
-
-
-def digest(value):
-    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def excerpt(data, offset, limit):

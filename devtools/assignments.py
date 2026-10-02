@@ -71,6 +71,16 @@ def snapshot(scope):
     return result
 
 
+def current_update(db, scope, *, kind=None):
+    """Latest retained report for this exact role and work binding."""
+    for row in db.execute("SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? "
+                          "AND (? IS NULL OR kind=?) ORDER BY id DESC",
+                          (scope["member"], scope["work_order"], scope["job"], kind, kind)):
+        if row["binding"] and json.loads(row["binding"]) == snapshot(scope):
+            return dict(row)
+    return None
+
+
 def prepare(db, control, scope, item, existing=None):
     from .workspaces import Workspaces
 

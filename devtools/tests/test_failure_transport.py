@@ -93,6 +93,7 @@ class FailureTransportTests(unittest.TestCase):
         check.assert_not_called()
         result = operations.get(ident)
         self.assertEqual("failed", result["state"])
+        self.assertIn("role package does not permit work_check", result["error"])
         self.assertEqual("not_permitted", result["failure"]["category"])
         self.assertEqual("capability_not_permitted", result["failure"]["reason"])
         notice = json.loads(self.store.inbox("xo")["messages"][-1]["body"])

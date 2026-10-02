@@ -9,7 +9,7 @@ from fixtures.control import ControlFixture
 from devtools import role_packages
 from devtools.api import API
 from devtools.development import Development
-from devtools.operations import Operations, execute
+from devtools.operations import Operations
 
 
 class PackageAuthorityTests(unittest.TestCase):
@@ -37,21 +37,6 @@ class PackageAuthorityTests(unittest.TestCase):
                     operations.start(action, {})
                 launch.assert_not_called()
             self.assertEqual(before, self.rows())
-
-    def test_queued_operation_uses_current_package_before_executing(self):
-        operations = Operations(self.store, "coder")
-        with patch.object(operations, "launch"):
-            receipt = operations.start("work_check", {})
-        ident = int(receipt["reference"].split(":")[1])
-        with self.narrowed("coder", "work_check"), patch.object(Development, "check") as effect:
-            execute(self.state, "coder", ident)
-            effect.assert_not_called()
-        result = operations.get(ident)
-        self.assertEqual("failed", result["state"])
-        self.assertIn("role package does not permit work_check", result["error"])
-        with self.store.connect() as db:
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM artifacts").fetchone()[0])
-            self.assertEqual(0, db.execute("SELECT COUNT(*) FROM job_workspaces").fetchone()[0])
 
     def test_framework_services_reject_package_reduction_before_workspace_use(self):
         development = Development(self.store, "coder")

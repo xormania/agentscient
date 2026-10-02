@@ -133,7 +133,29 @@ a separate checkout at the exact runtime SHA selected by the fixture workflow.
 That immutable runtime path lives under
 `${XDG_STATE_HOME:-$HOME/.local/state}/agentscient-acceptance/runtimes/<SHA>`.
 It never changes the branch of the checkout containing these scripts or repoints
-a runtime recorded by an older run. An explicit `--runtime` must match the pin.
+a runtime recorded by an older run. An explicit `--runtime` must match the selected
+revision.
+
+To test a newer reviewed Agentscient commit before the fixture updates its reference,
+use `--runtime-revision` with its full 40-character commit SHA. Select a commit whose
+Agentscient CI has passed. From a checkout at that verified commit:
+
+```bash
+verified_revision=$(git rev-parse HEAD)
+bash devtools/scripts/acceptance.sh preview --fixture ../fixture-ag --runtime-revision "$verified_revision"
+bash devtools/scripts/acceptance.sh update --fixture ../fixture-ag --runtime-revision "$verified_revision"
+bash devtools/scripts/acceptance.sh check --online --fixture ../fixture-ag --runtime-revision "$verified_revision"
+bash devtools/scripts/acceptance.sh prepare --fixture ../fixture-ag --runtime-revision "$verified_revision" \
+    --run-dir "$HOME/agentscient-acceptance-new-runtime-001"
+```
+
+Repeat the revision on each new-run command; omitting it selects the fixture workflow
+reference again. Preview and setup print both revisions. The override provisions its
+own SHA-specific checkout and does not change the fixture workflow or earlier runs.
+Fixture CI continues to check its configured reference runtime and the independent
+product gates; it does not establish that the newly selected runtime passed its own
+CI. The new run records the actual runtime commit/tree, and its frozen verifier rejects
+later runtime changes. Existing-run commands do not accept `--runtime-revision`.
 
 `check` uses disposable private state and the existing readiness/configuration
 services. `--online` adds read-only GitHub checks and a small provider-backed Jev

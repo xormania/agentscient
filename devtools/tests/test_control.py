@@ -12,7 +12,9 @@ from devtools.control import Control
 
 
 class ControlTests(ControlFixture, unittest.TestCase):
-
+    def setUp(self):
+        super().setUp()
+        self.operator = self.client("owner", operator=True)
 
     def test_default_surface_supplies_brief_and_rejects_bypasses(self):
         coder = self.client("coder")

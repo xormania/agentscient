@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from contextlib import ExitStack
 
 from . import launch
 from .control import BRIEF_FIELDS, Control, binding
-from .role_packages import adapter, catalog, default_role, names_for_adapter, require_capability
-from .store import canonical, stamp
+from .role_packages import adapter, assignable_roles, catalog, default_role, names_for_adapter, require_capability
+from .store import Store, canonical, digest, stamp
 from .work import Work, record
 
 
@@ -18,7 +17,7 @@ def role_tools():
             if package["mcp"]["command"]}
 
 
-def capabilities(spec):
+def capabilities(spec, coordinator=None):
     from .planning import capabilities as planning_capabilities
 
     text = {"type": "string", "minLength": 1, "maxLength": 2000}
@@ -46,7 +45,7 @@ def capabilities(spec):
                         "properties": {
                             "name": name,
                             "job": {**name, "description": "Job name from the adopted plan. Omit for the XO's planner."},
-                            "role": {"type": "string", "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo", "arbitrator"}]},
+                            "role": {"type": "string", "enum": list(assignable_roles(coordinator))},
                             "plan": {"type": "string", "pattern": "^update:[1-9][0-9]*$", "maxLength": 80},
                             "editable_paths": {"type": "array", "maxItems": 30, "items": {**name, "maxLength": 300},
                                                "description": "Assigned files or directories within role paths. Missing paths are files; end a new directory path with '/'. List new files explicitly when their parent contains protected paths."},
@@ -89,7 +88,7 @@ def capabilities(spec):
                 "assignment": {**name, "description": "A named role assignment within the job; complete releases its session and retains its result."},
                 "role": {
                     "type": "string",
-                    "enum": [r for r in catalog()["roles"] if adapter(r) not in {"co", "xo", "arbitrator"}],
+                    "enum": list(assignable_roles(coordinator)),
                     "description": "Optional collaborator role when a job has both a producer and auditor.",
                 },
                 "direction": text,
@@ -104,10 +103,6 @@ def capabilities(spec):
             ("assessment",),
         ),
     ] + planning_capabilities(spec)
-
-
-def digest(value):
-    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def coordination_brief(scope):
@@ -236,7 +231,8 @@ class Commands:
 
     @staticmethod
     def _touch(db, member):
-        db.execute("UPDATE member_bindings SET revision=revision+1,updated=? WHERE member=?", (stamp(), member))
+        revision = Store.next_binding_revision(db, member)
+        db.execute("UPDATE member_bindings SET revision=?,updated=? WHERE member=?", (revision, stamp(), member))
 
     @staticmethod
     def _brief(db, scope):
@@ -535,20 +531,21 @@ class Commands:
             {"name": scope["member"], "harness": session["harness"]},
         )
         job = record(db, "jobs", scope["job"]) if scope["job"] else None
-        update = db.execute(
-            "SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? "
-            "AND (? IS NULL OR json_extract(binding,'$.assignment_id')=?) ORDER BY id DESC LIMIT 1",
-            (scope["member"], scope["work_order"], scope["job"], scope.get("assignment_id"), scope.get("assignment_id")),
-        ).fetchone()
+        from .assignments import current_update
+
+        update = current_update(db, current)
         usage = db.execute(
-            "SELECT id,at,data FROM events WHERE actor=? AND work_order=? AND job IS ? AND kind='native_usage' ORDER BY id DESC LIMIT 1",
-            (scope["member"], scope["work_order"], scope["job"]),
+            "SELECT id,at,data FROM events WHERE actor=? AND work_order=? AND job IS ? AND kind='native_usage' "
+            "AND json_extract(data,'$.generation') IS ? ORDER BY id DESC LIMIT 1",
+            (scope["member"], scope["work_order"], scope["job"], session["generation"]),
         ).fetchone()
         observed_usage = None
-        if usage:
-            value = json.loads(usage["data"]).get("observation")
+        data = json.loads(usage["data"]) if usage else {}
+        if data.get("observation") is not None:
+            value = data.get("observation")
             encoded = canonical(value)
-            observed_usage = {"at": usage["at"], "observation": value, "truncated": False}
+            observed_usage = {"at": usage["at"], "observation": value, "truncated": False,
+                              "generation": data.get("generation"), "native_id": data.get("native_id")}
             if len(encoded) > 3000:
                 observed_usage.update(observation=None, preview=encoded[:3000], truncated=True)
         return {

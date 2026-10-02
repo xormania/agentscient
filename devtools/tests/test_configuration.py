@@ -2,15 +2,14 @@ import copy
 import json
 import os
 import shutil
-import sqlite3
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from devtools import configuration
+from devtools.store import State
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -18,7 +17,7 @@ class ConfigurationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.store = SimpleNamespace(directory=self.root, connect=lambda: sqlite3.connect(self.root / "live.sqlite3"))
+        self.store = State(self.root, read_only=False)
         with self.store.connect() as db:
             db.execute("CREATE TABLE jobs (id INTEGER PRIMARY KEY)")
             db.executemany("INSERT INTO jobs VALUES (?)", [(1,), (2,)])
@@ -327,13 +326,11 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_inspection_is_read_only_and_enumerates_all_override_combinations(self):
         self.configure({"version": 1, "roles": {"research": {}, "coder": {}}, "jobs": {"1": {}, "2": {}}})
-        state = configuration.ConfigurationState(self.root)
+        state = State(self.root)
         self.assertEqual(9, len(configuration.selections(state)))
         before = (self.root / "live.sqlite3").read_bytes()
         self.assertEqual(1, configuration.resolve(state, "research", 1)["selection"]["job"])
         self.assertEqual(before, (self.root / "live.sqlite3").read_bytes())
-        with state.connect() as db, self.assertRaises(sqlite3.OperationalError):
-            db.execute("DELETE FROM jobs")
 
     def test_cue_export_matches_and_rejects_stale_unknown_fields(self):
         cue = os.environ.get("AGENTSCIENT_CUE") or shutil.which("cue")

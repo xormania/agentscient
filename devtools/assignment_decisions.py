@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 
 from .advice import Advice
 from .configuration import resolve as configuration
 from .control import binding
 from .failures import Failure
-from .role_packages import adapter, catalog
-from .store import canonical
+from .role_packages import adapter, assignable_roles, catalog
+from .store import digest
 from .work import record
-
-
-def fingerprint(value):
-    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def select_bound_runtime(store, scope):
@@ -208,7 +203,7 @@ class AssignmentDecisions:
         job = descriptor["job"]
         work = ({key: job[key] for key in ("id", "objective", "done_when", "constraints", "assignment", "dependencies")}
                 if job else None)
-        return fingerprint([mission, descriptor["item"], descriptor["details"], work,
+        return digest([mission, descriptor["item"], descriptor["details"], work,
                             policy["revision"], context["runtime_revision"]])
 
     def prepare(self, work, config):
@@ -234,7 +229,8 @@ class AssignmentDecisions:
                     if len(work) > policy["assignment"]["max_work"] or len(context["jobs"]) > policy["assignment"]["max_jobs"]:
                         raise Failure("Assignment selection exceeds the configured work/context budget.",
                                       category="invalid_request", reason="assignment_budget_exceeded")
-                    allowed = policy["assignment"]["roles"] or list(catalog()["roles"])
+                    eligible = assignable_roles(scope["role"])
+                    allowed = policy["assignment"]["roles"] or eligible
                     structural = adapter(item["role"])
                     for role in allowed:
                         behavior = adapter(role)
@@ -244,7 +240,7 @@ class AssignmentDecisions:
                                 "SELECT 1 FROM role_assignments WHERE work_order=? AND job IS ? AND name=? COLLATE NOCASE AND role=?",
                                 (scope["work_order"], job["id"] if job else None, item["name"].strip(), role)).fetchone():
                             continue  # Selection cannot silently revise another role's responsibility.
-                        if behavior in {"co", "xo", "arbitrator"}:
+                        if role not in eligible:
                             continue
                         if structural in {"planner", "nco"}:
                             if behavior != structural:
@@ -266,7 +262,7 @@ class AssignmentDecisions:
                                  "marker": marker if reuse else None, "enabled": enabled and not reuse,
                                  "candidates": candidates, "runtime": None, "receipts": [], "existing": existing})
 
-        identity = fingerprint([context, work])
+        identity = digest([context, work])
         selector = Decisions(self.store, self.member)
         reserved = set()
         reserved_roles = {}

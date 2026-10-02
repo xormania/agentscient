@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import re
 
-from .advice import digest
 from .configuration import decision_rule, resolve
 from .control import Control, binding
 from .decisions import Decisions
@@ -19,6 +18,7 @@ from .onboarding import document
 from .recovery_actions import placeholders, substitute
 from .role_packages import adapter
 from .role_packages import role as role_package
+from .store import digest
 from .work import record
 
 

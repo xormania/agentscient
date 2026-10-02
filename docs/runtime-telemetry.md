@@ -10,8 +10,16 @@ Rejected requests with no resolved scope are marked `unresolved`. Directional
 `wire_sequence` values preserve transport order across concurrent request handling;
 outbound recording and transmission share one lock.
 Files are owner-readable. They contain task content; keep the state directory private.
-Credential keys, known secret environment values and bearer credentials are redacted
-in events and traces, including JSON nested in MCP text results. This is a credential
+Credential keys, known secret environment values, configured provider credential
+values and bearer credentials are redacted in events and traces, including JSON
+nested in MCP text results. Provider references from every project, role and job
+override are read at capture time, so file rotation and configuration changes take
+effect without restarting; filtering does not alter transmitted arguments. An
+invalid or unreadable credential source suppresses the captured payload with
+`credential_filter_unavailable` while preserving the event envelope and normal
+operation outcome. Evidence summaries count these captures under `suppressed_events`;
+they do not count them as observed runtime settings, usage or completed calls. A
+missing credential remains an ordinary absence. This is a credential
 filter, not a promise to identify every secret someone types into prose.
 
 Codex and Grok record incoming and outgoing native protocol frames, MCP traffic,
@@ -34,6 +42,10 @@ routing. Missing fields stay unknown. MCP client names and versions are retained
 separately and are not used to guess a model. Session, usage, failure and delivery
 events link to the same generation. Queued, delivering, submitted and acknowledged
 messages remain distinct; delivery events retain their attempt ID and safe content.
+Claude transcript readers stop at generation replacement. `monitor` projects
+reports only from the current work binding and usage only from the current session
+generation; earlier records remain available as history. Usage projections retain
+their observed generation and native conversation identity.
 
 Enabled Jev evaluations emit `jev_evaluation` events in the same work scope. These
 record the purpose, input fingerprint, model, elapsed time, cache reuse and

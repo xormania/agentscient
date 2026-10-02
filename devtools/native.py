@@ -14,7 +14,7 @@ from collections import deque
 
 from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
-from .profiles import CODEX_FEATURES, permitted, prepare, toml, tool_catalogue
+from .profiles import CODEX_FEATURES, claude_command, permitted, prepare, toml, tool_catalogue
 from .rpc import RPC
 from .serena_provider import SERVER as SERENA_SERVER
 from .serena_provider import TOOL as SERENA_TOOL
@@ -57,7 +57,7 @@ class Native:
         self.tasks = set()
 
     def event(self, kind, **data):
-        self.store.event(self.member, kind, **self.trace.clean(data))
+        self.store.event(self.member, kind, **data)
 
     def state(self, state, **extra):
         self.store.session(self.member, generation=self.generation, state=state, **extra)
@@ -439,47 +439,15 @@ class Native:
 def claude(directory, member, config, generation):
     store = Store(directory)
     private, env, _ = prepare(directory, member, config["harness"], config=config)
-    native_id = str(uuid.uuid4())
-    debug = private / "native-debug.log"
-    debug.write_text("")
-    debug.chmod(0o600)
-    channel_log = ClaudeChannelLog(debug)
+    argv, native_id = claude_command(
+        config, private, API(directory, member).instructions(),
+        tool_catalogue(directory, member, package_ceiling=True),
+        "Stay in this conversation and handle live peer messages through " + SERVER + ".",
+    )
+    channel_log = ClaudeChannelLog(private / "native-debug.log")
     trace = Trace(directory, member, component="claude", context=lambda: context(store, member))
     transcript = Transcript(store, member, trace)
     requested(store, member, config, private)
-    argv = [
-        config["binary"],
-        "--session-id",
-        native_id,
-        "--setting-sources",
-        "",
-        "--disable-slash-commands",
-        "--strict-mcp-config",
-        "--mcp-config",
-        str(private / "mcp.json"),
-        "--settings",
-        str(private / "settings.json"),
-        "--debug-file",
-        str(debug),
-        "--dangerously-load-development-channels",
-        "server:" + SERVER,
-        "--tools",
-        "",
-        "--disallowedTools",
-        "Agent,Task",
-        "--allowedTools",
-        ",".join(
-            ["mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()]
-            + (["mcp__serena__serena_repl"] if serena_enabled(store, API(directory, member).control.snapshot()) else [])
-        ),
-        "--append-system-prompt",
-        API(directory, member).instructions(),
-    ]
-    if config.get("model"):
-        argv += ["--model", config["model"]]
-    if config.get("reasoning"):
-        argv += ["--effort", config["reasoning"]]
-    argv += ["--", "Stay in this conversation and handle live peer messages through " + SERVER + "."]
     process = subprocess.Popen(argv, cwd=config["workspace"], env=env, start_new_session=True)
     from .processes import register
 

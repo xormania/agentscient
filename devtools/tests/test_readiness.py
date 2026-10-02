@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import sqlite3
 import struct
 import subprocess
 import sys
@@ -404,7 +405,23 @@ class ReadinessTests(unittest.TestCase):
                 "evidence": {"name": "result.txt", "content": "Observed behavior"},
             },
         )
-        report = readiness.evidence(self.state, order)
+        connections = []
+        connect = sqlite3.connect
+
+        def track_connection(*args, **kwargs):
+            connection = connect(*args, **kwargs)
+            connections.append(connection)
+            self.addCleanup(connection.close)
+            return connection
+
+        with patch("devtools.store.sqlite3.connect", side_effect=track_connection):
+            report = readiness.evidence(self.state, order)
+            with self.assertRaisesRegex(ValueError, "No recorded work order"):
+                readiness.evidence(self.state, order + 99)
+        self.assertEqual(2, len(connections))
+        for connection in connections:
+            with self.assertRaisesRegex(sqlite3.ProgrammingError, "closed"):
+                connection.execute("SELECT 1")
         self.assertEqual({"coder": ["fixture-thread"]}, report["native_sessions"])
         self.assertEqual(1, report["successful_serena_calls"])
         self.assertEqual(1, report["artifact_count"])
@@ -412,8 +429,37 @@ class ReadinessTests(unittest.TestCase):
         self.assertNotIn("passed", report)
         self.assertIn("does not certify", report["interpretation"])
         self.assertTrue(all(row["acknowledged"] == 0 for row in report["messages"]))
-        with self.assertRaisesRegex(ValueError, "No recorded work order"):
-            readiness.evidence(self.state, order + 99)
+
+    def test_suppressed_capture_remains_readable_after_credential_repair(self):
+        order = self.api.control.snapshot()["work_order"]
+        before = readiness.evidence(self.state, order)
+        key = self.state / "provider.key"
+        key.write_text("fixture-evidence-key")
+        key.chmod(0o644)
+        policy = self.state / "capture-policy.json"
+        policy.write_text(json.dumps({"version": 1, "project": {
+            "connection": {"credential": {"file": str(key)}}}}))
+        team_path = self.state / "team.json"
+        team = json.loads(team_path.read_text())
+        team["project"]["configuration_file"] = str(policy)
+        team_path.write_text(json.dumps(team))
+        for kind, payload in (
+            ("operation_finished", {"capability": "work_context"}),
+            ("serena_call", {"success": True}),
+            ("native_session", {"native_id": "unavailable-conversation"}),
+            ("runtime_observed", {"settings": {"model": "unavailable-model"}}),
+        ):
+            self.store.event("coder", kind, work_order=order, **payload)
+        key.chmod(0o600)
+        report = readiness.evidence(self.state, order)
+        for field in ("completed_tool_calls", "successful_serena_calls", "native_sessions", "runtime_records"):
+            self.assertEqual(before[field], report[field], field)
+        self.assertEqual({"total": 4, "reasons": {"credential_filter_unavailable": 4}}, report["suppressed_events"])
+        self.store.event("coder", "operation_finished", capability="work_context", work_order=order)
+        recovered = readiness.evidence(self.state, order)
+        self.assertEqual(before["completed_tool_calls"].get("work_context", 0) + 1,
+                         recovered["completed_tool_calls"]["work_context"])
+        self.assertEqual(report["suppressed_events"], recovered["suppressed_events"])
 
 
 class ManagedPlatformTests(unittest.TestCase):

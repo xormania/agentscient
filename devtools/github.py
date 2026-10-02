@@ -11,7 +11,7 @@ import zipfile
 
 from .artifacts import Artifacts
 from .github_http import GitHubError, GitHubHTTP
-from .store import UNSET, canonical, stamp
+from .store import UNSET, canonical, digest, stamp
 from .work import Work, record
 
 PASS = {"success", "neutral", "skipped"}
@@ -566,9 +566,9 @@ class GitHub:
         }
         if _observe:
             # Watches need changes across all checks/runs, including outside the agent's preview page.
-            result["_observation"] = hashlib.sha256(canonical([
+            result["_observation"] = digest([
                 sorted(all_checks, key=canonical), sorted(runs.values(), key=canonical),
-            ]).encode()).hexdigest()
+            ])
         return result
 
     def ci_failures(self, context, run, check=None, attempt=None, page=1, log_offset=None, annotation_page=1):
@@ -930,7 +930,7 @@ class GitHub:
                     parent = binding(db, scope["reports_to"])
                     if includes(parent, watch["work_order"], watch["job"]):
                         recipients.add(parent["member"])
-            signature = hashlib.sha256(canonical([result, findings, sorted(recipients)]).encode()).hexdigest()
+            signature = digest([result, findings, sorted(recipients)])
             sequence = current["sequence"]
             if signature != current["signature"]:
                 sequence += 1

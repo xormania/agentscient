@@ -1,7 +1,8 @@
-"""Durable live-session messages and measured events. No task gates."""
+"""SQLite state access, schema and durable session records."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -14,7 +15,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 
 
 def stamp():
@@ -23,6 +24,11 @@ def stamp():
 
 def canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def digest(value):
+    """Fingerprint canonical state with the same bytes across service boundaries."""
+    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def identifier(value):
@@ -77,15 +83,39 @@ WORK_SCHEMA = (
 )
 
 
-class Store:
-    def __init__(self, directory):
+class State:
+    """State location and SQLite lifetime, read-only unless explicitly writable.
+
+    Opening a view never creates or upgrades a team's schema. Runtime services
+    use Store, which owns initialization and migration in addition to this access.
+    """
+
+    def __init__(self, directory, *, read_only=True):
         self.directory = Path(directory).expanduser().resolve()
         self.path = self.directory / "live.sqlite3"
+        self.read_only = read_only
+
+    @contextmanager
+    def connect(self):
+        target = self.path.as_uri() + "?mode=ro" if self.read_only else self.path
+        connection = sqlite3.connect(target, timeout=10, uri=self.read_only)
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
+
+class Store(State):
+    def __init__(self, directory):
+        super().__init__(directory, read_only=False)
         if self.path.is_file():
             self.upgrade()
 
     def upgrade(self):
-        """Add work tracking to existing teams without rebuilding their state."""
+        """Upgrade retained state atomically without rebuilding its records."""
         with self.connect() as db:
             if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
                 return
@@ -132,6 +162,7 @@ class Store:
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
+                "members": {"binding_revision": "INTEGER NOT NULL DEFAULT 0"},
                 "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT"},
                 "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'", "dependencies": "TEXT NOT NULL DEFAULT '[]'"},
                 "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
@@ -281,18 +312,19 @@ class Store:
                 result_update INTEGER NOT NULL REFERENCES work_updates(id), jobs TEXT NOT NULL,
                 mission TEXT NOT NULL, adopted_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL,
                 PRIMARY KEY(work_order,revision))""")
+            # Retire every retained incarnation, including unbound members, but
+            # preserve live snapshots and the validity of their current proof.
+            for table, owner, revision in (
+                ("member_bindings", "member", "revision"),
+                ("work_updates", "actor", "binding_revision"),
+                ("operations", "member", "json_extract(binding,'$.revision')"),
+                ("decisions", "member", "json_extract(binding,'$.revision')"),
+            ):
+                db.execute(
+                    "UPDATE members SET binding_revision=max(binding_revision,coalesce((SELECT max(" + revision + ") "
+                    "FROM " + table + " WHERE " + owner + "=members.name),0))"
+                )
             db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
-
-    @contextmanager
-    def connect(self):
-        connection = sqlite3.connect(self.path, timeout=10)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        try:
-            with connection:
-                yield connection
-        finally:
-            connection.close()
 
     def initialize(self, members, *, runtime=False):
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -314,6 +346,18 @@ class Store:
                 )
         self.path.chmod(0o600)
         self.upgrade()
+
+    @staticmethod
+    def next_binding_revision(db, member):
+        """Allocate an incarnation inside the binding change's transaction."""
+        changed = db.execute(
+            "UPDATE members SET binding_revision=max(binding_revision,coalesce((SELECT revision "
+            "FROM member_bindings WHERE member=members.name),0))+1 WHERE name=?",
+            (member,),
+        ).rowcount
+        if not changed:
+            raise ValueError("Unknown member")
+        return db.execute("SELECT binding_revision FROM members WHERE name=?", (member,)).fetchone()[0]
 
     @staticmethod
     def current_work(db, actor, work_order=UNSET, job=UNSET):
@@ -349,9 +393,8 @@ class Store:
         finally:
             REQUEST_WORK.reset(token)
 
-    @staticmethod
-    def _event(db, actor, kind, data):
-        from .telemetry import clean
+    def _event(self, db, actor, kind, data):
+        from .telemetry import clean_for_state
 
         data = dict(data)
         work_order, job = Store.current_work(db, actor, data.pop("work_order", UNSET), data.pop("job", UNSET))
@@ -362,7 +405,7 @@ class Store:
                     data.setdefault(field, member[field])
         return db.execute(
             "INSERT INTO events(at,actor,kind,data,work_order,job) VALUES (?,?,?,?,?,?)",
-            (stamp(), actor, kind, canonical(clean(data)), work_order, job),
+            (stamp(), actor, kind, canonical(clean_for_state(self.directory, data)), work_order, job),
         ).lastrowid
 
     def event(self, actor, kind, **data):

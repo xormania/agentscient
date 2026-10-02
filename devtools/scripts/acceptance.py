@@ -90,6 +90,22 @@ def runtime_pin(fixture):
     return next(iter(pins))
 
 
+def exact_revision(value):
+    if not SHA.fullmatch(value):
+        raise argparse.ArgumentTypeError("use a full 40-character lowercase commit SHA")
+    return value
+
+
+def selected_revision(args, fixture):
+    reference = runtime_pin(fixture)
+    revision = args.runtime_revision or reference
+    print("Fixture workflow runtime: " + reference)
+    print("Selected runtime revision: " + revision + (" (explicit)" if args.runtime_revision else " (fixture default)"))
+    if revision != reference:
+        print("Fixture CI keeps its reference runtime; select an explicit revision whose Agentscient CI passed.")
+    return revision
+
+
 def runtime_path(args, pin):
     if args.runtime:
         return path(args.runtime)
@@ -154,7 +170,7 @@ def update(args, fixture):
         git(fixture, "fetch", "--no-tags", "origin", "refs/heads/main:refs/remotes/origin/main")
         git(fixture, "merge-base", "--is-ancestor", "HEAD", "refs/remotes/origin/main")
         git(fixture, "merge", "--ff-only", "refs/remotes/origin/main")
-    pin = runtime_pin(fixture)
+    pin = selected_revision(args, fixture)
     runtime = runtime_path(args, pin)
     if runtime.exists():
         repository(runtime, RUNTIME_REPOSITORY)
@@ -171,10 +187,10 @@ def update(args, fixture):
             git(staged, "fetch", "--no-tags", "origin", pin)
             git(staged, "checkout", "--detach", pin)
             if git(staged, "rev-parse", "HEAD") != pin:
-                raise SetupError("Downloaded runtime does not match the fixture pin.")
+                raise SetupError("Downloaded runtime does not match the selected revision.")
             staged.rename(runtime)
     print("Updated fixture main: " + str(fixture))
-    print("Pinned runtime: " + str(runtime))
+    print("Selected runtime: " + str(runtime))
     print("Next: check --online. No active run or source-runtime branch was changed.")
     return 0
 
@@ -358,14 +374,19 @@ def preview(args, fixture):
     print("Preview only: no credentials read, processes launched, network calls or files changed.")
     print("Fixture: " + str(fixture))
     if fixture.is_dir():
-        pin = runtime_pin(fixture)
-        print("Runtime pin: " + pin)
+        pin = selected_revision(args, fixture)
         runtime = runtime_path(args, pin)
         print("Runtime: " + str(runtime))
         php, composer = development_commands(args, runtime)
         print("PHP: " + php + "; Composer: " + composer)
+    elif args.runtime_revision:
+        print("Fixture workflow runtime: checked after update clones main")
+        print("Selected runtime revision: " + args.runtime_revision + " (explicit)")
+        print("Runtime: " + str(runtime_path(args, args.runtime_revision)))
     else:
         print("Runtime: selected from fixture workflow after update clones main")
+    if args.runtime_revision:
+        print("Repeat --runtime-revision " + args.runtime_revision + " on update, check, and prepare; it is not saved as a new default.")
     configuration = configuration_path(args)
     print("Configuration: " + (str(configuration) if configuration else
           "imported from --runtime-from" if args.runtime_from else "runtime defaults (TYPESAFE_API_KEY environment reference)"))
@@ -396,7 +417,9 @@ def parser():
             item.add_argument("--run-dir", required=True)
         else:
             item.add_argument("--fixture", help="fixture checkout (default: sibling fixture-ag or agentscient-test-repo)")
-            item.add_argument("--runtime", help="clean checkout at fixture pin (default: separate revision-specific state directory)")
+            item.add_argument("--runtime", help="clean checkout at selected revision (default: separate revision-specific state directory)")
+            item.add_argument("--runtime-revision", type=exact_revision,
+                              help="explicit full commit SHA for a new run (default: fixture workflow pin)")
         if name in {"preview", "check", "prepare"}:
             item.add_argument("--configuration", help="private semantic overlay (default: ~/.config/agentscient/configuration.json)")
             group = item.add_mutually_exclusive_group()
@@ -436,11 +459,11 @@ def main(argv=None):
             return update(args, fixture)
         repository(fixture, FIXTURE_REPOSITORY)
         git(fixture, "merge-base", "--is-ancestor", "HEAD", "refs/remotes/origin/main")
-        pin = runtime_pin(fixture)
+        pin = selected_revision(args, fixture)
         runtime = runtime_path(args, pin)
         repository(runtime, RUNTIME_REPOSITORY)
         if git(runtime, "rev-parse", "HEAD") != pin:
-            raise SetupError("Runtime does not match fixture pin. Run update with a new runtime directory.")
+            raise SetupError("Runtime does not match selected revision. Run update with a new runtime directory.")
         runner = load_fixture(fixture)
         if args.command == "prepare":
             return prepare(args, fixture, runtime, runner)

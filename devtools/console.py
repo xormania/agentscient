@@ -11,12 +11,13 @@ import signal
 import sys
 import termios
 import time
+import tomllib
 import tty
 import uuid
 
-from .api import API, SERVER, TOOLS
+from .api import API, SERVER
 from .launch import team_config
-from .profiles import prepare, retain_login, toml
+from .profiles import claude_command, prepare, retain_login, toml, tool_catalogue
 from .runtime import co_role, resolve
 from .store import Store
 from .telemetry import Trace, Transcript, context, requested
@@ -55,36 +56,8 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
             argv += ["-c", key + "=" + toml(value)]
         argv += ["--", prompt]
     elif harness == "claude":
-        native_id = str(uuid.uuid4())
-        debug = private / "native-debug.log"
-        debug.write_text("")
-        debug.chmod(0o600)
-        argv += [
-            "--session-id",
-            native_id,
-            "--setting-sources",
-            "",
-            "--disable-slash-commands",
-            "--strict-mcp-config",
-            "--mcp-config",
-            str(private / "mcp.json"),
-            "--settings",
-            str(private / "settings.json"),
-            "--debug-file",
-            str(debug),
-            "--dangerously-load-development-channels",
-            "server:" + SERVER,
-            "--tools",
-            "",
-            "--allowedTools",
-            ",".join("mcp__" + SERVER + "__" + row["name"] for row in TOOLS),
-            "--append-system-prompt",
-            instructions,
-        ]
-        for source, flag in (("model", "--model"), ("reasoning", "--effort")):
-            if config.get(source):
-                argv += [flag, config[source]]
-        argv += ["--", prompt]
+        return claude_command(config, private, instructions,
+                              tool_catalogue(directory, member, package_ceiling=True), prompt)
     elif harness == "grok":
         native_id = str(uuid.uuid4())
         # Isolated HOME and cwd prevent project/user MCP and plugin discovery.
@@ -92,8 +65,9 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
             name: {key: False for key in ("skills", "rules", "agents", "mcps", "hooks")}
             for name in ("claude", "cursor")
         }
-        settings = {"mcp_servers": {SERVER: server}, "compat": compatibility}
         path = private / "config.toml"
+        settings = tomllib.loads(path.read_text())
+        settings.update(mcp_servers={SERVER: server}, compat=compatibility)
         path.write_text("\n".join(key + " = " + toml(value) for key, value in settings.items()) + "\n")
         path.chmod(0o600)
         argv += [

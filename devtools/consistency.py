@@ -10,6 +10,7 @@ import argparse
 import json
 
 from . import adapters, configuration, role_packages
+from .store import State
 
 
 def _tools():
@@ -60,7 +61,7 @@ def _team(directory):
     from .launch import team_config
     from .runtime import load as runtime
 
-    state = configuration.ConfigurationState(directory)
+    state = State(directory)
     team = team_config(state.directory)
     variants = [configuration.resolve(state, **selection) for selection in configuration.selections(state)]
     profiles = runtime(state.directory)[0]["profiles"] if team.get("runtime") else None

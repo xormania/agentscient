@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import threading
 from contextvars import ContextVar
@@ -10,7 +9,7 @@ from contextvars import ContextVar
 from .artifacts import Artifacts
 from .role_packages import adapter, catalog, names_for_adapter
 from .role_views import RoleSet
-from .store import canonical, stamp
+from .store import canonical, digest, stamp
 from .work import Work, record
 
 ROLES = RoleSet()
@@ -195,7 +194,7 @@ class Control:
         fields = (role, work_order, job, reports_to, brief)
         if old and tuple(old[k] for k in ("role", "work_order", "job", "reports_to", "brief")) == fields:
             return old
-        revision = old["revision"] + 1 if old else 1
+        revision = self.store.next_binding_revision(db, member)
         db.execute(
             "INSERT INTO member_bindings(member,role,work_order,job,reports_to,brief,revision,updated) "
             "VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(member) DO UPDATE SET role=excluded.role,"
@@ -593,7 +592,7 @@ class Control:
             payload.append(captured)
         if evaluation:
             payload.append(evaluation)
-        fingerprint = hashlib.sha256(canonical(payload).encode()).hexdigest()
+        fingerprint = digest(payload)
         with self.store.connect() as db:
             if binding(db, self.member) != scope:
                 raise ValueError("Your role or work changed during this report; read your current context and retry.")

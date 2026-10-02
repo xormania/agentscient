@@ -16,7 +16,6 @@ import os
 import re
 import sqlite3
 import subprocess
-from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -368,6 +367,54 @@ def _paths(settings, base):
     return settings
 
 
+def credential_references(directory):
+    """Read all declared credential selectors without resolving work or reading keys.
+
+    Capture happens before request scope can be trusted, so every role/job
+    override must be filtered. Reuse the configuration path rules without a
+    database lookup or full policy validation on each telemetry frame.
+    """
+    directory = Path(directory)
+    team_path = directory / "team.json"
+    team = _read(team_path) if team_path.is_file() else {}
+    if not isinstance(team, dict) or not isinstance(team.get("project", {}), dict):
+        raise ValueError("Team configuration needs a project object")
+    default_connection = defaults()["connection"]
+    settings = [default_connection]
+    project = team.get("project", {})
+    configured = project.get("configuration_file")
+    if "configuration_file" in project and configured is None:
+        raise ValueError("project.configuration_file must select an operator JSON file or be omitted")
+    base = directory
+    if configured is not None:
+        _text(configured, "project.configuration_file", 4096)
+        path = Path(configured).expanduser()
+        path = (directory / path if not path.is_absolute() else path).resolve()
+        overlay = _read(path)
+        if not isinstance(overlay, dict):
+            raise ValueError("Configuration overlay must be an object")
+        variants = [overlay.get("project", {})]
+        for group in ("roles", "jobs"):
+            rows = overlay.get(group, {})
+            if not isinstance(rows, dict):
+                raise ValueError("Configuration overrides must be objects")
+            variants.extend(rows.values())
+        for variant in variants:
+            if not isinstance(variant, dict) or not isinstance(variant.get("connection", {}), dict):
+                raise ValueError("Configuration connection overrides must be objects")
+            if "credential" in variant.get("connection", {}):
+                settings.append(variant["connection"])
+        base = path.parent
+    references = []
+    for connection in settings:
+        reference = copy.deepcopy(connection["credential"])
+        validate_connection({**default_connection, "credential": reference}, references=False)
+        reference = _paths({"connection": {"credential": reference}}, base)["connection"]["credential"]
+        if reference not in references:
+            references.append(reference)
+    return references
+
+
 def resolve(store, role=None, job=None):
     """Resolve trusted binding selectors; callers must establish work ownership first."""
     settings = defaults()
@@ -460,22 +507,6 @@ def resolve(store, role=None, job=None):
     validate_variant(settings)
     revision = hashlib.sha256(_canonical([settings, catalog(), adapter_registry()]).encode()).hexdigest()
     return {**settings, "revision": revision, "selection": {"role": role, "job": job}}
-
-
-class ConfigurationState:
-    """Inspection never upgrades or writes the team's retained state."""
-
-    def __init__(self, directory):
-        self.directory = Path(directory).expanduser().resolve()
-
-    @contextmanager
-    def connect(self):
-        path = self.directory / "live.sqlite3"
-        connection = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)
-        try:
-            yield connection
-        finally:
-            connection.close()
 
 
 def selections(store):

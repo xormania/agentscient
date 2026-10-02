@@ -8,8 +8,11 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from fixtures.native_boundaries import DELEGATION, NativeBoundaryFixture
 
+from devtools import role_packages
+from devtools.api import API
+from devtools.console import command
 from devtools.native import claude
-from devtools.profiles import permitted, prepare
+from devtools.profiles import permitted, prepare, tool_catalogue
 
 
 class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
@@ -89,14 +92,20 @@ class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
         config = tomllib.loads((private / "config.toml").read_text())
         self.assertFalse(config["features"]["multi_agent"])
         self.assertEqual("selected-model", config["model"])
-        with patch.dict(os.environ, {"GROK_SUBAGENTS": "1", "GROK_WORKFLOWS": "1", "GROK_GOAL": "1"}):
-            private, env, _ = prepare(self.directory, "worker", "grok")
-        config = tomllib.loads((private / "config.toml").read_text())
-        for feature in ("subagents", "workflows", "goal"):
-            self.assertFalse(config[feature]["enabled"])
-        self.assertEqual("0", env["GROK_SUBAGENTS"])
-        self.assertEqual("0", env["GROK_WORKFLOWS"])
-        self.assertEqual("0", env["GROK_GOAL"])
+        for mode, member in (("worker", "worker"), ("console", "owner")):
+            with self.subTest(mode=mode), patch.dict(os.environ, {
+                "GROK_SUBAGENTS": "1", "GROK_WORKFLOWS": "1", "GROK_GOAL": "1",
+            }):
+                private, env, server = prepare(self.directory, member, "grok")
+                if mode == "console":
+                    # Adding the CO MCP server preserves prepared restrictions.
+                    command(self.directory, member, {"binary": "fixture", "harness": "grok"}, private, server)
+                config = tomllib.loads((private / "config.toml").read_text())
+                if mode == "console":
+                    self.assertIn("agentscient_dev", config["mcp_servers"])
+                for feature in ("subagents", "workflows", "goal"):
+                    self.assertEqual({"enabled": False}, config.get(feature))
+                    self.assertEqual("0", env["GROK_" + feature.upper()])
         self.assertEqual(codex_config, (codex_home / "config.toml").read_text())
         self.assertEqual(grok_config, (grok_home / "config.toml").read_text())
 
@@ -110,19 +119,55 @@ class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
         self.assertEqual(["agent", "stdio"], argv[-2:])
         self.assertEqual("bound-session", native.session)
 
-    def test_claude_launch_removes_native_tools_and_denies_both_agent_tool_names(self):
-        process = Mock(pid=12345, returncode=0)
-        process.poll.return_value = 0
-        with patch("devtools.native.subprocess.Popen", return_value=process) as spawn, \
-                patch("devtools.processes.register"), patch("devtools.native.os.killpg"):
-            claude(self.directory, "worker", {"binary": "fixture", "workspace": str(self.workspace),
-                                               "harness": "claude"}, self.generation)
-        argv = spawn.call_args.args[0]
-        self.assertEqual("", argv[argv.index("--tools") + 1])
-        self.assertEqual({"Agent", "Task"}, set(argv[argv.index("--disallowedTools") + 1].split(",")))
-        allowed = argv[argv.index("--allowedTools") + 1].split(",")
-        self.assertIn("mcp__agentscient_dev__work_context", allowed)
-        self.assertNotIn("Agent", allowed)
-        self.assertNotIn("Task", allowed)
-        settings = json.loads(Path(argv[argv.index("--settings") + 1]).read_text())
-        self.assertIn("PreToolUse", settings["hooks"])
+    def test_claude_co_and_worker_share_role_ceiling_and_live_tool_authority(self):
+        packages = role_packages.catalog()
+        packages["roles"]["liaison"] = packages["roles"]["co"]
+        packages["defaults"]["co"] = "liaison"
+        configured = patch.object(role_packages, "_catalog", return_value=packages)
+        configured.start()
+        self.addCleanup(configured.stop)
+        for mode, member in (("worker", "worker"), ("console", "owner"), ("bootstrap", "owner")):
+            with self.subTest(mode=mode):
+                config = {"binary": "fixture", "workspace": str(self.workspace), "harness": "claude"}
+                api = API(self.directory, member)
+                if mode == "bootstrap":
+                    team_file = self.directory / "team.json"
+                    team = json.loads(team_file.read_text())
+                    team["co"] = member
+                    team["members"].append({"name": "chief", "harness": "external", "workspace": str(self.workspace)})
+                    team_file.write_text(json.dumps(team))
+                    api.control.unbind(member)
+                    self.assertIsNone(api.control.snapshot())
+                if mode == "worker":
+                    process = Mock(pid=12345, returncode=0)
+                    process.poll.return_value = 0
+                    with patch("devtools.native.subprocess.Popen", return_value=process) as spawn, \
+                            patch("devtools.processes.register"), patch("devtools.native.os.killpg"):
+                        claude(self.directory, member, config, self.generation)
+                    argv = spawn.call_args.args[0]
+                else:
+                    private, _, server = prepare(self.directory, member, "claude")
+                    argv, _ = command(self.directory, member, config, private, server)
+                allowed = set(argv[argv.index("--allowedTools") + 1].split(","))
+                role = api.commands.role(api.control.snapshot())
+                expected = {"mcp__agentscient_dev__" + name
+                            for group in role_packages.role(role)["mcp"].values() for name in group}
+                self.assertEqual(expected, allowed)
+                self.assertIn("mcp__agentscient_dev__work_context", allowed)
+                self.assertEqual("", argv[argv.index("--tools") + 1])
+                self.assertEqual({"Agent", "Task"}, set(argv[argv.index("--disallowedTools") + 1].split(",")))
+                settings = json.loads(Path(argv[argv.index("--settings") + 1]).read_text())
+                self.assertIn("PreToolUse", settings["hooks"])
+                if mode == "bootstrap":
+                    tool = "mcp__agentscient_dev__work_report"
+                    self.assertIn(tool, allowed)
+                    self.assertFalse(permitted("claude", tool, {"text": "Too early"},
+                                               catalogue=tool_catalogue(self.directory, member)))
+                    api.call("direct", {"title": "Bootstrap", "objective": "Retain the next report",
+                                        "done_when": "The same session can report", "constraints": "Fixture only"})
+                    self.assertTrue(permitted("claude", tool, {"text": "Current work"},
+                                              catalogue=tool_catalogue(self.directory, member)))
+                    self.assertEqual("liaison", api.control.snapshot()["role"])
+                    api.call("work_report", {"text": "Current work"})
+                    self.assertIn("mcp__agentscient_dev__guidance_request", allowed)
+                    self.assertNotIn("mcp__agentscient_dev__orchestrate", allowed)

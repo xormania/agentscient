@@ -122,6 +122,14 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.assertIn(str(self.fixture), result.stdout)
         self.assertNotIn(SENTINEL, result.stdout + result.stderr)
         self.assertEqual(before, self.snapshot())
+        revision = "a" * 40
+        explicit = self.invoke("preview", "--runtime-revision", revision)
+        self.assertEqual(0, explicit.returncode, explicit.stdout + explicit.stderr)
+        self.assertIn("Fixture workflow runtime: " + self.pin, explicit.stdout)
+        self.assertIn("Selected runtime revision: " + revision + " (explicit)", explicit.stdout)
+        self.assertIn(str(Path(self.env["XDG_STATE_HOME"]) / "agentscient-acceptance/runtimes" / revision), explicit.stdout)
+        self.assertIn("not saved as a new default", explicit.stdout)
+        self.assertEqual(before, self.snapshot())
 
     def test_explicit_paths_with_spaces_are_preserved_in_preview(self):
         result = self.invoke(
@@ -194,9 +202,80 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.git(self.fixture, "update-ref", "refs/remotes/origin/main", "HEAD")
         result = self.invoke("check", "--fixture", self.fixture, "--runtime", self.runtime, "--online")
         self.assertNotEqual(0, result.returncode)
-        self.assertIn("does not match fixture pin", result.stderr)
+        self.assertIn("does not match selected revision", result.stderr)
         self.assertFalse((self.root / "external-command-calls.log").exists())
         self.assertEqual(self.pin, self.git(self.runtime, "rev-parse", "HEAD"))
+
+    def test_explicit_revision_provisions_exact_checkout_and_rechecks_before_preflight(self):
+        helper = self.module()
+        candidate = self.root / "new runtime source"
+        self.git(self.root, "clone", "--quiet", "--no-hardlinks", str(self.runtime), str(candidate))
+        self.git(candidate, "config", "user.name", "Acceptance script tests")
+        self.git(candidate, "config", "user.email", "acceptance-tests@example.invalid")
+        (candidate / "README.md").write_text("New reviewed runtime candidate\n")
+        self.git(candidate, "commit", "--quiet", "-am", "Reviewed candidate")
+        selected = self.git(candidate, "rev-parse", "HEAD")
+        original_fixture = self.workflow.read_bytes()
+        self.frozen_run("# Existing run must keep its original runtime identity\n")
+        original_manifest = (self.run / "run.json").read_bytes()
+        cached = Path(self.env["XDG_STATE_HOME"]) / "agentscient-acceptance/runtimes" / selected
+        commands = []
+        actual_git = helper.git
+
+        def local_fetch(root, *arguments):
+            commands.append((root, arguments))
+            if arguments[:3] == ("fetch", "--no-tags", "origin"):
+                # Exercise real Git provisioning while replacing only network I/O.
+                source = self.fixture if root == self.fixture else candidate
+                return actual_git(root, "fetch", "--no-tags", str(source), *arguments[3:])
+            return actual_git(root, *arguments)
+
+        common = ["--fixture", str(self.fixture), "--runtime-revision", selected]
+        with patch.dict(os.environ, self.env, clear=True), \
+                patch.object(helper, "github_access"), patch.object(helper, "git", side_effect=local_fetch), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, helper.main(["update", *common]))
+        self.assertEqual(selected, self.git(cached, "rev-parse", "HEAD"))
+        self.assertEqual("", self.git(cached, "branch", "--show-current"))
+        self.assertEqual("https://github.com/uscient/agentscient.git", self.git(cached, "remote", "get-url", "origin"))
+        self.assertTrue(any(args == ("fetch", "--no-tags", "origin", selected) for _, args in commands))
+        self.assertEqual(original_fixture, self.workflow.read_bytes())
+        self.assertEqual(original_manifest, (self.run / "run.json").read_bytes())
+        self.assertEqual(self.pin, self.git(self.runtime, "rev-parse", "HEAD"))
+        self.assertFalse((self.root / "external-command-calls.log").exists())
+
+        with patch.dict(os.environ, self.env, clear=True), \
+                patch.object(helper, "load_fixture", return_value=object()), \
+                patch.object(helper, "preflight", return_value=True) as preflight, \
+                patch.object(helper, "prepare", return_value=0) as prepare, \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(0, helper.main(["check", *common, "--online"]))
+            self.assertEqual(cached, preflight.call_args.args[2])
+            self.assertTrue(preflight.call_args.kwargs["online"])
+            self.assertEqual(0, helper.main(["prepare", *common, "--run-dir", str(self.root / "next run")]))
+            self.assertEqual(cached, prepare.call_args.args[2])
+            preflight.reset_mock()
+            self.git(cached, "checkout", "--quiet", "--detach", self.pin)
+            self.assertEqual(1, helper.main(["check", *common, "--online"]))
+            preflight.assert_not_called()
+            self.git(cached, "checkout", "--quiet", "--detach", selected)
+            self.assertEqual(1, helper.main(["check", "--fixture", str(self.fixture), "--runtime", str(cached)]))
+            preflight.assert_not_called()  # No implicit reuse of the previous override.
+        self.assertEqual(original_manifest, (self.run / "run.json").read_bytes())
+
+    def test_invalid_explicit_revision_never_reaches_setup_or_bypasses_fixture_pin(self):
+        before = self.snapshot()
+        for value in ("dev", self.pin[:8], "HEAD", "HEAD~1", "--upload-pack=private", "a" * 39):
+            with self.subTest(value=value):
+                result = self.invoke("update", "--runtime-revision=" + value)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("full 40-character lowercase commit SHA", result.stderr)
+        self.assertEqual(before, self.snapshot())
+        self.write_workflow("untrusted-branch")
+        result = self.invoke("preview", "--runtime-revision", self.pin)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("one full, matching Agentscient commit", result.stderr)
+        self.assertFalse((self.root / "external-command-calls.log").exists())
 
     def test_failed_preflight_cannot_prepare_or_create_run(self):
         helper = self.module()
@@ -269,6 +348,13 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.assertNotEqual(0, rejected.returncode)
         self.assertIn("unrecognized arguments", rejected.stderr)
         self.assertNotIn(SENTINEL, result.stdout + result.stderr + rejected.stdout + rejected.stderr)
+        before = (self.run / "run.json").read_bytes()
+        for action in ("status", "doctor", "co", "verify", "stop"):
+            with self.subTest(action=action):
+                rejected = self.invoke(action, "--run-dir", self.run, "--runtime-revision", "a" * 40)
+                self.assertNotEqual(0, rejected.returncode)
+                self.assertIn("unrecognized arguments", rejected.stderr)
+        self.assertEqual(before, (self.run / "run.json").read_bytes())
 
     def test_owned_toolchain_defaults_are_forwarded_and_explicit_overrides_win(self):
         helper = self.module()
