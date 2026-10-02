@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_delivery
+from fixtures.delivery import DeliveryFixture
 from support import Client, adopt_plan, fixture_work, held_check, until
 
 from devtools.api import API
@@ -15,12 +15,12 @@ from devtools.workspaces import git
 
 
 class OrderTests(unittest.TestCase):
-    setUp_base = test_delivery.DeliveryTests.setUp_base
-    prepared = test_delivery.DeliveryTests.prepared
-    auditor = test_delivery.DeliveryTests.auditor
+    setUp_base = DeliveryFixture.setUp_base
+    prepared = DeliveryFixture.prepared
+    auditor = DeliveryFixture.auditor
 
     def setUp(self):
-        test_delivery.DeliveryTests.setUp(self)
+        DeliveryFixture.setUp(self)
         self.co = API(self.state, "co")
         self.integration = self.xo.workspaces.ensure()
         self.initial = git(self.remote, "rev-parse", "dev").stdout.decode().strip()

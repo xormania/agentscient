@@ -7,7 +7,7 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 | Job | Checks |
 | --- | --- |
 | `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
-| `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with the ten slowest tests listed in the log. |
+| `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with checked discovery, an execution/skip census and the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
 | `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
@@ -94,6 +94,26 @@ work that must remain running through an MCP disconnect. Assertions wait for the
 state they need; CI does not retry failed tests to obtain a green result. If a
 runner loses Docker or PHP crashes, inspect the failing step and retained evidence
 as an environment/runtime failure before labelling it a test flake.
+
+The stdlib unittest entrypoint in `devtools/tests/run.py` rejects empty discovery,
+import errors and duplicate test IDs before running cases. It does not require a
+fixed test count. The log and retained `test-census.json` report collected cases,
+executed cases, skipped cases and cases not run because setup failed. Class and
+module setup skips expand to their collected methods; a skipped subtest does not
+make its containing method disappear. An import-time skip is reported as the
+single discovery placeholder available to unittest. Expected failures and
+unexpected successes retain unittest's ordinary meaning. Standard unittest
+discovery and individual test selection remain supported.
+
+The small fault-calibration tests run three existing boundary assertions once
+against healthy code and once with a temporary service-seam fault: bypassed stale
+completion verification, fallback to the first runtime profile, and unrestricted
+Arbitrator operation reads. Each mutation must fail the intended assertion;
+setup errors, unrelated failures and skips do not count as detection. These
+offline checks establish sensitivity to those faults, not comprehensive mutation
+coverage or authenticated harness/model acceptance. Race tests synchronize at
+the competing channel poll, output lock or SQLite write attempt rather than
+using a short quiet period as evidence that an action was blocked.
 
 The bootstrap environment handoff test requires Linux abstract Unix sockets,
 independently of tmux. Constrained local environments may skip this test after a
@@ -225,7 +245,7 @@ From the repository root, use the relevant checks:
 
 ```sh
 python3 -m unittest discover -s .github/tests -v
-python3 -m unittest discover -s devtools/tests -v --durations 10
+python3 -m devtools.tests.run -v --durations 10
 uv tool run --from ruff==0.16.8 ruff check devtools .github/*.py .github/tests
 ```
 

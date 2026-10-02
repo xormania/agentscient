@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from fixtures.commands import GOAL
 from support import adopt_plan, runtime_policy
-from test_commands import GOAL
 
 from devtools.api import API
 from devtools.failures import Failure
@@ -42,7 +42,8 @@ class AssignmentDecisionTests(unittest.TestCase):
         self.verification_patch = patch("devtools.decisions.Decisions.verify")
         self.select = self.selection_patch.start()
         self.verify = self.verification_patch.start()
-        self.addCleanup(patch.stopall)
+        self.addCleanup(self.selection_patch.stop)
+        self.addCleanup(self.verification_patch.stop)
 
     def settings(self, *, selection=True, roles=None):
         team = json.loads((self.state / "team.json").read_text())

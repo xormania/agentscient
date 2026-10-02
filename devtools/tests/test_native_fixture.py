@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import test_control
+from fixtures.control import ControlFixture
 from native_fixture import Fixture
 
 from devtools.api import API
@@ -15,8 +15,8 @@ from devtools.rpc import RPC
 
 
 class NativeFixtureTests(unittest.IsolatedAsyncioTestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     async def test_current_xo_catalog_starts_the_native_fixture(self):
         fixture = Fixture()

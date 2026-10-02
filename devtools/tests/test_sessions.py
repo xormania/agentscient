@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ENTRY, Client, fixture_work, initialize, retain_native, runtime_policy, until
-from test_commands import GOAL, responsibility
+from fixtures.commands import GOAL, responsibility
+from support import ENTRY, Client, fixture_environment, fixture_work, initialize, retain_native, runtime_policy, until
 
 from devtools.api import API
 from devtools.control import ROLES, Control
@@ -219,14 +219,13 @@ class SessionTests(unittest.TestCase):
         (self.state / "roles.json").write_text(json.dumps(policy))
         home = self.root / "home"
         home.mkdir()
-        env = {
-            **os.environ,
+        env = fixture_environment(self.state, {
             "HOME": str(home),
             "CODEX_HOME": str(home / ".codex"),
             "GROK_HOME": str(home / ".grok"),
             "CLAUDE_CONFIG_DIR": str(home / ".claude"),
             "TEST_API_KEY": "test-secret-split-value",
-        }
+        })
         generations = []
         predecessor = "Preserve this decision"
         for harness in ("codex", "claude", "grok"):

@@ -4,7 +4,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-import test_control
+from fixtures.control import ControlFixture
 
 from devtools import role_packages
 from devtools.api import API
@@ -13,8 +13,8 @@ from devtools.operations import Operations, execute
 
 
 class PackageAuthorityTests(unittest.TestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     def narrowed(self, name, capability):
         catalog = role_packages.catalog()

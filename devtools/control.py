@@ -480,19 +480,24 @@ class Control:
                     "SELECT * FROM member_bindings WHERE reports_to=? AND work_order=? AND role IN (SELECT value FROM json_each(?))",
                     (self.member, scope["work_order"], canonical(names_for_adapter("xo"))),
                 ))
-                if len(targets) != 1:
-                    if not targets and record(db, "work_orders", scope["work_order"])["status"] in {"done", "cancelled"}:
-                        return None, scope["work_order"], None, None
+                if len(targets) == 1:
+                    recipient = targets[0]["member"]
+                elif not targets and record(db, "work_orders", scope["work_order"])["status"] in {"done", "cancelled"}:
+                    # The released XO cannot receive another direction. CO can
+                    # still record receipt of this order's messages for the user.
+                    recipient = None
+                else:
                     raise ValueError("Owner input requires one bound XO; request trusted operator assistance.")
-                recipient = targets[0]["member"]
             else:
                 recipient = scope["reports_to"]
                 target = binding(db, recipient)
                 if not target or adapter(target["role"]) != "xo" or target["work_order"] != scope["work_order"]:
                     raise ValueError("The planner reports to its bound XO.")
-            if kind == "message" and original["recipient"] == self.member and original["sender"] == recipient:
+            if kind == "message" and original["recipient"] == self.member and (
+                recipient is None or original["sender"] == recipient
+            ):
                 reply = original["id"]
-            elif kind == "update" and original["actor"] == recipient and original["message"]:
+            elif kind == "update" and original["message"] and (recipient is None or original["actor"] == recipient):
                 addressed = db.execute("SELECT id FROM messages WHERE id=? AND recipient=?",
                                        (original["message"], self.member)).fetchone()
                 if addressed:
@@ -618,7 +623,7 @@ class Control:
                 return self._receipt(db, old, reused=True)
             self._evaluation(db, scope, evaluation)
             # Recheck the recipient inside the transaction; sending and recording are atomic.
-            self._destination(db, scope, responding_to)
+            recipient, order, job, reply = self._destination(db, scope, responding_to)
             from .assignments import snapshot
 
             mission = {key: record(db, "work_orders", order)[key] for key in ("objective", "done_when", "constraints", "context")}

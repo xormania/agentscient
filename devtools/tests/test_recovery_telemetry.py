@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-import test_control
+from fixtures.control import ControlFixture
 
 from devtools.control import Control
 from devtools.diagnostics import Diagnostics
@@ -9,8 +9,8 @@ from devtools.recovery import capture_recovery, record_recovery
 
 
 class RecoveryTelemetryTests(unittest.TestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     def guidance(self, *, member="coder", failed_call=None, actions=None, **overrides):
         diagnostics = Diagnostics(self.store, member)

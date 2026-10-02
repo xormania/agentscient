@@ -8,15 +8,16 @@ import unittest
 import urllib.error
 from unittest.mock import patch
 
-import test_advice
+from fixtures import advice as test_advice
+from fixtures.advice import AdviceFixture, JevTransportFixture
 
 from devtools.failures import Failure, failure_info
 from devtools.jev import MAX_RESPONSE, MODEL, Jev, JevUnavailable, checked_response
 
 
 class ProviderFailureTests(unittest.TestCase):
-    setUp = test_advice.JevTransportTests.setUp
-    response = test_advice.JevTransportTests.response
+    setUp = JevTransportFixture.setUp
+    response = JevTransportFixture.response
 
     def test_missing_credentials_transport_and_http_have_distinct_recovery_conditions(self):
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}), self.assertRaises(JevUnavailable) as caught:
@@ -91,9 +92,9 @@ class ProviderFailureTests(unittest.TestCase):
 
 
 class AdviceFailureTests(unittest.TestCase):
-    setUp = test_advice.AdviceTests.setUp
-    configure = test_advice.AdviceTests.configure
-    assess = test_advice.AdviceTests.assess
+    setUp = AdviceFixture.setUp
+    configure = AdviceFixture.configure
+    assess = AdviceFixture.assess
 
     def test_retained_failures_preserve_causes_without_fabricating_assessments(self):
         self.configure({"decisions": {"failure_mode": "block"}})

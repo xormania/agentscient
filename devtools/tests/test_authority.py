@@ -3,9 +3,8 @@
 import unittest
 from unittest.mock import patch
 
-import test_commands
+from fixtures.commands import GOAL, CommandFixture, responsibility
 from support import adopt_plan
-from test_commands import GOAL, responsibility
 
 from devtools.api import API
 from devtools.delivery import Delivery
@@ -13,8 +12,8 @@ from devtools.orders import Orders
 
 
 class AuthorityTests(unittest.TestCase):
-    setUp = test_commands.CommandTests.setUp
-    team = test_commands.CommandTests.team
+    setUp = CommandFixture.setUp
+    team = CommandFixture.team
 
     def retained_state(self):
         with self.store.connect() as db:

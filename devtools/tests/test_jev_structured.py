@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_advice
+from fixtures import advice as test_advice
+from fixtures.advice import AdviceFixture
 
 from devtools.advice import clean_questions
 from devtools.configuration import defaults as load
@@ -100,9 +101,9 @@ class StructuredQuestionTests(unittest.TestCase):
 
 
 class StructuredAdviceTests(unittest.TestCase):
-    setUp = test_advice.AdviceTests.setUp
-    configure = test_advice.AdviceTests.configure
-    assess = test_advice.AdviceTests.assess
+    setUp = AdviceFixture.setUp
+    configure = AdviceFixture.configure
+    assess = AdviceFixture.assess
 
     def test_mcp_preserves_structured_instructions_and_criteria_in_retained_requests(self):
         questions = [{"name": name, **question} for name, question in rubric().items()]

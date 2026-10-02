@@ -9,9 +9,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_control
-import test_runtime
-from support import adopt_plan
+from fixtures.control import ControlFixture
+from fixtures.runtime import RuntimeFixture
+from support import adopt_plan, fixture_environment
 
 from devtools import role_packages
 from devtools.api import API, TOOLS
@@ -180,8 +180,8 @@ class PackageCatalogTests(unittest.TestCase):
 
 
 class PackageBoundaryTests(unittest.TestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     def test_arbitrator_loads_without_project_and_has_only_bounded_decision_authority(self):
         api = API(self.state, "coder")
@@ -251,7 +251,7 @@ class PackageBoundaryTests(unittest.TestCase):
 
     def test_runtime_api_needs_neither_cue_nor_php(self):
         result = subprocess.run([sys.executable, "-c", "import json,sys; from devtools.api import API; print(json.dumps([r['name'] for r in API(sys.argv[1],'owner').tools()]))", str(self.state)],
-                                cwd=role_packages.SOURCE.parent.parent, env={**os.environ, "PATH": ""},
+                                cwd=role_packages.SOURCE.parent.parent, env=fixture_environment(self.state, {"PATH": ""}),
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("direct", json.loads(result.stdout))
@@ -312,10 +312,10 @@ class PackageBoundaryTests(unittest.TestCase):
 
 
 class RuntimePackageTests(unittest.TestCase):
-    setUp = test_runtime.RuntimeTests.setUp
-    write = test_runtime.RuntimeTests.write
-    vendor = test_runtime.RuntimeTests.vendor
-    xo = test_runtime.RuntimeTests.xo
+    setUp = RuntimeFixture.setUp
+    write = RuntimeFixture.write
+    vendor = RuntimeFixture.vendor
+    xo = RuntimeFixture.xo
 
     def test_denied_profile_cannot_allocate_seat_or_change_existing_assignment(self):
         xo = self.xo()

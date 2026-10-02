@@ -116,7 +116,7 @@
             "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence",
             "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
           },
-          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 -m unittest discover -s devtools/tests -v --durations 10 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
+          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 -m devtools.tests.run -v --durations 10 --report \"$AGENTSCIENT_EVIDENCE_DIR/test-census.json\" 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
           "id": "verify",
           "shell": "bash"
         },
