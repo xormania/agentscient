@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from devtools.api import API
-from devtools.decisions import Decisions
+from devtools.decisions import Decisions, request
 from devtools.failures import Failure, failure_info
 from devtools.launch import initialize
 
@@ -77,6 +77,88 @@ class DecisionLifecycleTests(unittest.TestCase):
         self.assertNotIn(self.secret, json.dumps(packet))
         assessment = self.operator.artifacts.read(int(row["evidence"].split(":")[1]), limit=256 * 1024)
         self.assertFalse(self.secret in assessment["content"], "Retained assessment leaked the fixture file credential")
+
+    def test_work_assess_rejects_credential_replay_before_retention(self):
+        path = self.state / "policy.json"
+        policy = json.loads(path.read_text())
+        policy["project"]["features"]["advice"] = True
+        path.write_text(json.dumps(policy))
+        def ambiguous(state, questions, model):
+            answers = {}
+            for name, question in questions.items():
+                if question["type"] == "noul":
+                    answers[name] = {"type": "noul", "noul": 0.75}
+                    continue
+                options = question["criteria"]
+                answers[name] = {"type": "choice", "choice": next(iter(options)), "confidence": 0.1,
+                                 "probabilities": {option: 1 / len(options) for option in options}}
+            return {"model": model, "answers": answers, "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+        with patch("devtools.advice.Jev.evaluate", side_effect=ambiguous) as provider:
+            with self.assertRaises(Failure) as rejected:
+                API(self.state, "xo").call("work_assess", {"proposal": "Copied provider value " + self.secret})
+        self.assertEqual("sensitive_replay_arguments", failure_info(rejected.exception)["reason"])
+        self.assertNotIn(self.secret, str(rejected.exception))
+        self.assertNotIn(self.secret, json.dumps({
+            "failure": rejected.exception.diagnostic_failure,
+            "guidance": rejected.exception.diagnostic_guidance,
+        }))
+        provider.assert_not_called()
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM decisions").fetchone()[0])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM role_assignments").fetchone()[0])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM artifacts").fetchone()[0])
+            events = [dict(row) for row in db.execute("SELECT kind,data FROM events")]
+        self.assertNotIn(self.secret, json.dumps(events))
+        guidance = [json.loads(row["data"]) for row in events if row["kind"] == "skill_guidance_delivered"]
+        self.assertEqual(1, len(guidance))
+        self.assertIsNone(guidance[0]["failed_call"])
+
+    def test_encoded_credential_in_replay_questions_is_rejected(self):
+        # Encoded JSON strings need the same credential protection as typed data.
+        encoded = '{"quoted": "' + "".join("\\u%04x" % ord(char) for char in self.secret) + '"}'
+        arguments = {"questions": [{"name": "proof", "instructions": encoded}]}
+        with patch("devtools.advice.Jev.evaluate", side_effect=self.answer) as provider:
+            with request("xo", "work_assess", arguments), self.assertRaises(Failure) as rejected:
+                Decisions(self.store, "xo").select("completion", {"proof": "Safe proof"},
+                                                   {"complete": {"type": "noul", "instructions": "Complete?"}})
+        self.assertEqual("sensitive_replay_arguments", failure_info(rejected.exception)["reason"])
+        provider.assert_not_called()
+        with self.store.connect() as db:
+            self.assertEqual(0, db.execute("SELECT count(*) FROM decisions").fetchone()[0])
+
+    def test_safe_question_replay_preserves_json_text_and_sensitive_looking_identifiers(self):
+        path = self.state / "policy.json"
+        policy = json.loads(path.read_text())
+        policy["project"]["features"]["advice"] = True
+        path.write_text(json.dumps(policy))
+        source = self.operator.artifacts.save("proof.txt", content="Measured safe behavior", media_type="text/plain",
+                                              work_order=self.order)["artifact"]["id"]
+        arguments = {"sources": [{"reference": "artifact:" + str(source)}], "questions": [{
+            "name": "password", "type": "choice", "instructions": '{ "requirement" : "storage" }',
+            "criteria": {"password": "Credential storage", "logging": "Audit trail"},
+        }]}
+
+        def ambiguous(state, questions, model):
+            return {"model": model, "answers": {name: {"type": "choice", "choice": "password",
+                    "confidence": 0.5, "probabilities": {"password": 0.5, "logging": 0.5}}
+                    for name in questions}, "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+        with patch("devtools.advice.Jev.evaluate", side_effect=ambiguous) as provider:
+            with self.assertRaises(Failure) as pending:
+                API(self.state, "xo").call("work_assess", arguments)
+            self.assertEqual("decision_pending", failure_info(pending.exception)["reason"])
+            row = self.row(failure_info(pending.exception)["details"]["decision"])
+            self.assertEqual(arguments, json.loads(row["continuation"])["arguments"])
+            resolved = API(self.state, row["arbitrator"]).call("decision_resolve", {
+                "decisions": {"s0_q0": "password"}, "reason": "The source establishes the storage property.",
+                "evidence": [row["evidence"]],
+            })
+        self.assertEqual(1, provider.call_count)
+        self.assertEqual("completed", resolved["continuation"]["state"])
+        self.assertEqual("password", resolved["continuation"]["result"]["results"][0]["decisions"]["password"])
+        with self.store.connect() as db:
+            self.assertEqual(1, db.execute("SELECT count(*) FROM decisions").fetchone()[0])
 
     def test_resolution_reason_redacts_file_credential_in_record_artifact_and_telemetry(self):
         with patch("devtools.advice.Jev.evaluate", side_effect=self.answer):

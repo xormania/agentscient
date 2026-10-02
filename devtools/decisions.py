@@ -28,6 +28,38 @@ def request(member, tool, arguments):
         REQUEST.reset(token)
 
 
+def replay_request(member, secrets):
+    """Retain exact replay inputs only when they contain no configured credential."""
+    current = REQUEST.get()
+    if (not current or current["member"] != member or current["tool"] not in
+            {"orchestrate", "plan_adopt", "steer", "conclude", "work_assess", "runtime_start"}):
+        return None
+    # Freeze the checked inputs before evaluation; redacting them would change the
+    # operation later replayed by the service, including typed choice identifiers.
+    continuation = json.loads(canonical(current))
+
+    def contains_secret(value):
+        if isinstance(value, dict):
+            return any(contains_secret(key) or contains_secret(item) for key, item in value.items())
+        if isinstance(value, list):
+            return any(contains_secret(item) for item in value)
+        if isinstance(value, str):
+            if any(secret in value for secret in secrets):
+                return True
+            try:
+                decoded = json.loads(value)
+            except (ValueError, RecursionError):
+                return False
+            if isinstance(decoded, (dict, list, str)):
+                return contains_secret(decoded)
+        return False
+
+    if secrets and contains_secret(continuation["arguments"]):
+        raise Failure("Remove configured credentials from the request before retrying; sensitive arguments cannot be retained for replay.",
+                      category="invalid_request", reason="sensitive_replay_arguments")
+    return continuation
+
+
 def capabilities(spec):
     return [spec("decision_resolve", "Resolve your assigned ambiguous decision with investigated evidence. The service applies the resolution and resumes the waiting operation.", {
         "decisions": {"type": "object", "minProperties": 1, "maxProperties": 32,
@@ -137,13 +169,20 @@ class Decisions:
         with self.store.connect() as db:
             context = self.context(db, scope, job)
         secrets = credential_values(policy["connection"])
+        continuation = replay_request(self.member, secrets)
         payload = {"state": clean(state, secrets=secrets), "questions": clean_questions(questions, secrets=secrets),
                    "sources": clean(list(sources), secrets=secrets)}
         fingerprint = digest([purpose, context, identity, policy, payload])
-        self.prune(purpose, payload, job, identity)
+        subject = digest([self.member, purpose, job, self.subject(payload)])
         transport = policy["transport"]
         wait = transport["timeout"] * (transport["max_attempts"] + 1) + transport["max_retry_delay"] * (transport["max_attempts"] - 1)
-        with Workspaces(self.store, self.member).lock("decision-" + fingerprint, timeout=wait):
+        # Serialize revisions of one subject through pruning and seat allocation;
+        # independent subjects still evaluate concurrently without a DB transaction.
+        with Workspaces(self.store, self.member).lock("decision-" + subject, timeout=wait):
+            with self.store.connect() as db:
+                if self.context(db, scope, job) != context or configuration(self.store, role=scope["role"], job=job)["revision"] != policy["revision"]:
+                    raise Failure("Decision inputs changed while waiting.", category="not_ready", reason="decision_stale")
+            self.prune(purpose, payload, job, identity)
             with self.store.connect() as db:
                 existing = db.execute("SELECT * FROM decisions WHERE fingerprint=? AND state!='stale'", (fingerprint,)).fetchone()
                 if existing:
@@ -165,9 +204,6 @@ class Decisions:
             selected = {name: classify(answers[name], question, rule, policy["decisions"]["unknown_choices"])
                         for name, question in questions.items()} if outcome else {name: None for name in questions}
             unresolved = [name for name, value in selected.items() if value is None]
-            request_data = REQUEST.get()
-            continuation = (request_data if request_data and request_data["member"] == self.member and
-                            request_data["tool"] in {"orchestrate", "plan_adopt", "steer", "conclude", "work_assess", "runtime_start"} else None)
             with self.store.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 if self.context(db, scope, job) != context or configuration(self.store, role=scope["role"], job=job)["revision"] != policy["revision"]:

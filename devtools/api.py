@@ -529,6 +529,10 @@ class API:
 
     def _diagnose(self, error, capability, *, arguments=None, operation=None):
         error.diagnostic_failure = failure_info(error)
+        if error.diagnostic_failure["reason"] == "sensitive_replay_arguments":
+            # A rejected credential-bearing call must not be copied into the
+            # recovery event after the decision service refused to retain it.
+            arguments = None
         if not self.operator:
             from .diagnostics import deliver_guidance
 
