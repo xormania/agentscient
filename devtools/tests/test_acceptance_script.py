@@ -23,6 +23,9 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.root = Path(temporary.name)
         self.home = self.root / "home with spaces"
         self.home.mkdir()
+        self.git_environment = {"HOME": str(self.home), "PATH": os.environ["PATH"],
+                                "XDG_CONFIG_HOME": str(self.home / ".config"), "GIT_CONFIG_NOSYSTEM": "1",
+                                "GIT_CONFIG_GLOBAL": os.devnull}
         self.cwd = self.root / "unrelated working directory"
         self.cwd.mkdir()
         self.checkouts = self.root / "project checkouts"
@@ -72,9 +75,9 @@ class AcceptanceScriptTests(unittest.TestCase):
             "PYTHONDONTWRITEBYTECODE": "1",
         }
 
-    @staticmethod
-    def git(root, *args):
-        result = subprocess.run(["git", "-C", str(root), *args], text=True, capture_output=True, check=True)
+    def git(self, root, *args):
+        result = subprocess.run(["git", "-C", str(root), *args], env=self.git_environment,
+                                text=True, capture_output=True, check=True)
         return result.stdout.strip()
 
     def initialize_repository(self, root, name):

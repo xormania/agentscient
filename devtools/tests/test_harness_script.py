@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import os
 import subprocess
 import tarfile
 import tempfile
@@ -23,6 +24,9 @@ class HarnessScriptTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="harness tests ")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
+        environment = patch.dict(os.environ, {"HOME": str(self.root), "PATH": os.environ["PATH"]}, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
 
     def call(self, *args):
         output = io.StringIO()
