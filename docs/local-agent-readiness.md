@@ -111,6 +111,28 @@ A working API key is reported separately when the native client's active login
 selection cannot be established. Opaque subscription/keyring credentials may need
 a real native session; API model-list access does not prove generation entitlement.
 
+Jev is included in the default credential report. Check it independently of the
+fixture, PHP, Docker or native harness installations with:
+
+```bash
+bash devtools/scripts/credentials.sh --service jev --online
+```
+
+The Jev check uses `~/.config/agentscient/configuration.json` when present, otherwise
+the runtime's default credential reference (`TYPESAFE_API_KEY`). Select another
+overlay with `--configuration PATH`; an explicit missing file fails rather than
+falling back. It uses the runtime's project/role configuration resolver, including
+relative credential-file paths and role overrides. Keys remain file/environment
+references. Standalone checking has no retained jobs, so an overlay containing
+job-specific settings requires the existing team's configuration workflow instead.
+
+Without `--online`, this checks credential readability/format without network access.
+With `--online`, it makes a small real evaluation for each distinct configured
+connection/model/transport, which can incur provider charges. `jev: VERIFIED` means
+those requests authenticated and their responses passed validation. It does not
+establish a full agent run. Credential expiry remains unknown because this API does
+not expose it; secrets, provider responses and exception text are never printed.
+
 ### Isolated fixture acceptance
 
 `acceptance.sh` wraps the existing fixture operator and frozen verifier rather
@@ -135,6 +157,8 @@ That immutable runtime path lives under
 It never changes the branch of the checkout containing these scripts or repoints
 a runtime recorded by an older run. An explicit `--runtime` must match the selected
 revision.
+`--configuration` is accepted by `preview`, `check` and `prepare`; it is not an
+`update` option. Add it only to those commands, rather than to shared update options.
 
 To test a newer reviewed Agentscient commit before the fixture updates its reference,
 use `--runtime-revision` with its full 40-character commit SHA. Select a commit whose

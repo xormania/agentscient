@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "credentials.py"
@@ -46,8 +46,9 @@ class CredentialScriptTests(unittest.TestCase):
         path.chmod(0o600)
         return path
 
-    def check(self, service, online=False):
-        row = credentials.check(service, online=online, repos=["uscient/agentscient"], now=NOW, days=7)
+    def check(self, service, online=False, configuration=None):
+        row = credentials.check(service, online=online, repos=["uscient/agentscient"], now=NOW, days=7,
+                                configuration=configuration)
         self.assertNotIn(SENTINEL, json.dumps(row))
         return row
 
@@ -185,6 +186,122 @@ class CredentialScriptTests(unittest.TestCase):
         self.assertEqual(source.returncode, 0)
         self.assertIn("alive:", source.stdout)
         self.assertIn("e", source.stdout.rsplit("alive:", 1)[1])
+
+    def test_jev_offline_uses_default_overlay_and_does_not_need_native_tools(self):
+        secret = self.root / ".config/agentscient/secrets/typesafe.key"
+        secret.parent.mkdir(parents=True)
+        secret.write_text(SENTINEL + "\n")
+        secret.chmod(0o600)
+        self.document(".config/agentscient/configuration.json", {
+            "version": 1, "project": {"connection": {"credential": {"file": "secrets/typesafe.key"}}},
+        })
+        from devtools.jev import Jev
+        with patch.object(credentials.shutil, "which", side_effect=AssertionError("native lookup")), \
+             patch.object(credentials, "native", side_effect=AssertionError("native ran")), \
+             patch.object(Jev, "evaluate", side_effect=AssertionError("network ran")):
+            row = self.check("jev")
+        self.assertEqual((row["stored"], row["status"], row["expires_at"]), ("present", "incomplete", None))
+        self.assertEqual(row["source"], "private credential file")
+        self.assertEqual(row["configurations_checked"], 1)
+
+    def test_jev_default_environment_and_wrapper_work_from_unrelated_cwd(self):
+        os.environ["TYPESAFE_API_KEY"] = SENTINEL
+        for mode in ("direct", "wrapper"):
+            with self.subTest(mode=mode):
+                if mode == "direct":
+                    row = self.check("jev")
+                else:
+                    # Isolated Python must import this checkout, never this cwd or PYTHONPATH.
+                    (self.root / "devtools").mkdir()
+                    (self.root / "devtools/__init__.py").write_text("raise RuntimeError('untrusted cwd import')\n")
+                    result = subprocess.run(["bash", str(SCRIPT.with_suffix(".sh")), "--service", "jev", "--json"],
+                                            cwd=self.root, env={**os.environ, "PYTHONPATH": str(self.root)},
+                                            text=True, capture_output=True, timeout=30)
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertNotIn(SENTINEL, result.stdout + result.stderr)
+                    row = json.loads(result.stdout)["credentials"][0]
+                self.assertEqual((row["source"], row["stored"]), ("environment variable", "present"))
+
+    def test_jev_probes_each_effective_project_role_variant_once(self):
+        os.environ.update(PROJECT_JEV=SENTINEL, ROLE_JEV=SENTINEL)
+        overlay = self.document("private/overlay.json", {"version": 1,
+            "project": {"connection": {"endpoint": "https://project.invalid/evaluate", "credential": {"env": "PROJECT_JEV"}}},
+            "roles": {
+                "coder": {"connection": {"endpoint": "https://role.invalid/evaluate", "credential": {"env": "ROLE_JEV"}}},
+                "audit": {"model": "jev-1.14.0"},
+                "research": {"transport": {"timeout": 3}},
+                "docs": {},
+            }})
+        from devtools.jev import Jev
+        called = []
+        def evaluate(instance, state, questions, model=None):
+            called.append((instance.connection, instance.settings, model, state, questions))
+            return {"provider_echo": SENTINEL}
+        with patch.object(Jev, "evaluate", evaluate), \
+             patch.object(credentials.shutil, "which", side_effect=AssertionError("native lookup")):
+            row = self.check("jev", online=True, configuration=overlay)
+        self.assertEqual((row["status"], row["configurations_checked"]), ("verified", 4))
+        self.assertEqual(len(called), 4)
+        self.assertEqual({call[0]["credential"]["env"] for call in called}, {"PROJECT_JEV", "ROLE_JEV"})
+        self.assertIn("https://role.invalid/evaluate", {call[0]["endpoint"] for call in called})
+        self.assertIn("jev-1.14.0", {call[2] for call in called})
+        self.assertIn(3, {call[1]["timeout"] for call in called})
+        self.assertTrue(all(call[3] == {"value": 2} for call in called))
+
+    def test_jev_real_transport_validates_response_without_printing_secrets(self):
+        os.environ["TYPESAFE_API_KEY"] = SENTINEL
+        from devtools import jev
+        opener = MagicMock()
+        response = opener.open.return_value.__enter__.return_value
+        valid = {"model": jev.MODEL, "answers": {"check": {"type": "noul", "noul": 1}},
+                 "usage": {"input_tokens": 1, "output_tokens": 1}, "echo": SENTINEL}
+        for body, expected in ((valid, "verified"), ({"echo": SENTINEL}, "failed")):
+            with self.subTest(expected=expected):
+                response.read.return_value = json.dumps(body).encode()
+                with patch.object(jev.urllib.request, "build_opener", return_value=opener):
+                    row = self.check("jev", online=True)
+                self.assertEqual(row["status"], expected)
+                request = opener.open.call_args.args[0]
+                self.assertEqual(request.get_header("Authorization"), "Bearer " + SENTINEL)
+                self.assertNotIn(SENTINEL.encode(), request.data)
+        opener.open.side_effect = HTTPError("https://typesafe.invalid/" + SENTINEL, 401, SENTINEL, {}, None)
+        with patch.object(jev.urllib.request, "build_opener", return_value=opener):
+            self.assertEqual(self.check("jev", online=True)["status"], "failed")
+
+    def test_jev_failure_continues_other_variants_and_redacts_provider_exception(self):
+        os.environ["TYPESAFE_API_KEY"] = SENTINEL
+        overlay = self.document("overlay.json", {"version": 1, "roles": {"coder": {"model": "jev-1.14.0"}}})
+        from devtools.jev import Jev
+        output = io.StringIO()
+        with patch.object(Jev, "evaluate", side_effect=[RuntimeError(SENTINEL), {"echo": SENTINEL}]) as evaluate, \
+             contextlib.redirect_stdout(output):
+            code = credentials.main(["--service", "jev", "--online", "--configuration", str(overlay), "--json"])
+        self.assertEqual(code, 1)
+        self.assertEqual(evaluate.call_count, 2)
+        self.assertNotIn(SENTINEL, output.getvalue())
+        row = json.loads(output.getvalue())["credentials"][0]
+        self.assertEqual([result["status"] for result in row["checks"]], ["failed", "verified"])
+
+    def test_jev_missing_bad_configuration_or_credentials_cannot_pass(self):
+        from devtools.jev import Jev
+        for configuration in (self.root / "missing.json", self.document("malformed.json", {"version": 1, SENTINEL: 1}), None):
+            with self.subTest(configuration=configuration), patch.object(Jev, "evaluate") as evaluate:
+                self.assertEqual(self.check("jev", online=True, configuration=configuration)["status"], "failed")
+                evaluate.assert_not_called()
+        secret = self.root / "key"
+        secret.write_text(SENTINEL)
+        secret.chmod(0o644)
+        overlay = self.document("file-overlay.json", {"version": 1, "project": {"connection": {"credential": {"file": str(secret)}}}})
+        with patch.object(Jev, "evaluate") as evaluate:
+            self.assertEqual(self.check("jev", online=True, configuration=overlay)["status"], "failed")
+            evaluate.assert_not_called()
+
+    def test_jev_is_in_default_service_selection(self):
+        output = io.StringIO()
+        with patch.object(credentials, "check", return_value={"status": "verified"}) as check, \
+             contextlib.redirect_stdout(output):
+            self.assertEqual(credentials.main(["--json"]), 0)
+        self.assertIn("jev", [call.args[0] for call in check.call_args_list])
 
 
 if __name__ == "__main__":

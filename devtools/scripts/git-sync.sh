@@ -31,7 +31,7 @@ done
 export GIT_TERMINAL_PROMPT=0
 export GIT_OPTIONAL_LOCKS=0
 
-script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 1
+script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || exit 1
 repo="$script_dir/../.."
 apply=false
 push=false
@@ -48,7 +48,7 @@ while (($#)); do
 done
 if "$push" && ! "$apply"; then fail '--push also requires --apply.'; fi
 command -v git >/dev/null 2>&1 || fail 'Git is not installed.'
-repo=$(cd -- "$repo" 2>/dev/null && pwd -P) || fail 'Repository directory does not exist.'
+repo=$(CDPATH='' cd -- "$repo" 2>/dev/null && pwd -P) || fail 'Repository directory does not exist.'
 
 git_safe() {
     git -c core.hooksPath=/dev/null -c protocol.ext.allow=never \

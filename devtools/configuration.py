@@ -26,6 +26,11 @@ from .failures import CATEGORIES
 from .jev_config import validate_entry, validate_question, validate_questions
 from .recovery_actions import PLACEHOLDERS, substitute, validate_templates
 from .role_packages import behavior, behavior_ids, catalog
+from .store import State
+
+# Public entry point used by the separately versioned acceptance fixture and its
+# frozen verifier. Keep the shared read-only implementation, not a second reader.
+ConfigurationState = State
 
 SOURCE = Path(__file__).with_name("configuration.cue")
 GENERATED = SOURCE.with_suffix(".json")

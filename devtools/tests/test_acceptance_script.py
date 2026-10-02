@@ -206,6 +206,20 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.assertFalse((self.root / "external-command-calls.log").exists())
         self.assertEqual(self.pin, self.git(self.runtime, "rev-parse", "HEAD"))
 
+    def test_incompatible_fixture_reports_failure_without_traceback_or_preparing_run(self):
+        # This fixture has no readiness API. Cross-repository drift must produce
+        # an operator-facing error, including when preparing a new run.
+        for action in ("check", "prepare"):
+            with self.subTest(action=action):
+                options = ["--run-dir", self.run] if action == "prepare" else ["--online"]
+                result = self.invoke(action, "--fixture", self.fixture, "--runtime", self.runtime, *options)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn("compatible fixture/runtime revisions", result.stderr)
+                self.assertNotIn("Traceback", result.stdout + result.stderr)
+                self.assertNotIn(SENTINEL, result.stdout + result.stderr)
+                self.assertFalse(self.run.exists())
+                self.assertFalse((self.root / "external-command-calls.log").exists())
+
     def test_explicit_revision_provisions_exact_checkout_and_rechecks_before_preflight(self):
         helper = self.module()
         candidate = self.root / "new runtime source"

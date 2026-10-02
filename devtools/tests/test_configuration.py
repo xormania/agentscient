@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -51,6 +52,30 @@ class ConfigurationTests(unittest.TestCase):
         self.assertNotIn("revision", configuration.defaults())
         value["scope"]["questions"].clear()
         self.assertTrue(configuration.resolve(self.store)["scope"]["questions"])
+
+    def test_fixture_configuration_state_resolves_without_writing_or_migrating(self):
+        # The separately versioned fixture imports this public entry point in
+        # both preparation and its frozen final verifier.
+        from devtools.configuration import ConfigurationState
+
+        self.configure({"version": 1,
+                        "project": {"connection": {"credential": {"file": "private/jev.key"}}},
+                        "roles": {"coder": {"filtering": {"max_facts": 4}}},
+                        "jobs": {"1": {"filtering": {"max_facts": 7}}}})
+        before = self.store.path.read_bytes()
+        state = ConfigurationState(self.root)
+        value = configuration.resolve(state, role="coder", job=1)
+        self.assertEqual(7, value["filtering"]["max_facts"])
+        self.assertEqual({"file": str(self.root / "private/jev.key")}, value["connection"]["credential"])
+        self.assertFalse((self.root / "private/jev.key").exists())
+        with state.connect() as db:
+            with self.assertRaises(sqlite3.OperationalError):
+                db.execute("CREATE TABLE forbidden (id INTEGER)")
+        self.assertEqual(before, self.store.path.read_bytes())
+        missing = ConfigurationState(self.root / "missing")
+        with self.assertRaises(sqlite3.OperationalError), missing.connect():
+            self.fail("Missing state must not be created")
+        self.assertFalse(missing.directory.exists())
 
     def test_decision_rules_resolve_partial_overrides_without_changing_defaults(self):
         self.configure({"version": 1, "project": {"decisions": {
