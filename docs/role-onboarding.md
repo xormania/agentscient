@@ -33,6 +33,11 @@ the table is not a required role list.
 | Test Writer | Behavior tests, regressions, useful boundaries and measured evidence | `agentscient-test-writer` |
 | Architect | Existing capabilities, interfaces, design tradeoffs and migration | `agentscient-architect` |
 
+Coordinator onboarding, MCP role arguments and assignment selection use the same
+configured role projection. Arbitrator is assigned by the service; NCO receives
+specialist options without Planner or NCO. Work scope, permissions and available
+runtime capacity still determine whether a proposed assignment can proceed.
+
 Each role receives its package's configured `skills.shared` content; the shipped
 packages select `agentscient-context`. Canonical skill content lives in
 `.agents/skills`; role selection and delivery live in `devtools/onboarding.py`.

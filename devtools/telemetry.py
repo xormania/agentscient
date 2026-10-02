@@ -45,8 +45,21 @@ def clean(value, *, secrets=()):
     return scrub(value)
 
 
+def clean_for_state(directory, value):
+    """Filter current configured keys without changing the captured operation."""
+    from .credentials import configured_values
+
+    try:
+        secrets = configured_values(directory)
+    except (OSError, ValueError):
+        # Keep the event envelope and an explicit reason, never unchecked data.
+        return {"capture": "suppressed", "reason": "credential_filter_unavailable"}
+    return clean(value, secrets=secrets)
+
+
 class Trace:
     def __init__(self, directory, member, component="native", context=None):
+        self.directory = Path(directory)
         self.path = Path(directory) / "telemetry" / (member + ".jsonl")
         self.path.parent.mkdir(exist_ok=True, mode=0o700)
         self.handle = self.path.open("a", encoding="utf-8")
@@ -56,7 +69,8 @@ class Trace:
         self.connection = uuid.uuid4().hex
         self.context = context
 
-    clean = staticmethod(clean)
+    def clean(self, value):
+        return clean_for_state(self.directory, value)
 
     def record(self, kind, data, *, frame_context=None):
         row = {
@@ -66,10 +80,16 @@ class Trace:
             "actor": self.member,
             "component": self.component,
             "connection": self.connection,
-            "context": self.clean(frame_context if frame_context is not None else self.context() if self.context else {}),
+            "context": frame_context if frame_context is not None else self.context() if self.context else {},
             "kind": kind,
-            "data": self.clean(data),
+            "data": data,
         }
+        # Context and payload share one fresh credential snapshot.
+        captured = self.clean([row["context"], row["data"]])
+        if isinstance(captured, dict):
+            row.update(context={}, data=captured)
+        else:
+            row.update(zip(("context", "data"), captured))
         with self.lock:
             if not self.handle.closed:
                 # Native bridge, MCP server and hook processes share this file.
@@ -111,8 +131,10 @@ def requested(store, member, config, private=None):
     """Record explicit and inherited choices; neither proves what the vendor ran."""
     import tomllib
 
+    from .harnesses import get
+
     inherited = {}
-    if config["harness"] == "codex" and private and (private / "config.toml").is_file():
+    if private and getattr(get(config["harness"]), "protocol", None) == "codex" and (private / "config.toml").is_file():
         values = tomllib.loads((private / "config.toml").read_text())
         inherited = {
             k: values.get(v)
@@ -168,13 +190,23 @@ class Transcript:
 
     def __init__(self, store, member, trace):
         self.store, self.member, self.trace = store, member, trace
+        self.generation = store.member(member)["generation"]
         self.after, self.path, self.offset, self.inode = 0, None, 0, None
 
     def poll(self):
+        from .sessions import lock
+
+        # Read the final entries after stop, but never cross into a replacement
+        # generation. The existing session lock also fences replacement mid-poll.
+        with lock(self.store, self.member):
+            if self.store.member(self.member)["generation"] == self.generation:
+                self._poll()
+
+    def _poll(self):
         rows = self.store.events(after=self.after, actor=self.member, kind="native_transcript", limit=100)["events"]
         for row in rows:
             self.after = row["id"]
-            if row["data"].get("generation") == self.store.member(self.member)["generation"]:
+            if row["data"].get("generation") == self.generation and isinstance(row["data"].get("path"), str):
                 path = Path(row["data"]["path"])
                 if path != self.path:
                     self.path, self.offset, self.inode = path, 0, None

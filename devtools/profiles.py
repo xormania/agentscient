@@ -7,6 +7,7 @@ import shlex
 import shutil
 import sys
 import tomllib
+import uuid
 from pathlib import Path
 
 from .api import API, SERVER, TOOLS, validate
@@ -44,6 +45,36 @@ def toml(value):
     if isinstance(value, list):
         return "[" + ", ".join(map(toml, value)) + "]"
     return json.dumps(value)
+
+
+def claude_command(config, private, instructions, catalogue, prompt):
+    """One native tool boundary for interactive CO and managed Claude workers."""
+    native_id = str(uuid.uuid4())
+    debug = private / "native-debug.log"
+    debug.write_text("")
+    debug.chmod(0o600)
+    argv = [
+        config["binary"],
+        "--session-id", native_id,
+        "--setting-sources", "",
+        "--disable-slash-commands",
+        "--strict-mcp-config",
+        "--mcp-config", str(private / "mcp.json"),
+        "--settings", str(private / "settings.json"),
+        "--debug-file", str(debug),
+        "--dangerously-load-development-channels", "server:" + SERVER,
+        "--tools", "",
+        "--disallowedTools", "Agent,Task",
+        "--allowedTools", ",".join(
+            "mcp__" + provider + "__" + row["name"]
+            for provider, rows in catalogue.items() for row in rows
+        ),
+        "--append-system-prompt", instructions,
+    ]
+    for source, flag in (("model", "--model"), ("reasoning", "--effort")):
+        if config.get(source):
+            argv += [flag, config[source]]
+    return [*argv, "--", prompt], native_id
 
 
 def restore_login(private, original, harness):
@@ -155,11 +186,22 @@ def _permitted_builtin(harness, tool, arguments, *, catalogue=None):
     return False
 
 
-def tool_catalogue(directory, member):
-    """Read the live trusted binding; the native launch catalog is not authority."""
+def tool_catalogue(directory, member, *, package_ceiling=False):
+    """Current MCP authority, or the role's stable native launch allowance.
+
+    Native CLI allowlists last for the session. The package ceiling permits
+    tools that become available after ordinary binding/project transitions;
+    MCP and hooks still check the live, narrower catalogue on every call.
+    """
     api = API(directory, member)
     scope = api.control.snapshot()
-    result = {SERVER: api._tools(scope)}
+    rows = api._tools(scope)
+    role = api.commands.role(scope)
+    if package_ceiling and role:
+        declared = {name for group in role_package(role)["mcp"].values() for name in group}
+        current = {row["name"]: row for row in rows}
+        rows = [current.get(row["name"], row) for row in TOOLS if row["name"] in declared]
+    result = {SERVER: rows}
     if serena_enabled(api.store, scope):
         result[SERENA_SERVER] = [SERENA_TOOL]
     return result

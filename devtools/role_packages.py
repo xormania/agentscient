@@ -14,6 +14,7 @@ from pathlib import Path
 from . import adapters
 from .failures import Failure
 from .role_behaviors import RoleBehavior
+from .store import canonical, digest
 
 SOURCE = Path(__file__).with_name("role-packages.cue")
 GENERATED = SOURCE.with_suffix(".json")
@@ -32,14 +33,6 @@ def behavior(name):
 
 def behavior_ids():
     return tuple(sorted({behavior(name).id for name in adapters.names("role")}))
-
-
-def canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
-def digest(value):
-    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def _object(value, fields, where):
@@ -169,6 +162,21 @@ def adapter(name):
 def names_for_adapter(selected):
     return tuple(sorted(name for name, package in _catalog()["roles"].items()
                         if behavior(package["behavior"]).id == selected))
+
+
+def assignable_roles(coordinator=None):
+    """Configured identities eligible for ordinary coordinator assignments.
+
+    Shared by tool schemas, onboarding and semantic selection. Work, path,
+    capacity and lifecycle checks remain the assignment service's responsibility.
+    """
+    behavior = adapter(coordinator) if coordinator is not None else None
+    if behavior not in {None, "xo", "nco"}:
+        return ()
+    excluded = {"co", "xo", "arbitrator"}
+    if behavior == "nco":
+        excluded |= {"planner", "nco"}
+    return tuple(name for name in _catalog()["roles"] if adapter(name) not in excluded)
 
 
 def default_role(selected):

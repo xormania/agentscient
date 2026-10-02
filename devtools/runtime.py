@@ -1,6 +1,5 @@
 """Operator-owned role policy and vendor availability, resolved behind MCP."""
 
-import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -9,7 +8,7 @@ from .adapters import names as adapter_names
 from .adapters import registry as adapter_registry
 from .harnesses import get as harness_adapter
 from .role_packages import adapter, catalog, default_role, names_for_adapter, runtime_profile
-from .store import canonical, stamp
+from .store import canonical, digest, stamp
 
 DEFAULTS = Path(__file__).with_name("runtime-defaults.json")
 
@@ -103,7 +102,7 @@ def validate(policy, availability):
             raise ValueError("Duplicate runtime preference")
         for choice in choices:
             runtime_profile(role, profiles[choice])
-    revision = hashlib.sha256(canonical([policy, availability, catalog(), adapter_registry()]).encode()).hexdigest()
+    revision = digest([policy, availability, catalog(), adapter_registry()])
     return policy, availability, revision
 
 

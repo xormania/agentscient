@@ -441,7 +441,7 @@ class API:
                 allowed |= set(groups["work_order_framework"])
         if scope is None:
             allowed -= {"conclude", "restart_xo"}
-        current = {row["name"]: row for row in command_capabilities(spec)}
+        current = {row["name"]: row for row in command_capabilities(spec, role)}
         rows = [current.get(row["name"], row) for row in TOOLS if row["name"] in allowed]
         if "work_assess" in allowed:
             from .configuration import resolve
@@ -685,7 +685,7 @@ class API:
             return self.store.events(**args)
         if name == "telemetry_usage":
             result = self.store.events(kind="native_usage", **args)
-            result["observed"] = bool(result["events"])
+            result["observed"] = any(row["data"].get("observation") is not None for row in result["events"])
             return result
         if name == "session_stop":
             from .launch import stop

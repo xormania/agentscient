@@ -1,8 +1,7 @@
 """Shared advice arrangements without test methods."""
 
 import json
-import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from devtools.api import API
 from devtools.jev import MODEL
@@ -63,21 +62,3 @@ class AdviceFixture:
 
     def retained(self, result):
         return json.loads(self.api.artifacts.read(int(result["evidence"].split(":")[1]), limit=256 * 1024)["content"])
-
-
-class JevTransportFixture:
-
-    def setUp(self):
-        self.questions = {"q": {"type": "noul", "instructions": "Is it relevant?"}}
-        self.key = patch.dict(os.environ, {"TYPESAFE_API_KEY": "test-secret-never-log"})
-        self.key.start()
-        self.addCleanup(self.key.stop)
-        self.opener = MagicMock()
-        self.factory = patch("devtools.jev.urllib.request.build_opener", return_value=self.opener)
-        self.factory.start()
-        self.addCleanup(self.factory.stop)
-
-    def response(self, value):
-        response = MagicMock()
-        response.__enter__.return_value.read.return_value = value if isinstance(value, bytes) else json.dumps(value).encode()
-        return response

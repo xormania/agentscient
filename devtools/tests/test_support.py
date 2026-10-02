@@ -2,6 +2,7 @@
 
 import os
 import signal
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -11,7 +12,9 @@ from pathlib import Path
 from threading import Event
 from unittest.mock import patch
 
-from support import Client, fixture_environment
+from support import Client, fixture_environment, retain_native
+
+from devtools.store import State
 
 ECHO = """import json, sys
 for line in sys.stdin:
@@ -78,6 +81,45 @@ for line in sys.stdin:
         self.assertIsNone(client.initialization["OPENAI_API_KEY"])
         self.assertEqual("deliberate-dummy", client.initialization["FIXTURE_KEY"])
         self.assertTrue(Path(client.initialization["HOME"]).is_relative_to(self.root))
+
+    def test_retained_native_evidence_copies_live_wal_and_closes_connections(self):
+        source = self.root / "source"
+        source.mkdir()
+        telemetry = source / "telemetry"
+        telemetry.mkdir()
+        (telemetry / "fixture.jsonl").write_text('{"observed":true}\n')
+        target = self.root / "evidence"
+        connections = []
+        connect = sqlite3.connect
+
+        def track_connection(*args, **kwargs):
+            connection = connect(*args, **kwargs)
+            connections.append(connection)
+            self.addCleanup(connection.close)
+            return connection
+
+        with State(source, read_only=False).connect() as writer:
+            writer.execute("PRAGMA journal_mode=WAL")
+            writer.execute("CREATE TABLE measured (value TEXT NOT NULL)")
+            writer.execute("PRAGMA user_version=1")
+            writer.execute("INSERT INTO measured VALUES ('actual fixture result')")
+            writer.commit()
+            with patch.dict(os.environ, {"AGENTSCIENT_EVIDENCE_DIR": str(target)}):
+                with patch("devtools.store.sqlite3.connect", side_effect=track_connection):
+                    retain_native(source, "observed")
+            self.assertEqual(2, len(connections))
+            for connection in connections:
+                with self.assertRaises(sqlite3.ProgrammingError):
+                    connection.execute("SELECT 1")
+
+        retained = target / "observed"
+        with State(retained).connect() as db:
+            self.assertEqual(1, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual("actual fixture result", db.execute("SELECT value FROM measured").fetchone()[0])
+            self.assertEqual(["measured"], [row[0] for row in db.execute("SELECT name FROM sqlite_master")])
+        self.assertEqual((telemetry / "fixture.jsonl").read_bytes(),
+                         (retained / "telemetry/fixture.jsonl").read_bytes())
+        self.assertIn("Not authenticated", (retained / "interpretation.txt").read_text())
 
     def test_large_non_utf8_stderr_does_not_block_protocol_or_cleanup(self):
         client = self.client("import os\nos.write(2, b'noise' * 50000 + b'\\xff' * 10000)\n" + ECHO)

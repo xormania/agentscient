@@ -6,13 +6,13 @@ import json
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from .advice import Advice, digest
+from .advice import Advice
 from .assignments import snapshot
 from .configuration import resolve as configuration
 from .control import Control, binding, includes
 from .failures import Failure, failure_info
 from .role_packages import adapter, require_capability
-from .store import canonical, stamp
+from .store import canonical, digest, stamp
 from .telemetry import clean
 from .work import record
 
@@ -234,8 +234,6 @@ class Decisions:
 
     def prune(self, purpose, payload, job, identity):
         """Retire obsolete investigations without consuming collaborator capacity."""
-        from .delivery import Delivery
-
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             for row in db.execute("SELECT * FROM decisions WHERE member=? AND state='pending'", (self.member,)).fetchall():
@@ -247,31 +245,29 @@ class Decisions:
                 except ValueError:
                     stale = True
                 if stale:
-                    current = binding(db, row["arbitrator"]) if row["arbitrator"] else None
-                    if current and current.get("assignment_id") == row["assignment"]:
-                        Delivery.release(db, current["member"])
-                    if row["assignment"]:
-                        db.execute("UPDATE role_assignments SET status='cancelled',updated=? WHERE id=?", (stamp(), row["assignment"]))
-                    db.execute("UPDATE decisions SET state='stale',updated=? WHERE id=?", (stamp(), row["id"]))
-                    self.store._event(db, self.member, "decision_superseded", {"decision": row["id"], "work_order": row["work_order"], "job": row["job"]})
+                    self._supersede(db, row)
 
     def retire_stale(self):
         """Revoke obsolete investigations even when their requester makes no new call."""
-        from .delivery import Delivery
-
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             for row in db.execute("SELECT * FROM decisions WHERE state='pending'").fetchall():
                 try:
                     Decisions(self.store, row["member"])._fresh(db, row)
                 except ValueError:
-                    current = binding(db, row["arbitrator"]) if row["arbitrator"] else None
-                    if current and current.get("assignment_id") == row["assignment"]:
-                        Delivery.release(db, current["member"])
-                    if row["assignment"]:
-                        db.execute("UPDATE role_assignments SET status='cancelled',updated=? WHERE id=?", (stamp(), row["assignment"]))
-                    db.execute("UPDATE decisions SET state='stale',updated=? WHERE id=?", (stamp(), row["id"]))
-                    self.store._event(db, row["member"], "decision_superseded", {"decision": row["id"], "work_order": row["work_order"], "job": row["job"]})
+                    self._supersede(db, row)
+
+    def _supersede(self, db, row):
+        """Retire the decision and its own investigator in the caller's transaction."""
+        from .delivery import Delivery
+
+        current = binding(db, row["arbitrator"]) if row["arbitrator"] else None
+        if current and current.get("assignment_id") == row["assignment"]:
+            Delivery.release(db, current["member"])
+        if row["assignment"]:
+            db.execute("UPDATE role_assignments SET status='cancelled',updated=? WHERE id=?", (stamp(), row["assignment"]))
+        db.execute("UPDATE decisions SET state='stale',updated=? WHERE id=?", (stamp(), row["id"]))
+        self.store._event(db, row["member"], "decision_superseded", {"decision": row["id"], "work_order": row["work_order"], "job": row["job"]})
 
     def _pending(self, ident):
         from .commands import Commands

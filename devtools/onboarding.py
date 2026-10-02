@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 
-from .role_packages import adapter, catalog, descriptor
+from .role_packages import assignable_roles, catalog, descriptor
 from .role_packages import role as role_package
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,10 +100,9 @@ class Onboarding:
             ],
         }
         if "orchestrate" in tools:
-            excluded = {"co", "xo", "nco", "planner"} if adapter(role) == "nco" else {"co", "xo"}
             value["assignable_roles"] = [
-                {"name": name, "responsibility": package["responsibility"]}
-                for name, package in catalog()["roles"].items() if adapter(name) not in excluded
+                {"name": name, "responsibility": role_package(name)["responsibility"]}
+                for name in assignable_roles(role)
             ]
         revision = hashlib.sha256(json.dumps(
             [package, [(row["name"], row["guidance_sha256"]) for row in skills],

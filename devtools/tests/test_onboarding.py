@@ -16,6 +16,13 @@ class OnboardingTests(unittest.TestCase):
     setUp = ControlFixture.setUp
     client = ControlFixture.client
 
+    @staticmethod
+    def command_roles(api, name):
+        properties = next(row["inputSchema"]["properties"] for row in api.tools() if row["name"] == name)
+        if name == "orchestrate":
+            properties = properties["work"]["items"]["properties"]
+        return set(properties["role"]["enum"])
+
     def test_each_role_receives_its_own_brief_and_skill_catalog_with_current_tools(self):
         texts = set()
         for role in ROLES:
@@ -58,8 +65,15 @@ class OnboardingTests(unittest.TestCase):
     def test_coordinator_revision_tracks_presented_candidate_responsibility_and_identity(self):
         api = API(self.state, "xo")
         configured = catalog()
+        # A new service-only role identity cannot make it manually assignable.
+        configured["roles"]["referee"] = configured["roles"]["arbitrator"]
+        configured["defaults"]["arbitrator"] = "referee"
         with patch("devtools.role_packages._catalog", return_value=configured):
             original = api.call("onboard", {})
+            offered = {row["name"] for row in original["assignable_roles"]}
+            self.assertNotIn("referee", offered)
+            self.assertEqual(offered, self.command_roles(api, "orchestrate"))
+            self.assertEqual(offered, self.command_roles(api, "steer"))
             configured["roles"]["research"]["responsibility"] = "Investigate the configured candidate's bounded question"
             revised = api.call("onboard", {})
             self.assertEqual(original["package"], revised["package"])
@@ -112,6 +126,10 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("one assigned job", nco["role_instructions"])
         self.assertIn("do not commission a planner or another NCO", nco["role_instructions"])
         self.assertNotIn("conclude", nco["tools"])
+        offered = {row["name"] for row in nco["assignable_roles"]}
+        self.assertFalse({"arbitrator", "co", "xo", "planner", "nco"} & offered)
+        self.assertEqual(offered, self.command_roles(api, "orchestrate"))
+        self.assertEqual(offered, self.command_roles(api, "steer"))
         api.control.bind("coder", "planner", self.order, None, "xo")
         planner = api.call("onboard", {})
         self.assertIn("Propose jobs", planner["role_instructions"])

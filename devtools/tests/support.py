@@ -2,7 +2,6 @@ import json
 import os
 import selectors
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -345,11 +344,13 @@ def terminal_team():
 
 
 def retain_native(state, label):
+    from devtools.store import State
+
     target = os.environ.get("AGENTSCIENT_EVIDENCE_DIR")
     if target:
         destination = Path(target) / label
         destination.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(state / "live.sqlite3") as source, sqlite3.connect(destination / "live.sqlite3") as copy:
+        with State(state).connect() as source, State(destination, read_only=False).connect() as copy:
             source.backup(copy)
         if (state / "telemetry").exists():
             shutil.copytree(state / "telemetry", destination / "telemetry", dirs_exist_ok=True)

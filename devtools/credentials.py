@@ -67,6 +67,14 @@ def credential_values(connection):
         return ()
 
 
+def configured_values(directory):
+    """Refresh all operator-owned keys for capture, including role/job overrides."""
+    from .configuration import credential_references
+
+    return tuple(value for reference in credential_references(directory)
+                 for value in credential_values({"credential": reference}))
+
+
 def redact(value, connection):
     from .telemetry import clean
 

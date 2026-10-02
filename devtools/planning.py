@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from contextlib import ExitStack
 
-from .assignments import covers, prepare, snapshot, valid_path
+from .assignments import covers, current_update, prepare, valid_path
 from .control import binding
 from .delivery import Delivery
 from .role_packages import adapter, names_for_adapter
@@ -45,14 +45,6 @@ def current_plan(db, order):
     if json.loads(row["mission"]) != mission(db, order):
         raise ValueError("The work-order context changed after planning; ask XO for a current plan.")
     return dict(row)
-
-
-def current_result(db, scope):
-    for row in db.execute("SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? "
-                          "AND kind='result' ORDER BY id DESC", (scope["member"], scope["work_order"], scope["job"])):
-        if row["binding"] and json.loads(row["binding"]) == snapshot(scope):
-            return dict(row)
-    return None
 
 
 def writer_available(db, scope, role, existing=None):
@@ -165,7 +157,7 @@ class Planning:
         accepted_source = previous and previous["result_update"] == result["id"] and previous["mission"] == brief
         if not accepted_source and (result["kind"] != "result" or not result["artifact"] or not author or adapter(author["role"]) != "planner"
                 or author["job"] is not None or author["reports_to"] != self.member
-                or not current_result(db, author) or current_result(db, author)["id"] != result["id"]
+                or (current_update(db, author, kind="result") or {}).get("id") != result["id"]
                 or json.loads(result["mission"]) != json.loads(brief)):
             raise ValueError("Use the XO planner's current retained result for this work-order context.")
         existing = {row["title"].casefold(): dict(row) for row in db.execute("SELECT * FROM jobs WHERE work_order=?", (order["id"],))}
@@ -440,7 +432,7 @@ class Planning:
                     raise ValueError("Arbitrator completes its service-owned decision through decision_resolve.")
                 if adapter(scope["role"]) == "xo" and target["job"] and target["reports_to"] != self.member:
                     raise ValueError("The job's NCO completes its specialist assignments; XO accepts the job.")
-                result = current_result(db, target)
+                result = current_update(db, target, kind="result")
                 if not cancel and not result:
                     raise ValueError("A role assignment needs a current retained result before completion.")
                 if db.execute("SELECT 1 FROM operations WHERE member=? AND state IN ('queued','running')", (target["member"],)).fetchone():
@@ -462,7 +454,7 @@ class Planning:
                 db.execute("BEGIN IMMEDIATE")
                 if self.commands._scope(db, {"xo", "nco"}) != scope or binding(db, target["member"]) != target:
                     raise ValueError("The assignment changed during completion; inspect its current result.")
-                latest = current_result(db, target)
+                latest = current_update(db, target, kind="result")
                 if not cancel and (not latest or latest["id"] != result["id"]):
                     raise ValueError("The result changed during completion; inspect its current proof.")
                 if dict(record(db, "role_assignments", assigned["id"])) != assigned:

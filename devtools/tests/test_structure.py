@@ -46,10 +46,14 @@ class StructureTests(StructureFixture, unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "NCO"):
             self.assign(self.xo, "coder", "Alpha")
         for nco, work in ((alpha, "Alpha"), (beta, "Beta")):
-            with self.assertRaisesRegex(ValueError, "Only XO"):
-                nco.call("orchestrate", {"work": [responsibility("Plan", "planner")]})
-            with self.assertRaisesRegex(ValueError, "XO appoints"):
-                self.assign(nco, "nco", work)
+            for request, message in ((responsibility("Plan", "planner"), "Only XO"),
+                                     ({"name": "nco", "job": work, "role": "nco"}, "XO appoints")):
+                # The MCP schema rejects these roles early; direct service calls
+                # must still enforce the same authority before creating work.
+                with self.assertRaisesRegex(ValueError, r"arguments.work\[\].role is not an allowed value"):
+                    nco.call("orchestrate", {"work": [request]})
+                with self.assertRaisesRegex(ValueError, message):
+                    nco.commands.orchestrate([request])
             with self.assertRaisesRegex(ValueError, "command role"):
                 nco.call("steer", {"action": "accept", "work": work, "direction": "Self-accept"})
             with self.assertRaisesRegex(ValueError, "cannot perform"):

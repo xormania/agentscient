@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
 
+from .assignments import current_update
 from .control import Control, binding, includes
 from .github import GitHub
 from .github_http import GitHubError
 from .role_packages import adapter, names_for_adapter, require_capability
-from .store import canonical, stamp
+from .store import canonical, digest, stamp
 from .work import Work, record
 from .workspaces import EDITORS, Workspaces, git
 
@@ -219,9 +219,7 @@ class Delivery:
         context = self.github._context(job=work["id"])
         pr = self.github._pr(context)
         self.github._revision(pr, revision)
-        key = hashlib.sha256(
-            canonical([self.member, work["id"], revision, conclusion, summary, response_to]).encode()
-        ).hexdigest()
+        key = digest([self.member, work["id"], revision, conclusion, summary, response_to])
         marker = "<!-- agentscient-review:" + key + " -->"
         body = (
             f"{conclusion.replace('_', ' ').title()} at `{revision}`\n\n{summary}\n\n"
@@ -316,7 +314,7 @@ class Delivery:
                 report = self._current_result(db, job)
                 planned = record(db, "work_orders", scope["work_order"])["plan_revision"] > 0
                 if planned and not cancel:
-                    from .planning import Planning, current_plan, current_result
+                    from .planning import Planning, current_plan
 
                     plan = current_plan(db, scope["work_order"])
                     Planning.dependencies(db, work)
@@ -325,7 +323,7 @@ class Delivery:
                     nco = db.execute("SELECT * FROM member_bindings WHERE job=? AND role IN (SELECT value FROM json_each(?))", (job, canonical(names_for_adapter("nco")))).fetchone()
                     if len(json.loads(plan["jobs"])) > 1 and not nco:
                         raise ValueError("XO must appoint this job's NCO before accepting a multi-job plan contribution.")
-                    if nco and not current_result(db, dict(nco)):
+                    if nco and not current_update(db, dict(nco), kind="result"):
                         raise ValueError("The NCO must report the checked job ready for XO acceptance.")
             if active:
                 raise ValueError("A development operation is still active. Its result will be delivered automatically.")
@@ -435,10 +433,7 @@ class Delivery:
             producer = binding(db, row["actor"])
             if not producer or producer["job"] != job or adapter(producer["role"]) == "audit":
                 continue
-            if row["binding"]:
-                if json.loads(row["binding"]) != snapshot(producer):
-                    continue
-            elif row["binding_revision"] != producer["revision"] or adapter(producer["role"]) == "planner":
+            if not row["binding"] or json.loads(row["binding"]) != snapshot(producer):
                 continue
             if adapter(producer["role"]) == "planner" and not row["artifact"]:
                 continue

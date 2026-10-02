@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from support import Client, initialize, until
 
+from devtools import adapters
 from devtools.api import API
 from devtools.mcp import serve
 from devtools.profiles import hook, prepare
@@ -149,6 +150,125 @@ class TelemetryTests(unittest.TestCase):
         self.assertIsNone(configured["settings"]["vendor"])
         self.assertEqual("actual-model", actual["settings"]["model"])
         self.assertNotIn("vendor", actual["settings"])
+
+    def test_registered_codex_alias_retains_inherited_runtime_settings(self):
+        manifest = self.root / "adapters.json"
+        document = json.loads(adapters.MANIFEST.read_text())
+        document["adapters"]["harness"]["custom-codex"] = "devtools.harnesses:CodexHarness"
+        manifest.write_text(json.dumps(document))
+        private = self.root / "private"
+        private.mkdir()
+        (private / "config.toml").write_text('model="inherited-model"\nmodel_reasoning_effort="high"\n')
+        with patch.object(adapters, "MANIFEST", manifest):
+            requested(self.store, "owner", {"harness": "custom-codex"}, private)
+        event = self.store.events(kind="runtime_requested")["events"][-1]["data"]
+        self.assertEqual("custom-codex", event["settings"]["harness"])
+        self.assertEqual("inherited-model", event["settings"]["model"])
+        self.assertEqual("high", event["settings"]["reasoning"])
+        self.assertEqual("inherited", event["sources"]["model"])
+
+    def test_capture_refreshes_all_configured_credentials_and_preserves_wire_arguments(self):
+        policy_directory = self.root / "policy"
+        policy_directory.mkdir()
+        keys = {name: policy_directory / (name + ".key") for name in ("project", "role", "job")}
+        for name, path in keys.items():
+            path.write_text("fixture-" + name + "-secret")
+            path.chmod(0o600)
+        policy = policy_directory / "configuration.json"
+        policy.write_text(json.dumps({"version": 1,
+            "project": {"connection": {"credential": {"file": "project.key"}}},
+            "roles": {"coder": {"connection": {"credential": {"file": "role.key"}}}},
+            "jobs": {"1": {"connection": {"credential": {"file": "job.key"}}}}}))
+        team_path = self.state / "team.json"
+        team = json.loads(team_path.read_text())
+        team["project"] = {"configuration_file": str(policy)}
+        team_path.write_text(json.dumps(team))
+        trace = Trace(self.state, "owner")
+        self.addCleanup(trace.close)
+        for rotation in ("", "-rotated"):
+            values = ["fixture-" + name + "-secret" + rotation for name in keys]
+            for path, value in zip(keys.values(), values):
+                path.write_text(value)
+            payload = {"text": " ".join(values), "serialized": json.dumps({"value": values[-1]})}
+            original = json.dumps(payload)
+            trace.record("native_in", payload)
+            self.store.event("owner", "native_usage", observation=payload)
+            self.assertEqual(original, json.dumps(payload), "Filtering must never change wire/provider arguments")
+            retained = trace.path.read_text() + json.dumps(self.store.events(limit=100))
+            for value in values:
+                self.assertNotIn(value, retained)
+        self.assertIn("[REDACTED]", retained)
+        # A valid key can coincide with an envelope field. Redacting dictionary
+        # keys must not leave the original unsanitized payload in that field.
+        for value in ("data", "context"):
+            keys["job"].write_text(value)
+            trace.record("native_in", {"text": "Copied " + value}, frame_context={"label": value})
+            row = json.loads(trace.path.read_text().splitlines()[-1])
+            self.assertEqual("Copied [REDACTED]", row["data"]["text"])
+            self.assertEqual("[REDACTED]", row["context"]["label"])
+        # Unsafe sources suppress capture only, with a stable reason and envelope.
+        keys["job"].chmod(0o644)
+        trace.record("native_in", {"text": "unchecked sensitive data"})
+        self.store.event("owner", "native_usage", observation="unchecked sensitive data")
+        row = json.loads(trace.path.read_text().splitlines()[-1])
+        self.assertEqual("native_in", row["kind"])
+        self.assertEqual("owner", row["actor"])
+        self.assertEqual("credential_filter_unavailable", row["data"]["reason"])
+        event = self.store.events(kind="native_usage")["events"][-1]
+        self.assertEqual("credential_filter_unavailable", event["data"]["reason"])
+        self.assertNotIn("unchecked sensitive data", trace.path.read_text() + json.dumps(event))
+        self.store.event("worker", "native_usage", observation={"inputTokens": 1})
+        self.store.event("worker", "native_transcript", path="unavailable-path")
+        Transcript(self.store, "worker", trace).poll()
+        operator = API(self.state, "owner", operator=True)
+        usage = operator.invoke("telemetry_usage", {"actor": "worker"})
+        self.assertFalse(usage["observed"])
+        self.assertEqual("credential_filter_unavailable", usage["events"][0]["data"]["reason"])
+        keys["job"].chmod(0o600)
+        self.store.event("worker", "native_usage", observation={"inputTokens": 2})
+        self.assertTrue(operator.invoke("telemetry_usage", {"actor": "worker"})["observed"])
+
+    def test_capture_does_not_initialize_state_or_require_an_evaluation_key(self):
+        empty = self.root / "capture-only"
+        empty.mkdir()
+        trace = Trace(empty, "owner")
+        self.addCleanup(trace.close)
+        with patch.dict(os.environ, {}, clear=True):
+            trace.record("native_in", {"message": "ordinary traffic"})
+        self.assertEqual({"telemetry"}, {path.name for path in empty.iterdir()})
+        row = json.loads(trace.path.read_text())
+        self.assertEqual({"message": "ordinary traffic"}, row["data"])
+
+    def test_transcript_reader_cannot_attribute_old_entries_to_replacement_session(self):
+        first = self.store.begin_session("worker", os.getpid())
+        transcript = self.root / "first.jsonl"
+        transcript.write_text('{"message":{"usage":{"input_tokens":1}}}\n')
+        self.store.event("worker", "native_transcript", path=str(transcript), native_id="first")
+        trace = Trace(self.state, "worker", context=lambda: context(self.store, "worker"))
+        self.addCleanup(trace.close)
+        reader = Transcript(self.store, "worker", trace)
+        reader.poll()
+        self.store.session("worker", generation=first, state="stopped", desired="stopped", pid=None)
+        # Final entries still belong to the stopped generation until replacement.
+        with transcript.open("a") as stream:
+            stream.write('{"message":{"usage":{"input_tokens":2}}}\n')
+        reader.poll()
+        second = self.store.begin_session("worker", os.getpid())
+        with transcript.open("a") as stream:
+            stream.write('{"message":{"model":"obsolete-model","usage":{"input_tokens":3}}}\n')
+        reader.poll()
+        usage = self.store.events(kind="native_usage")["events"]
+        self.assertEqual([1, 2], [row["data"]["observation"]["input_tokens"] for row in usage])
+        self.assertEqual({first}, {row["data"]["generation"] for row in usage})
+        self.assertFalse(self.store.events(kind="runtime_observed")["events"])
+        self.assertNotIn("obsolete-model", trace.path.read_text())
+        current = self.root / "second.jsonl"
+        current.write_text('{"message":{"model":"current-model","usage":{"input_tokens":4}}}\n')
+        self.store.event("worker", "native_transcript", path=str(current), native_id="second")
+        Transcript(self.store, "worker", trace).poll()
+        latest = self.store.events(kind="native_usage")["events"][-1]
+        self.assertEqual(second, latest["data"]["generation"])
+        self.assertEqual(4, latest["data"]["observation"]["input_tokens"])
 
     def test_claude_transcript_tail_handles_partial_writes_and_redacts_nested_content(self):
         self.store.begin_session("worker", os.getpid())
