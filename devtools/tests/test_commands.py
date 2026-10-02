@@ -114,6 +114,101 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(changed["done_when"], coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(1, len(Work(self.store, "xo").job_list()["jobs"]))
 
+    def test_co_records_final_receipt_through_mcp_after_xo_is_released(self):
+        co, xo = self.client("owner"), self.client("xo")
+        co.tool("direct", GOAL)
+        order = self.co.control.snapshot()["work_order"]
+        report = xo.tool("work_report", {"kind": "result", "text": "Investigation complete"})
+        xo.tool("conclude", {"assessment": "No implementation change was needed"})
+        self.assertIsNone(Control(self.store, "xo").snapshot())
+        context = co.tool("work_context", {})
+        self.assertEqual("done", context["work"]["status"])
+        outcome = next(row for row in context["incoming"] if row["text"].startswith("Work-order outcome: done"))
+        self.assertNotIn("message_ack", {row["name"] for row in co.call("tools/list")["tools"]})
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+        for reference in (outcome["reference"], report["reference"]):
+            arguments = {"text": "Relayed the retained outcome to the owner", "responding_to": reference}
+            receipt = co.tool("work_report", arguments)
+            self.assertEqual("recorded_for_user", receipt["delivery"])
+            again = co.tool("work_report", arguments)
+            self.assertTrue(again["reused"])
+            self.assertEqual(receipt["reference"], again["reference"])
+            retained = co.tool("work_context", {"reference": receipt["reference"]})
+            self.assertEqual(arguments["text"], retained["text"])
+        plain = co.tool("work_report", {"text": "The owner can start another work order"})
+        self.assertEqual("recorded_for_user", plain["delivery"])
+        with self.store.connect() as db:
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            incoming = list(db.execute("SELECT * FROM messages WHERE recipient='owner' AND work_order=?", (order,)))
+            self.assertEqual(2, len(incoming))
+            self.assertTrue(all(row["acknowledged"] for row in incoming))
+            updates = list(db.execute("SELECT * FROM work_updates WHERE actor='owner' AND work_order=?", (order,)))
+            self.assertEqual(3, len(updates))
+            self.assertTrue(all(row["message"] is None for row in updates))
+        acknowledgements = self.store.events(actor="owner", kind="message_acknowledged", work_order=order)["events"]
+        self.assertEqual({row["id"] for row in incoming}, {row["data"]["message"] for row in acknowledgements})
+        self.assertEqual(2, len(acknowledgements))
+
+    def test_terminal_co_receipts_cannot_ack_other_recipients_or_reply_across_orders(self):
+        co, xo = self.client("owner"), self.client("xo")
+        co.tool("direct", GOAL)
+        order = self.co.control.snapshot()["work_order"]
+        prior = xo.tool("work_report", {"text": "Earlier result"})
+        sent = co.tool("work_report", {"text": "Earlier owner context"})
+        other = self.store.send("xo", "coder", "Not addressed to CO", key="other-recipient", work_order=order)
+        xo.tool("conclude", {"assessment": "Investigation complete"})
+        final = next(row for row in co.tool("work_context", {})["incoming"]
+                     if row["text"].startswith("Work-order outcome: done"))
+        with self.assertRaisesRegex(ValueError, "not available"):
+            co.tool("work_report", {"text": "Cannot acknowledge another recipient", "responding_to": f"message:{other['id']}"})
+        with self.store.connect() as db:
+            outgoing = db.execute("SELECT message FROM work_updates WHERE id=?", (int(sent["reference"].split(":")[1]),)).fetchone()[0]
+        for reference in (sent["reference"], f"message:{outgoing}"):
+            receipt = co.tool("work_report", {"text": "Retain earlier owner context", "responding_to": reference})
+            self.assertEqual("recorded_for_user", receipt["delivery"])
+        with self.store.connect() as db:
+            self.assertIsNone(db.execute("SELECT acknowledged FROM messages WHERE id=?", (outgoing,)).fetchone()[0])
+            self.assertIsNone(db.execute("SELECT acknowledged FROM messages WHERE id=?", (other["id"],)).fetchone()[0])
+        co.tool("direct", GOAL | {"title": "Next investigation", "objective": "Continue with a new objective"})
+        next_order = self.co.control.snapshot()["work_order"]
+        self.assertGreater(next_order, order)
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+            updates = db.execute("SELECT count(*) FROM work_updates").fetchone()[0]
+        for reference in (final["reference"], prior["reference"]):
+            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool("work_report", {"text": "Do not reroute the old outcome", "responding_to": reference})
+        with self.store.connect() as db:
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(updates, db.execute("SELECT count(*) FROM work_updates").fetchone()[0])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM messages WHERE recipient='owner' AND work_order=? AND acknowledged IS NOT NULL", (order,)).fetchone()[0])
+        self.assertEqual("queued", co.tool("work_report", {"text": "Current owner context"})["delivery"])
+        current = self.store.inbox("xo", work_order=next_order)["messages"][-1]
+        self.assertIn("Current owner context", current["body"])
+        self.assertIsNone(current["reply_to"])
+
+    def test_co_report_rechecks_released_xo_before_recording_receipt(self):
+        self.co.call("direct", GOAL)
+        xo = API(self.state, "xo")
+        report = xo.call("work_report", {"text": "Result before conclusion"})
+        save = self.co.control.artifacts.save
+
+        def conclude_during_save(**arguments):
+            saved = save(**arguments)
+            xo.call("conclude", {"assessment": "Concluded while CO retained its response"})
+            return saved
+
+        with patch.object(self.co.control.artifacts, "save", side_effect=conclude_during_save):
+            result = self.co.call("work_report", {"text": "Receipt retained for owner", "responding_to": report["reference"],
+                                                 "evidence": {"name": "receipt.txt", "content": "Owner received the result"}})
+        self.assertEqual("recorded_for_user", result["delivery"])
+        with self.store.connect() as db:
+            original = db.execute("SELECT m.* FROM messages m JOIN work_updates u ON u.message=m.id WHERE u.id=?",
+                                  (int(report["reference"].split(":")[1]),)).fetchone()
+            self.assertIsNotNone(original["acknowledged"])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM messages WHERE body LIKE 'progress: Receipt retained%'").fetchone()[0])
+
     def test_failed_batch_rolls_back_work_and_claims_and_inputs_are_bounded(self):
         self.co.call("direct", GOAL)
         xo = API(self.state, "xo")
