@@ -124,6 +124,24 @@ class GitSyncScriptTests(unittest.TestCase):
         self.assertIn(f'Repository: {self.client}', result.stdout)
         self.assertIn('Local commits ahead: 1', result.stdout)
 
+    def test_default_repo_ignores_cdpath_when_called_by_relative_path(self):
+        copied = self.client / 'devtools' / 'scripts' / SCRIPT.name
+        copied.parent.mkdir(parents=True)
+        shutil.copyfile(SCRIPT, copied)
+        self.git(self.client, 'add', '.')
+        self.git(self.client, 'commit', '-m', 'Install helper')
+        result = subprocess.run(
+            ['bash', 'devtools/scripts/git-sync.sh'], cwd=self.client,
+            env=dict(self.environment, CDPATH='.'), capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(f'Repository: {self.client}', result.stdout)
+        self.assertIn('Preview only', result.stdout)
+        relative = self.invoke('--repo', self.client.name, environment=dict(self.environment, CDPATH='.'),
+                               explicit_repo=False)
+        self.assertEqual(0, relative.returncode, relative.stderr)
+        self.assertIn(f'Repository: {self.client}', relative.stdout)
+
     def test_git_environment_cannot_redirect_checkout_or_config(self):
         remote = self.advance_remote()
         environment = dict(self.environment, GIT_DIR=str(self.seed / '.git'), GIT_WORK_TREE=str(self.seed))

@@ -471,7 +471,7 @@ def main(argv=None):
     except SetupError as error:
         print("Acceptance: " + str(error), file=sys.stderr)
         return 1
-    except (OSError, ValueError, RuntimeError, KeyError, TypeError, ImportError) as error:
+    except (OSError, ValueError, RuntimeError, KeyError, TypeError, ImportError, AttributeError) as error:
         print("Acceptance: operation failed (" + type(error).__name__ + "); check paths and compatible fixture/runtime revisions.", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

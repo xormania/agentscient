@@ -12,9 +12,10 @@ https://antigravity.google/docs/cli/install/
 https://ai.google.dev/api/models
 
 Subscription credentials have no common read-only authentication API. Native
-status is reported separately from live API success. No inference, login,
-refresh request or keychain export is issued here. During --online, native
-status commands may manage their own credential cache.
+status is reported separately from live API success. Jev --online makes a small
+evaluation for each distinct configured connection/model/transport and can incur
+provider charges. No login, refresh request or keychain export is issued here.
+During --online, native status commands may manage their own credential cache.
 """
 
 import argparse
@@ -26,13 +27,19 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
+import tempfile
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-SERVICES = ("github", "codex", "claude", "grok", "agy")
+# The shell wrapper uses isolated Python; only this script's checkout supplies
+# runtime imports, regardless of the operator's cwd or PYTHONPATH.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+SERVICES = ("github", "codex", "claude", "grok", "agy", "jev")
 LIMIT = 256 * 1024
 RENEW = {
     "github": "gh auth login --hostname github.com (or replace the selected environment token)",
@@ -40,6 +47,7 @@ RENEW = {
     "claude": "claude auth login (or rotate the API key in its current source)",
     "grok": "grok login (or rotate XAI_API_KEY)",
     "agy": "open agy and sign in (or rotate GEMINI_API_KEY in Gemini provider mode)",
+    "jev": "rotate the key in its configured file/environment source using https://console.typesafe.ai/keys",
 }
 
 
@@ -286,7 +294,92 @@ def github_online(row, repos):
     return timestamp(header.group(1)) if header else None
 
 
-def check(name, *, online, repos, now, days):
+def jev_settings(configuration):
+    """Use ordinary project/role resolution without creating a persistent team."""
+    from devtools.configuration import resolve, selections
+    from devtools.runtime import defaults as runtime_defaults
+    from devtools.store import State
+
+    configured = Path(configuration).expanduser().resolve() if configuration else None
+    if configured is None:
+        candidate = Path.home() / ".config/agentscient/configuration.json"
+        if candidate.exists() or candidate.is_symlink():
+            configured = candidate.resolve()
+    if configured is not None and not configured.is_file():
+        raise CheckError("Jev configuration file is missing or unreadable")
+    with tempfile.TemporaryDirectory(prefix="agentscient-credential-check-") as temporary:
+        directory = Path(temporary)
+        project = {"configuration_file": str(configured)} if configured is not None else {}
+        (directory / "team.json").write_text(json.dumps({"project": project, "runtime": True}))
+        runtime_defaults(directory)
+        state = State(directory)
+        return [resolve(state, **selection) for selection in selections(state)]
+
+
+def check_jev(*, online, configuration, now, days):
+    """Check referenced keys and optionally evaluate through the installed adapter.
+
+    Output is deliberately limited to fixed labels and counts. Configuration text,
+    provider responses and exceptions can contain secrets and are never reported.
+    """
+    row = {"service": "jev", "source": "runtime configuration", "stored": "unknown",
+           "native_status": "not applicable; no Jev CLI required", "live": "not checked",
+           "renew": RENEW["jev"], "harness_access": "not applicable; evaluation API",
+           "status": "incomplete", "checks": []}
+    row.update(expiry_report(None, now, days))
+    try:
+        settings = jev_settings(configuration)
+        from devtools.credentials import CredentialUnavailable, read_credential
+        from devtools.jev import Jev
+    except CheckError as exc:
+        row.update(status="failed", error=str(exc))
+        return row
+    except (ValueError, OSError, RuntimeError, ImportError, TypeError):
+        row.update(status="failed", error="Jev configuration could not be resolved; check the overlay and its project/role references")
+        return row
+    seen = set()
+    for item in settings:
+        identity = json.dumps([item[name] for name in ("connection", "model", "transport")], sort_keys=True)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        reference = item["connection"]["credential"]
+        result = {"source": "private credential file" if "file" in reference else "environment variable",
+                  "stored": "unknown", "live": "not checked", "status": "incomplete"}
+        row["checks"].append(result)
+        try:
+            read_credential(reference)
+            result["stored"] = "present"
+        except CredentialUnavailable:
+            result.update(stored="missing", status="failed", error="configured Jev credential is missing")
+            continue
+        except (ValueError, OSError):
+            result.update(status="failed", error="configured Jev credential is unreadable or invalid; check source and file permissions")
+            continue
+        if online:
+            try:
+                Jev(item["transport"], item["connection"]).evaluate(
+                    {"value": 2}, {"check": {"type": "noul", "instructions": "Is value equal to 2?"}},
+                    model=item["model"])
+                result.update(status="verified", live="verified: authenticated Jev request and validated response")
+            except Exception:
+                # Installed evaluation adapters may use arbitrary exception types.
+                # Never propagate their messages, chained errors or response bodies.
+                result.update(status="failed", error="Jev request failed; check configured credential, endpoint/model and provider access")
+    row["source"] = ", ".join(sorted({result["source"] for result in row["checks"]}))
+    row["stored"] = "present" if all(result["stored"] == "present" for result in row["checks"]) else "incomplete"
+    row["status"] = "failed" if any(result["status"] == "failed" for result in row["checks"]) else "verified" if online else "incomplete"
+    row["configurations_checked"] = len(row["checks"])
+    if row["status"] == "failed":
+        row["error"] = "one or more Jev credential checks failed"
+    elif online:
+        row["live"] = "verified: authenticated Jev request and validated response for every configured connection/model/transport"
+    return row
+
+
+def check(name, *, online, repos, now, days, configuration=None):
+    if name == "jev":
+        return check_jev(online=online, configuration=configuration, now=now, days=days)
     row = {"service": name, "source": "unknown", "stored": "unknown", "native_status": "not checked",
            "live": "not checked", "renew": RENEW[name], "harness_access": "not verified; no model request made"}
     expires = None
@@ -322,8 +415,9 @@ def check(name, *, online, repos, now, days):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Check local credentials and expiration metadata without exposing secrets.")
-    parser.add_argument("--online", action="store_true", help="run native status and read-only authenticated API probes; no model generation")
+    parser.add_argument("--online", action="store_true", help="run native status/API probes; Jev makes small evaluation requests that may incur provider charges")
     parser.add_argument("--service", action="append", choices=SERVICES, help="check selected service; repeatable (default: all)")
+    parser.add_argument("--configuration", metavar="PATH", help="Jev overlay (default: ~/.config/agentscient/configuration.json when present, otherwise runtime defaults)")
     parser.add_argument("--repo", action="append", help="GitHub repository to verify; repeatable (default: both uscient repositories)")
     parser.add_argument("--warn-days", type=int, default=7)
     parser.add_argument("--json", action="store_true", help="print a sanitized JSON report to stdout")
@@ -334,7 +428,7 @@ def main(argv=None):
     if any(not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) for repo in repos):
         parser.error("--repo must be owner/repository")
     now = datetime.now(timezone.utc)
-    rows = [check(name, online=args.online, repos=repos, now=now, days=args.warn_days)
+    rows = [check(name, online=args.online, repos=repos, now=now, days=args.warn_days, configuration=args.configuration)
             for name in dict.fromkeys(args.service or SERVICES)]
     report = {"checked_at": now.isoformat().replace("+00:00", "Z"), "online": args.online, "credentials": rows}
     if args.json:
@@ -347,6 +441,8 @@ def main(argv=None):
             print(f"  Expiry: {row['expires_at'] or 'unknown'} ({row['expiry']})")
             for repo in row.get("repositories", []):
                 print(f"  {repo['repository']}: read=yes; push={repo['push']} (writes not attempted)")
+            for number, result in enumerate(row.get("checks", []), 1):
+                print(f"  Configuration {number} ({result['source']}): {result['status'].upper()} — {result.get('error', result['live'])}")
             if row.get("expiry_note"):
                 print("  " + row["expiry_note"])
             print("  Renew: " + row["renew"])
@@ -354,8 +450,10 @@ def main(argv=None):
         print("Subscription/model entitlement and GitHub Actions secret values require their actual workflows.")
         if args.online:
             print("Native status commands may manage their own credential cache; this script does not request renewal.")
+            if "jev" in (args.service or SERVICES):
+                print("Jev uses small evaluation requests; provider charges may apply. This does not verify a full agent run.")
         if not args.online:
-            print("Offline inventory only. Use --online for supported live read-only checks.")
+            print("Offline inventory only. Use --online for supported live checks, including a small Jev evaluation.")
     return 1 if any(row["status"] == "failed" for row in rows) else 2 if any(row["status"] != "verified" for row in rows) else 0
 
 
