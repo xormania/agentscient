@@ -11,8 +11,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "credentials.py"
