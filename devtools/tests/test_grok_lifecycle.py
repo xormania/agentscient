@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-import test_native_boundaries as boundaries
+from fixtures import native_boundaries as boundaries
 
 
 class PromptRPC:
@@ -23,8 +23,8 @@ class PromptRPC:
 
 class GrokLifecycleTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        boundaries.NativeBoundaryTests.setUp(self)
-        self.native = boundaries.NativeBoundaryTests.native(self, "grok")
+        boundaries.NativeBoundaryFixture.setUp(self)
+        self.native = boundaries.NativeBoundaryFixture.native(self, "grok")
         self.native.state("idle", native_id=self.native.session)
         self.native.rpc = PromptRPC()
         self.messages = 0

@@ -5,9 +5,10 @@ import sys
 import unittest
 from unittest.mock import patch
 
-import test_completion
-import test_development
-import test_workspaces
+from fixtures import completion as test_completion
+from fixtures.completion import CompletionFixture
+from fixtures.development import DevelopmentFixture
+from fixtures.workspaces import WorkspaceFixture
 from support import Client
 
 from devtools.api import API
@@ -20,17 +21,17 @@ from devtools.workspaces import git
 
 
 class RecoveryTests(unittest.TestCase):
-    prepared = test_workspaces.WorkspaceTests.prepared
-    configure = test_completion.CompletionTests.configure
-    assignment = test_completion.CompletionTests.assignment
+    prepared = WorkspaceFixture.prepared
+    configure = CompletionFixture.configure
+    assignment = CompletionFixture.assignment
 
     def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
+        WorkspaceFixture.setUp(self)
         self.xo = API(self.state, "xo")
         self.job = self.api.control.snapshot()["job"]
         self.order = self.xo.control.snapshot()["work_order"]
         self.configure({})
-        self.workspace = test_development.DevelopmentTests.configure(self, {"behavior": [
+        self.workspace = DevelopmentFixture.configure(self, {"behavior": [
             sys.executable, "-c",
             "from pathlib import Path; value = Path('src/Example.php').read_text().strip(); "
             "print('Expected fixed; observed ' + value); assert value == 'fixed'",

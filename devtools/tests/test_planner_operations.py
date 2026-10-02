@@ -3,8 +3,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-import test_commands
-from test_commands import GOAL, responsibility
+from fixtures.commands import GOAL, CommandFixture, responsibility
 
 from devtools.api import API
 from devtools.development import Development
@@ -12,7 +11,7 @@ from devtools.operations import Operations, execute
 
 
 class PlannerOperationTests(unittest.TestCase):
-    setUp = test_commands.CommandTests.setUp
+    setUp = CommandFixture.setUp
 
     def test_planner_reads_own_complete_diagnostics_but_not_command_operations(self):
         config = json.loads((self.state / "team.json").read_text())

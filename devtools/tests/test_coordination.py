@@ -3,11 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_workspaces
-from support import adopt_plan
-from test_commands import responsibility
+from fixtures.commands import responsibility
+from fixtures.coordination import AssignmentFixture
 
-from devtools.api import API
 from devtools.assignments import covers, policy, valid_path
 from devtools.development import Development
 from devtools.role_packages import catalog
@@ -17,29 +15,8 @@ from devtools.store import SCHEMA_VERSION, Store
 from devtools.workspaces import git
 
 
-class AssignmentBoundaryTests(unittest.TestCase):
-    def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
-        team = json.loads((self.state / "team.json").read_text())
-        team["members"] += [{"name": f"slot{i}", "harness": "external", "workspace": str(self.checkout)} for i in range(4)]
-        team["project"].update(serena={"image": "agentscient-serena:fixture"}, development={})
-        (self.state / "team.json").write_text(json.dumps(team))
-        self.coordinator = API(self.state, "xo")
+class AssignmentBoundaryTests(AssignmentFixture, unittest.TestCase):
 
-    def by_role(self, role):
-        with self.store.connect() as db:
-            name = db.execute("SELECT member FROM member_bindings WHERE role=?", (role,)).fetchone()[0]
-        return API(self.state, name)
-
-    def plan(self):
-        _, report = adopt_plan(self.coordinator, [{"name": "Feature", "objective": "Feature", "done_when": "Works", "constraints": "Product only"}])
-        return None, report
-
-    def implementation(self, result):
-        item = responsibility("Feature") | {"plan": result["reference"], "editable_paths": ["src/Example.php"], "context_paths": ["README.md"]}
-        self.coordinator.call("orchestrate", {"work": [item]})
-        self.coordinator.call("steer", {"action": "resume", "work": "Feature"})
-        return self.by_role("coder"), item
 
     def test_curated_serena_mounts_and_changed_assignment_restart_view(self):
         _, result = self.plan()

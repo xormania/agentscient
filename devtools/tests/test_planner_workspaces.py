@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-import test_delivery
+from fixtures.delivery import DeliveryFixture
 from support import adopt_plan
 
 from devtools.api import API
@@ -9,11 +9,11 @@ from devtools.workspaces import git
 
 
 class PlannerWorkspaceTests(unittest.TestCase):
-    setUp_base = test_delivery.DeliveryTests.setUp_base
-    prepared = test_delivery.DeliveryTests.prepared
+    setUp_base = DeliveryFixture.setUp_base
+    prepared = DeliveryFixture.prepared
 
     def setUp(self):
-        test_delivery.DeliveryTests.setUp(self)
+        DeliveryFixture.setUp(self)
         adopt_plan(self.xo, [{"name": "Feature", "objective": "Feature", "done_when": "Works",
                               "constraints": "Product only"}])
         self.xo.call("steer", {"action": "resume", "work": "Feature"})

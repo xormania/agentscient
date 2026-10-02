@@ -5,20 +5,20 @@ import subprocess
 import sys
 import unittest
 
-import test_decision_gates
+from fixtures.decision_gates import CompletionDecisionFixture
 
 from devtools.decisions import Decisions
 from devtools.failures import Failure, failure_info
 
 
 class DecisionResumeTests(unittest.TestCase):
-    setUp = test_decision_gates.CompletionDecisionTests.setUp
-    configure = test_decision_gates.CompletionDecisionTests.configure
-    report = test_decision_gates.CompletionDecisionTests.report
-    operation = test_decision_gates.CompletionDecisionTests.operation
-    assignment = test_decision_gates.CompletionDecisionTests.assignment
-    ambiguous = test_decision_gates.CompletionDecisionTests.ambiguous
-    resolve = test_decision_gates.CompletionDecisionTests.resolve
+    setUp = CompletionDecisionFixture.setUp
+    configure = CompletionDecisionFixture.configure
+    report = CompletionDecisionFixture.report
+    operation = CompletionDecisionFixture.operation
+    assignment = CompletionDecisionFixture.assignment
+    ambiguous = CompletionDecisionFixture.ambiguous
+    resolve = CompletionDecisionFixture.resolve
 
     def investigate(self):
         proof = self.report()

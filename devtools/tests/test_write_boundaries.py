@@ -1,23 +1,22 @@
 import hashlib
 import json
+import sqlite3
 import sys
 import threading
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
-import test_coordination
+from fixtures.coordination import AssignmentFixture
 
 from devtools.development import Development
+from devtools.launch import team_config
 from devtools.operations import execute
 from devtools.workspaces import git
 
 
-class WriteBoundaryTests(unittest.TestCase):
-    setUp = test_coordination.AssignmentBoundaryTests.setUp
-    plan = test_coordination.AssignmentBoundaryTests.plan
-    implementation = test_coordination.AssignmentBoundaryTests.implementation
-    by_role = test_coordination.AssignmentBoundaryTests.by_role
+class WriteBoundaryTests(AssignmentFixture, unittest.TestCase):
 
     def assigned(self, paths=None):
         _, plan = self.plan()
@@ -64,24 +63,61 @@ class WriteBoundaryTests(unittest.TestCase):
                 git(self.workspace, "ls-files", "--stage", "-z").stdout, checkpoints, artifacts)
 
     def revoke_during(self, effect):
-        started, committed, errors = threading.Event(), threading.Event(), []
+        attempted, committed, errors = threading.Event(), threading.Event(), []
+        blocked = []
+        connect = self.coordinator.store.connect
+
+        class Connection:
+            def __init__(self, connection):
+                self.connection = connection
+
+            def __getattr__(self, name):
+                return getattr(self.connection, name)
+
+            def execute(self, statement, *arguments):
+                if statement == "BEGIN IMMEDIATE" and not attempted.is_set():
+                    timeout = self.connection.execute("PRAGMA busy_timeout").fetchone()[0]
+                    self.connection.execute("PRAGMA busy_timeout=0")
+                    try:
+                        result = self.connection.execute(statement, *arguments)
+                    except sqlite3.OperationalError as error:
+                        if "locked" not in str(error):
+                            raise
+                        blocked.append(True)
+                    else:
+                        blocked.append(False)
+                        return result
+                    finally:
+                        self.connection.execute(f"PRAGMA busy_timeout={timeout}")
+                        attempted.set()
+                return self.connection.execute(statement, *arguments)
+
+        @contextmanager
+        def observe():
+            with connect() as connection:
+                yield Connection(connection) if threading.current_thread() is thread else connection
 
         def pause():
-            started.set()
             try:
-                self.coordinator.call("steer", {"action": "pause", "work": "Feature"})
+                self.coordinator.commands.steer(action="pause", work="Feature")
                 committed.set()
             except Exception as error:
                 errors.append(error)
 
         thread = threading.Thread(target=pause)
         self.revocation = thread, committed, errors
-        thread.start()
-        self.assertTrue(started.wait(2))
-        self.assertFalse(committed.wait(0.1), "Binding revocation must wait for the authorized source write")
-        result = effect()
-        self.assertFalse(committed.is_set())
-        self.assertFalse(self.coder.control.snapshot()["paused"])
+        self.addCleanup(thread.join, 3)
+        # Registration already happened during assignment. Hold that immutable
+        # configuration so the competing write is the actual revocation, not
+        # _config's incidental member-registration UPSERT.
+        with patch.object(self.coordinator.commands, "_config", return_value=team_config(self.state)), \
+                patch.object(self.coordinator.store, "connect", observe):
+            thread.start()
+            self.assertTrue(attempted.wait(3), "Revocation did not attempt its write transaction")
+            self.assertEqual([True], blocked, "Binding revocation must wait for the authorized source write")
+            result = effect()
+            self.assertFalse(committed.is_set())
+            self.assertFalse(self.coder.control.snapshot()["paused"])
         return result
 
     def assert_revocation_completed(self):

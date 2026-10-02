@@ -3,15 +3,16 @@
 import unittest
 from unittest.mock import patch
 
-import test_structure
+from fixtures import structure as test_structure
+from fixtures.structure import StructureFixture
 from support import adopt_plan
 
 
 class CompletionBoundaryTests(unittest.TestCase):
-    setUp = test_structure.StructureTests.setUp
-    member = test_structure.StructureTests.member
-    assign = test_structure.StructureTests.assign
-    complete = test_structure.StructureTests.complete
+    setUp = StructureFixture.setUp
+    member = StructureFixture.member
+    assign = StructureFixture.assign
+    complete = StructureFixture.complete
 
     def test_planner_adoption_cannot_bypass_assignment_proof(self):
         with patch("devtools.completion.Completion.require", side_effect=ValueError("Unmet proof")) as gate:

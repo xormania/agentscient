@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import patch
 
-import test_workspaces
+from fixtures.workspaces import WorkspaceFixture
 
 from devtools import role_packages
 from devtools.api import API
@@ -12,8 +12,8 @@ from devtools.serena_provider import Serena, enabled
 
 
 class SerenaTests(unittest.TestCase):
-    setUp = test_workspaces.WorkspaceTests.setUp
-    prepared = test_workspaces.WorkspaceTests.prepared
+    setUp = WorkspaceFixture.setUp
+    prepared = WorkspaceFixture.prepared
 
     def configure(self):
         config = json.loads((self.state / "team.json").read_text())

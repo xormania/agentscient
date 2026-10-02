@@ -4,8 +4,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-import test_commands
-import test_runtime
+from fixtures import commands as test_commands
+from fixtures.commands import CommandFixture
+from fixtures.runtime import RuntimeFixture
 
 from devtools.api import API
 from devtools.role_packages import catalog
@@ -25,10 +26,10 @@ def configure(state, *, enabled=True, reserved=1, role_override=False):
 
 
 class RuntimeDecisionCapacityTests(unittest.TestCase):
-    setUp = test_runtime.RuntimeTests.setUp
-    write = test_runtime.RuntimeTests.write
-    vendor = test_runtime.RuntimeTests.vendor
-    xo = test_runtime.RuntimeTests.xo
+    setUp = RuntimeFixture.setUp
+    write = RuntimeFixture.write
+    vendor = RuntimeFixture.vendor
+    xo = RuntimeFixture.xo
 
     def allocate(self, coordinator, role):
         config = coordinator.commands._config()
@@ -67,7 +68,7 @@ class RuntimeDecisionCapacityTests(unittest.TestCase):
 
 
 class FixedDecisionCapacityTests(unittest.TestCase):
-    setUp = test_commands.CommandTests.setUp
+    setUp = CommandFixture.setUp
 
     def test_selected_member_cannot_consume_only_eligible_arbitrator_slot(self):
         self.co.call("direct", test_commands.GOAL)

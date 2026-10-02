@@ -3,12 +3,12 @@
 import io
 import json
 import os
-import tempfile
 import unittest
 import urllib.error
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+from fixtures.credentials import CredentialFixture
 
 from devtools import adapters
 from devtools.configuration import defaults, resolve
@@ -25,15 +25,7 @@ class FixtureAdapter:
                 "usage": {"input_tokens": 0, "output_tokens": 0}}
 
 
-class CredentialTests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.path = self.root / "typesafe.key"
-        self.path.write_text("private-file-key-value\n")
-        self.path.chmod(0o600)
-        self.reference = {"file": str(self.path)}
+class CredentialTests(CredentialFixture, unittest.TestCase):
 
     def test_private_file_is_read_at_use_time_and_never_exported(self):
         before = dict(os.environ)
@@ -101,7 +93,7 @@ class CredentialTests(unittest.TestCase):
 
 class ConfiguredTransportTests(unittest.TestCase):
     def setUp(self):
-        CredentialTests.setUp(self)
+        CredentialFixture.setUp(self)
         self.policy = defaults()
         self.connection = self.policy["connection"] | {"endpoint": "https://jev.example.test/v1/systemone",
                                                        "credential": self.reference}

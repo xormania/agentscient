@@ -132,34 +132,57 @@ def log_regions(path, limit):
             for first, data in regions if data], partial
 
 
+def log_excerpt(first_line, lines, anchor, limits, match=None):
+    """Keep the matched line inside the byte budget before adding context."""
+    before = limits["before_lines"] if match else limits["excerpt_lines"] - 1
+    preferred_start = max(0, anchor - before)
+    start = preferred_start
+    end = min(len(lines), start + limits["excerpt_lines"])
+    budget = limits["excerpt_bytes"]
+    # Oversized context must not consume the bytes reserved for the actual match.
+    while start < anchor and len("\n".join(lines[start:anchor + 1]).encode()) > budget:
+        start += 1
+    if len(lines[anchor].encode()) > budget:
+        # Redaction already ran on the complete line. Retain the matching portion
+        # when the line itself is too large, without pretending it is complete.
+        text, _ = clipped(lines[anchor][match.start() if match else 0:], budget)
+        return {"line_start": first_line + anchor, "line_end": first_line + anchor,
+                "text": text, "partial": True}, anchor
+    text, cut = clipped("\n".join(lines[start:end]), budget)
+    last = start + text.count("\n")
+    # A clipped final line cannot suppress its own later match: that match may
+    # occur beyond the retained prefix. Only complete retained lines are covered.
+    covered_until = last + (text.rsplit("\n", 1)[-1] == lines[last])
+    return {"line_start": first_line + start, "line_end": first_line + last,
+            "text": text, "partial": cut or start != preferred_start}, covered_until
+
+
 def collect(log, evidence, config):
     limits = config["limits"]
     regions, partial = log_regions(log, limits["log_bytes"])
     pattern = re.compile(config["error_pattern"])
-    starts = []
+    excerpts = []
     for first_line, lines in regions:
-        local_starts = []
+        covered_until = 0
+        matched = False
         for index, line in enumerate(lines):
-            if pattern.search(line):
-                start = max(0, index - limits["before_lines"])
-                if not local_starts or start >= local_starts[-1] + limits["excerpt_lines"]:
-                    local_starts.append(start)
-        if lines and not local_starts:
-            local_starts = [max(0, len(lines) - limits["excerpt_lines"])]
-        # Keep regions separate; an excerpt must not bridge an omitted gap.
-        starts.extend((first_line, lines, start) for start in local_starts)
+            match = pattern.search(line)
+            if match:
+                matched = True
+                if index >= covered_until:
+                    excerpt, covered_until = log_excerpt(first_line, lines, index, limits, match)
+                    excerpts.append(excerpt)
+        if lines and not matched:
+            excerpt, _ = log_excerpt(first_line, lines, len(lines) - 1, limits)
+            excerpts.append(excerpt)
+        # Each excerpt belongs to one region; none bridges an omitted log gap.
     # Preserve early causes as well as late failures when there are many matches.
-    total = len(starts)
+    total = len(excerpts)
     maximum = limits["candidates"]
     if total > maximum:
         first = (maximum + 1) // 2
-        starts = starts[:first] + (starts[-(maximum - first):] if maximum > first else [])
-    candidates = []
-    for index, (first_line, lines, start) in enumerate(starts):
-        excerpt, cut = clipped("\n".join(lines[start:start + limits["excerpt_lines"]]), limits["excerpt_bytes"])
-        candidates.append({"id": "excerpt_" + str(index), "line_start": first_line + start,
-                           "line_end": first_line + start + excerpt.count("\n"), "text": excerpt,
-                           "partial": cut})
+        excerpts = excerpts[:first] + (excerpts[-(maximum - first):] if maximum > first else [])
+    candidates = [{"id": "excerpt_" + str(index), **excerpt} for index, excerpt in enumerate(excerpts)]
     records, omitted = [], 0
     if evidence and evidence.is_dir() and not evidence.is_symlink():
         paths = sorted({path for p in config["evidence_patterns"] for path in evidence.glob(p)})

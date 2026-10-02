@@ -2,21 +2,26 @@
 
 import asyncio
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import test_control
+import claude_fixture
+from fixtures.control import ControlFixture
 from native_fixture import Fixture
+from support import fixture_environment, until
 
 from devtools.api import API
+from devtools.profiles import prepare
 from devtools.rpc import RPC
+from devtools.telemetry import Trace, Transcript
 
 
 class NativeFixtureTests(unittest.IsolatedAsyncioTestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     async def test_current_xo_catalog_starts_the_native_fixture(self):
         fixture = Fixture()
@@ -77,6 +82,54 @@ class NativeFixtureTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual([("item/tool/call", "onboard")], requests)
         finally:
             await rpc.close()
+
+    async def test_claude_fixture_registers_transcript_in_its_isolated_config_directory(self):
+        environment = fixture_environment(self.state)
+        self.assertNotEqual(Path(environment["HOME"]) / ".claude", Path(environment["CLAUDE_CONFIG_DIR"]))
+        generation = self.store.begin_session("coder", os.getpid())
+        self.store.session("coder", generation=generation, state="idle")
+        connections = []
+
+        def capture_connection(*args, **kwargs):
+            connection = RPC(*args, **kwargs)
+            connections.append(connection)
+            return connection
+
+        with patch.dict(os.environ, environment, clear=True):
+            private, _, _ = prepare(self.state, "coder", "claude")
+            debug = private / "fixture-debug.log"
+            argv = ["claude-fixture", "--session-id", "fixture-transcript",
+                    "--settings", str(private / "settings.json"),
+                    "--mcp-config", str(private / "mcp.json"), "--debug-file", str(debug)]
+            with patch.object(claude_fixture.sys, "argv", argv), \
+                    patch.object(claude_fixture, "RPC", side_effect=capture_connection):
+                task = asyncio.create_task(claude_fixture.main())
+                try:
+                    await asyncio.to_thread(until, debug.exists)
+                    message = self.store.send("xo", "coder", "Observe fixture transcript usage",
+                                              key="fixture-usage", work_order=self.order, job=self.job)
+                    await asyncio.to_thread(until, lambda: any(
+                        row["data"].get("event") == "Stop"
+                        for row in self.store.events(actor="coder", kind="native_hook")["events"]))
+                    self.assertFalse(self.store.events(actor="coder", kind="transcript_rejected")["events"])
+                    registrations = self.store.events(actor="coder", kind="native_transcript")["events"]
+                    self.assertTrue(registrations)
+                    expected = Path(environment["CLAUDE_CONFIG_DIR"]) / "projects/fixture/fixture-transcript.jsonl"
+                    self.assertEqual({str(expected)}, {row["data"]["path"] for row in registrations})
+                    self.assertFalse((Path(environment["HOME"]) / ".claude").exists())
+                    trace = Trace(self.state, "coder")
+                    try:
+                        Transcript(self.store, "coder", trace).poll()
+                    finally:
+                        trace.close()
+                    usage = self.store.events(actor="coder", kind="native_usage")["events"]
+                    self.assertEqual([{"input_tokens": 23}], [row["data"]["observation"] for row in usage])
+                    self.assertEqual(f"reply-{message['id']}", usage[0]["data"]["message"])
+                finally:
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
+                    for connection in connections:
+                        await connection.close()
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import unittest
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-import test_workspaces
+from fixtures.workspaces import WorkspaceFixture
 from support import runtime_policy
 
 from devtools import readiness, role_packages
@@ -19,7 +19,7 @@ from devtools.workspaces import git
 
 class ReadinessTests(unittest.TestCase):
     def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
+        WorkspaceFixture.setUp(self)
         home = patch.dict(os.environ, {"CODEX_HOME": str(self.root / "codex-home")})
         home.start()
         self.addCleanup(home.stop)

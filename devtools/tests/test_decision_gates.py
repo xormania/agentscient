@@ -4,42 +4,17 @@ import json
 import unittest
 from unittest.mock import patch
 
-import test_completion
-import test_diagnostics
+from fixtures import completion as test_completion
+from fixtures.decision_gates import CompletionDecisionFixture
+from fixtures.diagnostics import DiagnosticFixture
 
 from devtools.api import API
 from devtools.failures import Failure, failure_info
 from devtools.jev import JevUnavailable
 
 
-class CompletionDecisionTests(unittest.TestCase):
-    setUp = test_completion.CompletionTests.setUp
-    configure = test_completion.CompletionTests.configure
-    report = test_completion.CompletionTests.report
-    operation = test_completion.CompletionTests.operation
-    assignment = test_completion.CompletionTests.assignment
+class CompletionDecisionTests(CompletionDecisionFixture, unittest.TestCase):
 
-    def ambiguous(self, state, questions, model):
-        self.requests.append((state, questions, model))
-        result = test_completion.answer(state, questions, model)
-        result["answers"]["done_when"]["noul"] = 0.75
-        return result
-
-    def pending(self, **arguments):
-        with self.assertRaises(Failure) as blocked:
-            self.gate.require("job", job=self.job, **arguments)
-        self.assertEqual("decision_pending", failure_info(blocked.exception)["reason"])
-        with self.store.connect() as db:
-            return dict(db.execute("SELECT * FROM decisions WHERE id=?", (
-                failure_info(blocked.exception)["details"]["decision"],
-            )).fetchone())
-
-    def resolve(self, pending, proof, value=True):
-        return API(self.state, pending["arbitrator"]).call("decision_resolve", {
-            "decisions": {name: value for name in json.loads(pending["unresolved"])},
-            "reason": "Inspected the retained expected and observed behavior against the completion conditions.",
-            "evidence": [proof["evidence"]],
-        })
 
     def test_ambiguous_completion_is_idempotent_and_resolution_drives_the_gate(self):
         proof = self.report()
@@ -180,12 +155,12 @@ class CompletionDecisionTests(unittest.TestCase):
 
 
 class ContextDecisionTests(unittest.TestCase):
-    setUp = test_diagnostics.DiagnosticTests.setUp
-    setUp_base = test_diagnostics.DiagnosticTests.setUp_base
-    client = test_diagnostics.DiagnosticTests.client
-    configure = test_diagnostics.DiagnosticTests.configure
-    report = test_diagnostics.DiagnosticTests.report
-    context = test_diagnostics.DiagnosticTests.context
+    setUp = DiagnosticFixture.setUp
+    setUp_base = DiagnosticFixture.setUp_base
+    client = DiagnosticFixture.client
+    configure = DiagnosticFixture.configure
+    report = DiagnosticFixture.report
+    context = DiagnosticFixture.context
 
     def test_pending_preserves_facts_then_arbitration_controls_projection(self):
         fact = self.report("Unrelated color preference")

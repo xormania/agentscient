@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_workspaces
-from test_commands import responsibility
+from fixtures.commands import responsibility
+from fixtures.workspaces import WorkspaceFixture
 
 from devtools.api import API
 from devtools.development import Development
@@ -18,7 +18,7 @@ from devtools.workspaces import git
 
 class PlannerDiagnosticTests(unittest.TestCase):
     def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
+        WorkspaceFixture.setUp(self)
         (self.checkout / "composer.json").write_text("{}")
         (self.checkout / "composer.lock").write_text("{}")
         (self.checkout / "src/Remove.php").write_text("retained source\n")

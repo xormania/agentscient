@@ -2,8 +2,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-import test_control
-import test_development
+from fixtures.control import ControlFixture
+from fixtures.development import DevelopmentFixture
 
 from devtools.api import API
 from devtools.control import ROLES
@@ -13,8 +13,8 @@ from devtools.role_packages import catalog
 
 
 class OnboardingTests(unittest.TestCase):
-    setUp = test_control.ControlTests.setUp
-    client = test_control.ControlTests.client
+    setUp = ControlFixture.setUp
+    client = ControlFixture.client
 
     def test_each_role_receives_its_own_brief_and_skill_catalog_with_current_tools(self):
         texts = set()
@@ -130,9 +130,9 @@ class OnboardingTests(unittest.TestCase):
 
 
 class MateSkillTests(unittest.TestCase):
-    setUp = test_development.DevelopmentTests.setUp
-    prepared = test_development.DevelopmentTests.prepared
-    configure = test_development.DevelopmentTests.configure
+    setUp = DevelopmentFixture.setUp
+    prepared = DevelopmentFixture.prepared
+    configure = DevelopmentFixture.configure
 
     def test_mate_skills_are_available_only_with_tools_and_resources_use_mcp(self):
         self.assertEqual(2, len(self.api.call("onboard", {})["skills"]))

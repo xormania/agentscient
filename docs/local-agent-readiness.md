@@ -22,6 +22,157 @@ team. For normal agent usage, see the [roles and tools](control-plane-roles-and-
 
 ## One-time operator setup
 
+### Manual operator scripts
+
+The checked-in helpers live in [`devtools/scripts`](../devtools/scripts). Run them
+with Bash as your normal Linux/WSL user. They resolve their project from the script
+location, so an absolute script path works from any directory. They do not edit
+your shell startup files. Explicit install/update commands may run vendor installers
+whose own setup behavior still applies. Sourcing a helper prints an instruction and
+returns without changing your shell options.
+
+| Script | Check or preview | Explicit action |
+| --- | --- | --- |
+| `git-sync.sh` | Default: current branch and cached tracking state | `--apply` fetches and fast-forwards; add `--push` to publish ahead commits |
+| `dependencies.sh` | `check`: package candidates, owned PHP/Composer integrity, Docker and pinned Serena | `update` installs/updates named prerequisites and the owned toolchain; `--build-serena` builds the provider |
+| `runners.sh` | `status`: registration, user services and Docker | `start` starts stopped/failed services after validating the selected pool |
+| `harnesses.sh` | `check --online`: installed versions versus public release metadata | `update --apply` installs missing clients and updates supported installation types |
+| `credentials.sh` | Default: stored credentials and available expiry metadata; `--online` adds supported authentication requests | Reports renewal commands; does not log in or renew automatically |
+| `acceptance.sh` | Default `preview`; `check --online` checks configuration, readiness and Jev access | `update`, `prepare`, `doctor`, `co`, `verify`, `stop` manage an isolated fixture run |
+
+For example, from the Agentscient checkout:
+
+```bash
+bash devtools/scripts/git-sync.sh
+bash devtools/scripts/dependencies.sh check
+bash devtools/scripts/runners.sh status
+bash devtools/scripts/harnesses.sh check --online
+bash devtools/scripts/credentials.sh --online
+bash devtools/scripts/acceptance.sh preview --fixture ../fixture-ag
+```
+
+Each command is independent and reports blockers with a nonzero exit status. The
+helpers never enable `set -e` in your terminal. If your terminal already has
+`errexit` enabled, wrap a command in `if` so a failed check cannot close it:
+
+```bash
+if bash devtools/scripts/dependencies.sh check; then
+    printf 'Dependency checks passed.\n'
+else
+    printf 'Review the reported blockers; your terminal stays open.\n'
+fi
+```
+
+Git sync refuses dirty, detached or diverged checkouts. It never stashes, resets,
+switches branches or force-pushes. `--repo PATH` selects a different checkout.
+Preview uses cached remote refs; only `--apply` fetches current remote state.
+
+Dependency maintenance supports Debian/Ubuntu on Linux/X64. `update` refreshes APT
+metadata and installs/updates only the named prerequisite packages. `sudo` prompts
+in your terminal for those package commands; do not run the entire helper with
+sudo or provide a password in an argument. PHP and Composer come from the existing
+checksum-pinned Agentscient release and remain in a private, versioned directory
+under `${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/toolchains`. Existing
+toolchains are checked and preserved, including a damaged installation that needs
+inspection. Docker Desktop upgrades remain a Windows operation; the helper checks
+Docker reachability and explains WSL integration. It never installs a competing
+Docker daemon. Harness versions are checked separately.
+
+Use `dependencies.sh update --build-serena` when the pinned Serena image needs
+building. The build uses that helper checkout's Dockerfile. If the fixture-pinned
+runtime has a different Serena revision, build its `devtools/serena` directory with
+the selected image tag; acceptance doctor checks that exact source label. Repeat
+`--project PATH` to also check/install each project's dependencies
+from its Composer lockfile. This executes that project's configured Composer
+scripts/plugins during installation; it does not run `composer update`.
+
+Runner defaults match the shared local pool: `~/actions-runner/ag1` through `ag12`,
+organization `uscient`, and user services `agentscient-runner@N.service`. Override
+`--runner-root`, `--count`, or `--organization` for another existing pool. The
+helper does not register runners or read their registration tokens. A running local
+service does not by itself prove GitHub connectivity or successful job scheduling.
+
+Harness maintenance covers Codex, Claude, Grok and Agy (Google Antigravity CLI).
+Use repeated `--only NAME` to narrow it. Offline inventory does not establish
+freshness; unsupported installation owners or conflicting binaries are reported
+for manual attention. Agy remains an operator client; the managed Agentscient
+adapters are Codex, Claude and Grok. Credential reports distinguish stored login,
+verified API access and native login that still needs a live run. Expiration is
+reported only when exposed; an opaque key or subscription login is not assumed
+permanent. An access-token expiry is not the subscription's expiry.
+
+For a renewal report, use `credentials.sh --online --warn-days 14`; add `--json`
+for sanitized structured output, or repeat `--service NAME` to check selected
+clients. GitHub checks default to both uscient repositories; `--repo OWNER/REPO`
+selects others. The helper initiates no login or explicit refresh; native status
+commands remain vendor-controlled. Exit `0` means the requested supported API
+checks verified access, `1` means a failure, and `2` means verification is incomplete.
+A working API key is reported separately when the native client's active login
+selection cannot be established. Opaque subscription/keyring credentials may need
+a real native session; API model-list access does not prove generation entitlement.
+
+### Isolated fixture acceptance
+
+`acceptance.sh` wraps the existing fixture operator and frozen verifier rather
+than introducing another E2E engine. It discovers a sibling `fixture-ag` or
+`agentscient-test-repo`; supply `--fixture` if both exist or the layout differs.
+The optional private overlay defaults to `~/.config/agentscient/configuration.json`
+when present, otherwise normal runtime defaults use `TYPESAFE_API_KEY`. Explicit
+`--configuration` paths must exist. GitHub Actions secrets are not local credentials.
+
+```bash
+bash devtools/scripts/acceptance.sh update --fixture ../fixture-ag
+bash devtools/scripts/acceptance.sh check --online --fixture ../fixture-ag
+bash devtools/scripts/acceptance.sh prepare --fixture ../fixture-ag \
+    --run-dir "$HOME/agentscient-acceptance-001"
+```
+
+Run these steps individually and address blockers before the next step. `update`
+checks GitHub access, clones or fast-forwards clean fixture `main`, and provisions
+a separate checkout at the exact runtime SHA selected by the fixture workflow.
+That immutable runtime path lives under
+`${XDG_STATE_HOME:-$HOME/.local/state}/agentscient-acceptance/runtimes/<SHA>`.
+It never changes the branch of the checkout containing these scripts or repoints
+a runtime recorded by an older run. An explicit `--runtime` must match the pin.
+
+`check` uses disposable private state and the existing readiness/configuration
+services. `--online` adds read-only GitHub checks and a small provider-backed Jev
+request for each distinct effective connection/model/transport. Native stored login
+does not establish model entitlement. By default all three managed harnesses are
+selected; repeat `--harness` or use `--runtime-from TEAM_STATE` to copy an approved
+role/vendor policy. Nothing in this helper creates role alternatives automatically.
+`--scenario scenarios/greeting-decisions.json` additionally requires the fixture's
+selection/arbitration setup; failed prerequisites stop before preparation.
+
+The helper automatically uses the matching owned PHP/Composer installation created
+by `dependencies.sh` at its default location. Otherwise pass both `--php` and
+`--composer` executable paths (also printed by the dependency helper). A custom
+`--toolchains` location needs these explicit paths. `--serena-image` selects a
+different already-built image, which still must carry the pinned source label.
+
+`prepare` requires a new run directory outside both repositories, with an existing
+parent. It repeats online preflight before invoking the fixture, installs locked
+dependencies in the isolated run, and publishes a unique fixture acceptance branch.
+It does not start CO. Failed preparations and all subsequent evidence are retained.
+
+```bash
+bash devtools/scripts/acceptance.sh doctor --online --run-dir "$HOME/agentscient-acceptance-001"
+bash devtools/scripts/acceptance.sh co --run-dir "$HOME/agentscient-acceptance-001"
+# Paste that run's brief.txt into CO, then inspect progress and the final result.
+bash devtools/scripts/acceptance.sh status --run-dir "$HOME/agentscient-acceptance-001"
+bash devtools/scripts/acceptance.sh verify --online --run-dir "$HOME/agentscient-acceptance-001"
+bash devtools/scripts/acceptance.sh stop --run-dir "$HOME/agentscient-acceptance-001"
+```
+
+Existing-run commands use the run's frozen operator/verifier and recorded runtime;
+they do not rediscover the current fixture or select a newer runtime. `status` only
+reads the manifest and reports preparation state, not final acceptance. `doctor`
+and `verify` retain evidence, `co` launches real authenticated clients, and `stop`
+stops that run's agents while preserving its files and remote branches. Only the
+frozen verifier's actual product, gate and delivery evidence establishes acceptance.
+
+### Team setup without the fixture helper
+
 These terminal commands are for the operator. Participating agents use MCP. Start
 with an up-to-date local `dev` checkout and these prerequisites:
 

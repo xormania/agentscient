@@ -61,21 +61,28 @@ class TelemetryTests(unittest.TestCase):
             self.assertIsNone(frame["context"]["work_order"])
 
     def test_concurrent_output_trace_order_matches_the_wire(self):
-        first_logged, second_written = threading.Event(), threading.Event()
+        first_logged, second_attempted = threading.Event(), threading.Event()
         original_record, original_call = Trace.record, API.call
+        lock_held = []
 
-        class Output(io.StringIO):
-            def write(self, text):
-                result = super().write(text)
-                if json.loads(text).get("id") == 3:
-                    second_written.set()
-                return result
+        class OutputLock:
+            def __init__(self):
+                self.lock = threading.Lock()
+
+            def __enter__(self):
+                if first_logged.is_set():
+                    lock_held.append(self.lock.locked())
+                    second_attempted.set()
+                self.lock.acquire()
+
+            def __exit__(self, *args):
+                self.lock.release()
 
         def record(trace, kind, data, **kwargs):
             original_record(trace, kind, data, **kwargs)
             if kind == "mcp_out" and data.get("id") == 2:
                 first_logged.set()
-                second_written.wait(0.2)
+                self.assertTrue(second_attempted.wait(3), "Second response did not attempt the output lock")
 
         def call(api, name, arguments, **kwargs):
             result = original_call(api, name, arguments, **kwargs)
@@ -88,14 +95,17 @@ class TelemetryTests(unittest.TestCase):
             "name": "capability_search", "arguments": {"query": query}}}
             for ident, query in ((2, "first"), (3, "second"))]
         source = io.BytesIO(("\n".join(map(json.dumps, packets)) + "\n").encode())
-        output = Output()
+        output = io.StringIO()
+        threads = SimpleNamespace(Lock=OutputLock, Event=threading.Event, Thread=threading.Thread)
         with patch("devtools.mcp.sys.stdin", SimpleNamespace(buffer=source)), patch("devtools.mcp.sys.stdout", output), \
+                patch("devtools.mcp.threading", threads), \
                 patch.object(Trace, "record", record), patch.object(API, "call", call):
             serve(self.state, "owner", operator=True)
         wire = [json.loads(line)["id"] for line in output.getvalue().splitlines()]
         rows = [json.loads(line) for line in (self.state / "telemetry/owner.jsonl").read_text().splitlines()]
         sent = [r for r in rows if r["kind"] == "mcp_out"]
         self.assertEqual([1, 2, 3], wire)
+        self.assertEqual([True], lock_held, "The first trace and wire write must hold the same output lock")
         self.assertEqual(wire, [r["data"]["id"] for r in sent])
         self.assertEqual([1, 2, 3], [r["context"]["wire_sequence"] for r in sent])
 

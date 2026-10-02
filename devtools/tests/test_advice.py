@@ -8,12 +8,13 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from threading import Event
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import test_delivery
-import test_workspaces
+from fixtures.advice import AdviceFixture, JevTransportFixture, answer
+from fixtures.commands import responsibility
+from fixtures.delivery import DeliveryFixture
+from fixtures.workspaces import WorkspaceFixture
 from support import Client, adopt_plan, fixture_work
-from test_commands import responsibility
 
 from devtools.api import API
 from devtools.configuration import defaults as load_policy
@@ -23,55 +24,8 @@ from devtools.store import SCHEMA_VERSION, Store, canonical, stamp
 from devtools.workspaces import Workspaces
 
 
-def answer(state, questions, model=MODEL):
-    answers = {}
-    for name, question in questions.items():
-        kind = question["type"]
-        if kind == "noul":
-            answers[name] = {"type": kind, "noul": 0.8}
-        else:
-            options = list(question["criteria"]) if kind == "choice" else list(map(str, range(len(question["criteria"]))))
-            selected = "unknown" if "unknown" in options else options[0]
-            answers[name] = {"type": kind, "confidence": 0.9,
-                             "probabilities": {key: float(key == selected) for key in options},
-                             "choice" if kind == "choice" else "score": selected if kind == "choice" else 0}
-            if kind == "score":
-                answers[name]["legend"] = dict(enumerate(question["criteria"]))
-                answers[name]["legend"] = {str(k): v for k, v in answers[name]["legend"].items()}
-    return {"model": model, "answers": answers, "usage": {"input_tokens": 600, "output_tokens": 40}}
+class AdviceTests(AdviceFixture, unittest.TestCase):
 
-
-class AdviceTests(unittest.TestCase):
-    def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
-        self.configure({})
-        self.xo = API(self.state, "xo")
-        self.requests = []
-
-        def evaluate(state, questions, model):
-            self.requests.append((state, questions, model))
-            return answer(state, questions, model)
-
-        self.provider = patch("devtools.advice.Jev.evaluate", side_effect=evaluate).start()
-        self.addCleanup(patch.stopall)
-
-    def configure(self, value):
-        config = json.loads((self.state / "team.json").read_text())
-        if value is None:
-            config["project"].pop("configuration_file", None)
-        else:
-            config["project"]["configuration_file"] = "configuration.json"
-            settings = {**value, "features": {"advice": True, "selection": False,
-                                              "filtering": False, "completion": False,
-                                              **value.get("features", {})}}
-            (self.state / "configuration.json").write_text(json.dumps({"version": 1, "project": settings}))
-        (self.state / "team.json").write_text(json.dumps(config))
-
-    def assess(self, sources=None, questions=None, api=None):
-        return (api or self.api).call("work_assess", {
-            "sources": sources or [{"path": "src/Example.php"}],
-            "questions": questions or [{"name": "relevant", "instructions": "Does this implement the required behavior?"}],
-        })
 
     def test_opt_in_role_catalogs_and_real_mcp_cached_result(self):
         self.configure(None)
@@ -97,7 +51,7 @@ class AdviceTests(unittest.TestCase):
         self.assertIn("questions", json.loads(retained["content"]))
 
     def test_batch_typed_questions_and_partial_utf8_ranges(self):
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/Example.php").write_text("aéé rest of file")
         result = self.assess(sources=[{"path": "src/Example.php", "limit": 4}], questions=[
             {"name": "relevant", "instructions": "Relevant?"},
@@ -152,7 +106,7 @@ class AdviceTests(unittest.TestCase):
     def test_cache_changes_with_source_question_model_and_work_scope(self):
         first = self.assess()
         self.assertTrue(self.assess()["cache_hit"])
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/Example.php").write_text("new implementation\n")
         changed = self.assess()
         self.assertNotEqual(first["id"], changed["id"])
@@ -198,7 +152,7 @@ class AdviceTests(unittest.TestCase):
         self.assertEqual([False, True], [result["cache_hit"] for result in results])
 
     def test_sources_reject_escape_symlinks_environment_and_nonregular_files(self):
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/link.php").symlink_to(self.checkout / "README.md")
         (root / "src/indirect").symlink_to(self.checkout / "src", target_is_directory=True)
         (root / "src/.env.local").write_text("secret")
@@ -295,7 +249,7 @@ class AdviceTests(unittest.TestCase):
         self.assertEqual(1, self.provider.call_count)
 
     def test_secrets_are_filtered_before_provider_and_unknown_model_is_rejected(self):
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/Example.php").write_text("Bearer abcdefghi\nprivate-demo-key-12345")
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": "private-demo-key-12345"}):
             self.assess()
@@ -321,11 +275,9 @@ class AdviceTests(unittest.TestCase):
                 self.assess(**value)
         self.assertFalse(self.requests)
 
-    def retained(self, result):
-        return json.loads(self.api.artifacts.read(int(result["evidence"].split(":")[1]), limit=256 * 1024)["content"])
 
     def test_replay_preserves_exact_sanitized_request_after_source_changes(self):
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/Example.php").write_text("Uncommitted behavior; Bearer private-demo-key")
         result = self.assess()
         (root / "src/Example.php").write_text("Replacement behavior")
@@ -339,7 +291,7 @@ class AdviceTests(unittest.TestCase):
         self.assertNotIn("request", result)
 
     def test_scope_assessment_combines_sources_with_configured_rubric_and_invalidates_cache(self):
-        root = test_workspaces.WorkspaceTests.prepared(self)
+        root = WorkspaceFixture.prepared(self)
         (root / "src/Other.php").write_text("Other evidence")
         args = {"proposal": "Add logging while implementing the JSON response", "sources": [
             {"path": "src/Example.php"}, {"path": "src/Other.php"}]}
@@ -469,11 +421,11 @@ class AdviceTests(unittest.TestCase):
 
 
 class AdviceReviewTests(unittest.TestCase):
-    setUp_base = test_workspaces.WorkspaceTests.setUp
-    prepared = test_workspaces.WorkspaceTests.prepared
-    setUp = test_delivery.DeliveryTests.setUp
-    auditor = test_delivery.DeliveryTests.auditor
-    configure = AdviceTests.configure
+    setUp_base = WorkspaceFixture.setUp
+    prepared = WorkspaceFixture.prepared
+    setUp = DeliveryFixture.setUp
+    auditor = DeliveryFixture.auditor
+    configure = AdviceFixture.configure
 
     def test_auditor_assesses_submitted_snapshot_not_producers_unsubmitted_source(self):
         self.configure({"features": {"advice": False}})
@@ -491,21 +443,8 @@ class AdviceReviewTests(unittest.TestCase):
         self.assertNotIn("work_save", {row["name"] for row in audit.tools()})
 
 
-class JevTransportTests(unittest.TestCase):
-    def setUp(self):
-        self.questions = {"q": {"type": "noul", "instructions": "Is it relevant?"}}
-        self.key = patch.dict(os.environ, {"TYPESAFE_API_KEY": "test-secret-never-log"})
-        self.key.start()
-        self.addCleanup(self.key.stop)
-        self.opener = MagicMock()
-        self.factory = patch("devtools.jev.urllib.request.build_opener", return_value=self.opener)
-        self.factory.start()
-        self.addCleanup(self.factory.stop)
+class JevTransportTests(JevTransportFixture, unittest.TestCase):
 
-    def response(self, value):
-        response = MagicMock()
-        response.__enter__.return_value.read.return_value = value if isinstance(value, bytes) else json.dumps(value).encode()
-        return response
 
     def test_official_endpoint_auth_bounded_io_and_typed_response(self):
         self.opener.open.return_value = self.response(answer({}, self.questions))

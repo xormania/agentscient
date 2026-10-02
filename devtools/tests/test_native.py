@@ -1,5 +1,4 @@
 import json
-import os
 import sys
 import unittest
 from pathlib import Path
@@ -32,7 +31,7 @@ class NativeProtocolTests(unittest.TestCase):
             vendors["vendors"]["openai"]["available"] = True
             vendors["vendors"]["xai"]["available"] = True
             (state / "vendors.json").write_text(json.dumps(vendors))
-            env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / ".codex"), "GROK_HOME": str(home / ".grok")}
+            env = {"HOME": str(home), "CODEX_HOME": str(home / ".codex"), "GROK_HOME": str(home / ".grok")}
             store = Store(state)
             co = Client(state, "owner", env=env)
             operator = Client(state, "owner", env=env, operator=True)
@@ -94,7 +93,7 @@ class NativeProtocolTests(unittest.TestCase):
             for row in config["members"][1:]:
                 row["binary"] = str(fixture)
             (state / "team.json").write_text(json.dumps(config))
-            env = {**os.environ, "HOME": str(home), "CODEX_HOME": str(home / "codex")}
+            env = {"HOME": str(home), "CODEX_HOME": str(home / "codex")}
             store = Store(state)
             co, xo = Client(state, "owner", env=env), None
             try:
@@ -177,7 +176,6 @@ class NativeProtocolTests(unittest.TestCase):
                 (state / "team.json").write_text(json.dumps(config))
                 store = Store(state)
                 env = {
-                    **os.environ,
                     "HOME": str(home),
                     "CODEX_HOME": str(home / "codex"),
                     "GROK_HOME": str(home / "grok"),

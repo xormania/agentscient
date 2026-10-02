@@ -191,6 +191,32 @@ class DiagnosisTests(unittest.TestCase):
         self.assertGreater(state["log"]["omitted_candidates"], 12)
         self.assertGreaterEqual(len(state["candidates"]), 1)
 
+    def test_verbose_passing_matches_do_not_hide_the_final_failure_from_the_request(self):
+        original = ["test_expected_exception_" + str(index) + "_" + "context_" * 18 + " ... ok"
+                    for index in range(200)]
+        original.append("ERROR: intentional feedback calibration after all original checks passed")
+        self.log.write_text("\n".join(original) + "\n")
+        state = triage.collect(self.log, self.evidence, self.config)
+        request = triage.request_for(state, self.config, triage.defaults())
+        final = [candidate for candidate in request["state"]["candidates"]
+                 if original[-1] in candidate["text"]]
+        self.assertEqual(1, len(final))
+        self.assertEqual(len(original), final[0]["line_end"])
+        for candidate in request["state"]["candidates"]:
+            self.assertLessEqual(len(candidate["text"].encode()), self.config["limits"]["excerpt_bytes"])
+            source = "\n".join(original[candidate["line_start"] - 1:candidate["line_end"]])
+            self.assertTrue(source.startswith(candidate["text"]))
+
+    def test_oversized_leading_context_does_not_displace_the_matched_failure(self):
+        original = ["normal context " + "語" * 1000] * 5 + ["ERROR: actual startup failed"]
+        self.log.write_text("\n".join(original) + "\n")
+        state = triage.collect(self.log, self.evidence, self.config)
+        self.assertEqual(1, len(state["candidates"]))
+        candidate = state["candidates"][0]
+        self.assertIn(original[-1], candidate["text"])
+        self.assertEqual((6, 6), (candidate["line_start"], candidate["line_end"]))
+        self.assertLessEqual(len(candidate["text"].encode()), self.config["limits"]["excerpt_bytes"])
+
     def test_oversized_logs_keep_early_and_final_failures_at_original_line_numbers(self):
         self.config["limits"]["excerpt_lines"] = 8
         for budget in (1000, self.config["limits"]["log_bytes"]):

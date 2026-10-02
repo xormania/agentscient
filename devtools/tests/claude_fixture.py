@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -18,7 +19,8 @@ async def main():
         return sys.argv[sys.argv.index(name) + 1]
 
     native_id = option("--session-id")
-    transcript = Path.home() / ".claude/projects/fixture" / (native_id + ".jsonl")
+    config = Path(os.environ.get("CLAUDE_CONFIG_DIR", str(Path.home() / ".claude")))
+    transcript = config / "projects/fixture" / (native_id + ".jsonl")
     transcript.parent.mkdir(parents=True, exist_ok=True)
     settings = json.loads(Path(option("--settings")).read_text())
 

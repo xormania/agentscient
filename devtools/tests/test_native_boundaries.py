@@ -1,61 +1,19 @@
 import asyncio
 import json
 import os
-import tempfile
 import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
-from support import initialize
+from fixtures.native_boundaries import DELEGATION, NativeBoundaryFixture
 
-from devtools.api import API
-from devtools.native import Native, claude
+from devtools.native import claude
 from devtools.profiles import permitted, prepare
-from devtools.store import Store
-
-DELEGATION = ("Agent", "Task", "task", "spawn_agent", "spawn_subagent", "send_input", "wait_agent",
-              "close_agent", "resume_agent", "update_goal", "workflow", "unknown_delegate")
 
 
-class NativeBoundaryTests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.workspace = self.root / "workspace"
-        self.workspace.mkdir()
-        self.home = self.root / "home"
-        self.home.mkdir()
-        self.directory = self.root / "state"
-        initialize(self.directory, self.workspace, ["owner:external", "worker:external"])
-        self.store = Store(self.directory)
-        operator = API(self.directory, "owner", operator=True)
-        order = operator.invoke("work_order_create", {"title": "Native boundary", "objective": "Bound work",
-                                                       "done_when": "Verified"})["work_order"]["id"]
-        operator.invoke("member_bind", {"member": "owner", "role": "co", "work_order": order})
-        operator.invoke("member_bind", {"member": "worker", "role": "coder", "work_order": order,
-                                        "reports_to": "owner"})
-        self.generation = self.store.begin_session("worker", os.getpid())
-        environment = patch.dict(os.environ, {"HOME": str(self.home), "CODEX_HOME": str(self.home / "codex"),
-                                               "GROK_HOME": str(self.home / "grok")})
-        environment.start()
-        self.addCleanup(environment.stop)
+class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
 
-    def native(self, harness):
-        config = {"workspace": str(self.workspace), "harness": harness, "binary": "fixture"}
-        native = Native(self.directory, "worker", config, self.generation)
-        self.addCleanup(native.trace.close)
-        native.session = "existing-session"
-        native.mcp, native.serena = Mock(request=AsyncMock()), Mock(request=AsyncMock())
-        return native
-
-    def effects(self):
-        with self.store.connect() as db:
-            rows = {table: [tuple(row) for row in db.execute("SELECT * FROM " + table)]
-                    for table in ("members", "member_bindings", "role_assignments", "messages", "work_orders",
-                                  "jobs", "operations", "job_workspaces", "order_workspaces")}
-        return rows, sorted(str(path.relative_to(self.workspace)) for path in self.workspace.rglob("*"))
 
     def test_known_unknown_and_wrapped_native_delegation_is_not_permitted(self):
         for harness in ("codex", "claude", "grok"):
@@ -94,12 +52,6 @@ class NativeBoundaryTests(unittest.TestCase):
         native.mcp.request.assert_awaited_once_with("tools/call", {"name": "work_context", "arguments": {}})
         native.serena.request.assert_not_awaited()
 
-    def permission(self, native, tool, arguments=None, namespace="grok_build", options=None):
-        return asyncio.run(native.request("session/request_permission", {"sessionId": native.session,
-            "toolCall": {"_meta": {"x.ai/tool": {"namespace": namespace, "name": tool}},
-                         "rawInput": {} if arguments is None else arguments},
-            "options": options if options is not None else [
-                {"kind": "allow_once", "optionId": "allow"}, {"kind": "reject_once", "optionId": "reject"}]}))
 
     def test_grok_direct_and_wrapped_delegation_denies_without_effects(self):
         native = self.native("grok")

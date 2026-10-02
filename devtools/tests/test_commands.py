@@ -1,68 +1,22 @@
 import json
 import os
-import tempfile
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, adopt_plan, initialize, until
+from fixtures.commands import GOAL, CommandFixture, responsibility
+from support import adopt_plan, until
 
 from devtools.api import API
 from devtools.control import Control
 from devtools.launch import start
-from devtools.store import SCHEMA_VERSION, Store
+from devtools.store import SCHEMA_VERSION
 from devtools.work import Work
 
-GOAL = dict(
-    title="Prepare local development",
-    objective="Ready the Symfony starting point",
-    done_when="Local workflow demonstrated",
-    constraints="Keep product implementation out of scope",
-)
 
+class CommandTests(CommandFixture, unittest.TestCase):
 
-def responsibility(name="Implementation", role="coder"):
-    return dict(
-        name=name,
-        role=role,
-        objective="Use the existing service",
-        done_when="Evidence retained",
-        constraints="Preserve unrelated changes",
-    )
-
-
-class CommandTests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.workspace = self.root / "workspace"
-        self.workspace.mkdir()
-        self.state = self.root / "state"
-        initialize(
-            self.state,
-            self.workspace,
-            [name + ":external" for name in ("owner", "xo", "coder", "audit", "spare")],
-            co="owner",
-        )
-        self.store = Store(self.state)
-        self.co = API(self.state, "owner")
-
-    def client(self, member, **kwargs):
-        client = Client(self.state, member, **kwargs)
-        self.addCleanup(client.close)
-        return client
-
-    def team(self, work=None):
-        self.co.call("direct", GOAL)
-        self.xo = API(self.state, "xo")
-        work = work or [responsibility()]
-        name = work[0]["name"]
-        adopt_plan(self.xo, [{"name": name, **{key: work[0][key] for key in ("objective", "done_when", "constraints")}}])
-        self.xo.call("orchestrate", {"work": [dict(item, job=name) for item in work]})
-        return API(self.state, "coder")
 
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
         co = self.client("owner")

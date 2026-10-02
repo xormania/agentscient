@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-import test_workspaces
+from fixtures.workspaces import WorkspaceFixture
 
 from devtools import role_packages
 from devtools.store import SCHEMA_VERSION, Store
@@ -11,7 +11,7 @@ from devtools.store import SCHEMA_VERSION, Store
 
 class RoleBindingTests(unittest.TestCase):
     def setUp(self):
-        test_workspaces.WorkspaceTests.setUp(self)
+        WorkspaceFixture.setUp(self)
         self.scope = self.api.control.snapshot()
         self.catalog = role_packages.catalog()
         self.catalog["roles"]["alternate_coordinator"] = self.catalog["roles"]["nco"].copy()
