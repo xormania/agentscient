@@ -17,9 +17,9 @@ from devtools.store import Store
 
 # This is the owner-approved acceptance contract, independent of the defaults file.
 EXPECTED = {
-    "co": ("claude", "claude-fable-5-1", "xhigh"),
-    "xo": ("claude", "claude-fable-5-1", "xhigh"),
-    "nco": ("claude", "claude-fable-5-1", "high"),
+    "co": ("codex", "gpt-6-astra", "xhigh"),
+    "xo": ("codex", "gpt-6-astra", "xhigh"),
+    "nco": ("codex", "gpt-6-astra", "high"),
     "planner": ("codex", "gpt-6.1-sol", "xhigh"),
     "architect": ("claude", "claude-opus-5-5", "xhigh"),
     "coder": ("claude", "claude-opus-5-5", "xhigh"),
@@ -93,24 +93,30 @@ class RuntimeDefaultTests(unittest.TestCase):
     def test_specialists_do_not_silently_change_model_when_their_vendor_is_disabled(self):
         self.enable_fixture_executables()
         vendors = json.loads((self.state / "vendors.json").read_text())
-        vendors["vendors"]["anthropic"]["available"] = False
-        (self.state / "vendors.json").write_text(json.dumps(vendors))
-        with self.assertRaisesRegex(ValueError, "No runtime available"):
-            runtime.resolve(self.state, "coder")
-        self.assertEqual(("codex", "gpt-6.1-sol", "xhigh"),
-                         tuple(runtime.resolve(self.state, "co")[key] for key in ("harness", "model", "reasoning")))
+        for vendor, roles, co in (
+            ("anthropic", ("architect", "coder", "docs"), ("codex", "gpt-6-astra", "xhigh")),
+            ("openai", ("xo", "nco"), ("grok", "grok-4.7", "high")),
+        ):
+            with self.subTest(vendor=vendor):
+                vendors["vendors"][vendor]["available"] = False
+                (self.state / "vendors.json").write_text(json.dumps(vendors))
+                for role in roles:
+                    with self.subTest(role=role), self.assertRaisesRegex(ValueError, "No runtime available"):
+                        runtime.resolve(self.state, role)
+                self.assertEqual(co, tuple(runtime.resolve(self.state, "co")[key]
+                                           for key in ("harness", "model", "reasoning")))
+                vendors["vendors"][vendor]["available"] = True
 
     def test_co_all_three_profiles_reach_native_argv_and_requested_telemetry(self):
         policy = self.enable_fixture_executables()
-        choices = {policy["profiles"][name]["harness"]: name for name in policy["roles"]["co"]}
-        self.assertEqual({"codex", "claude", "grok"}, set(choices))
-        expected = {"claude": ("claude-fable-5-1", "xhigh"),
-                    "codex": ("gpt-6.1-sol", "xhigh"), "grok": ("grok-4.7", "high")}
-        for harness, profile in choices.items():
-            with self.subTest(harness=harness), patch.object(console, "relay", return_value=0) as relay:
+        expected = {"codex_astra_xhigh": ("codex", "gpt-6-astra", "xhigh"),
+                    "codex_sol_xhigh": ("codex", "gpt-6.1-sol", "xhigh"),
+                    "grok_high": ("grok", "grok-4.7", "high")}
+        self.assertEqual(list(expected), policy["roles"]["co"])
+        for profile, (harness, model, effort) in expected.items():
+            with self.subTest(profile=profile), patch.object(console, "relay", return_value=0) as relay:
                 self.assertEqual(0, console.run(self.state, profile=profile))
                 argv = relay.call_args.args[0]
-                model, effort = expected[harness]
                 if harness == "codex":
                     self.assertIn('model="' + model + '"', argv)
                     self.assertIn('model_reasoning_effort="' + effort + '"', argv)

@@ -2,18 +2,6 @@
   "version": 1,
   "max_sessions": 12,
   "profiles": {
-    "claude_fable_xhigh": {
-      "harness": "claude",
-      "vendor": "anthropic",
-      "model": "claude-fable-5-1",
-      "reasoning": "xhigh"
-    },
-    "claude_fable_high": {
-      "harness": "claude",
-      "vendor": "anthropic",
-      "model": "claude-fable-5-1",
-      "reasoning": "high"
-    },
     "codex_sol_xhigh": {
       "harness": "codex",
       "vendor": "openai",
@@ -48,6 +36,13 @@
       "reasoning": "xhigh",
       "provider": "openai"
     },
+    "codex_astra_high": {
+      "harness": "codex",
+      "vendor": "openai",
+      "model": "gpt-6-astra",
+      "reasoning": "high",
+      "provider": "openai"
+    },
     "grok_high": {
       "harness": "grok",
       "vendor": "xai",
@@ -70,15 +65,15 @@
   },
   "roles": {
     "co": [
-      "claude_fable_xhigh",
+      "codex_astra_xhigh",
       "codex_sol_xhigh",
       "grok_high"
     ],
     "xo": [
-      "claude_fable_xhigh"
+      "codex_astra_xhigh"
     ],
     "nco": [
-      "claude_fable_high"
+      "codex_astra_high"
     ],
     "planner": [
       "codex_sol_xhigh"
