@@ -75,7 +75,9 @@ class Onboarding:
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
             "It supplies the complete shared/role instructions and current brief. "
             "For subsequent work/context changes refresh work_context. "
-            "Use this standalone managed conversation; Agentscient owns subordinate sessions and assignments. "
+            "Managed workers use standalone conversations; Agentscient owns their sessions and assignments. "
+            "The appointed interactive CO is the operator's native console: its commands, tools, settings, "
+            "model, reasoning and exit controls remain the operator's choice. "
             "Read only relevant skills not already supplied by onboard. Your role: " + role + "."
         )
 

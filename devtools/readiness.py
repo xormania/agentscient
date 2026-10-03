@@ -320,7 +320,7 @@ def doctor(directory, online=False):
     # not incorrectly fail readiness.
     members = [] if config.get("runtime") else list(config["members"])
     if config.get("runtime"):
-        from .role_packages import default_role
+        from .role_packages import adapter, default_role
         from .runtime import co_role, load, resolve
 
         loaded = check("Runtime policy", lambda: load(directory))
@@ -347,6 +347,8 @@ def doctor(directory, online=False):
                 for role in sorted(required | set(policy["roles"])):
                     selected = check("Runtime role " + role, lambda role=role: resolve(directory, role))
                     if selected is not None:
+                        if adapter(role) == "co":
+                            selected["operator_console"] = True
                         members.append(selected)
                         checks[-1]["detail"] = {"profile": selected["selection"]["profile"],
                                                  "harness": selected["harness"],
@@ -361,6 +363,8 @@ def doctor(directory, online=False):
                                     alternative = resolve(directory, role, profile=profile)
                                 except ValueError:
                                     continue  # Disabled or absent candidates cannot be selected.
+                                if adapter(role) == "co":
+                                    alternative["operator_console"] = True
                                 members.append(alternative)
     if any(row["harness"] != "external" for row in members) or config.get("runtime"):
         check("managed process platform", managed_platform)
@@ -368,7 +372,7 @@ def doctor(directory, online=False):
     for member in members:
         harness = member["harness"]
         binary = member.get("binary") or harness
-        profile = (harness, binary, member.get("provider"))
+        profile = (harness, binary, member.get("provider"), bool(member.get("operator_console")))
         if harness == "external" or profile in seen:
             continue
         seen.add(profile)
@@ -382,6 +386,8 @@ def doctor(directory, online=False):
             return detail
 
         label = harness + " binary" + (" (" + member["provider"] + ")" if member.get("provider") else "")
+        if member.get("operator_console"):
+            label += " (CO operator)"
         check(label, native)
     return {
         "status": "blocked" if any(c["status"] == "failed" for c in checks) else "preflight_passed",

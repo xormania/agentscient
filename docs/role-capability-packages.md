@@ -11,7 +11,7 @@ Symfony. Package files are trusted repository configuration, never agent inputs.
 | `behavior` | Installed role adapter semantics, independent of the role's configured identity |
 | `responsibility`, `skills` | Shared and role onboarding plus relevant installed skill references |
 | `runtime` | Permitted harnesses, model/reasoning defaults and optional allowlists |
-| `hooks` | Private harness profiles using the shared MCP-only gate and lifecycle observations |
+| `hooks` | Managed harness profiles using the shared MCP-only gate and lifecycle observations; the operator CO console uses observations only |
 | `mcp` | Role tool ceilings, grouped by binding, project and provider prerequisites |
 | `workspace` | Editing eligibility, default editable paths and Serena eligibility |
 
@@ -20,10 +20,10 @@ relationship, plan revision, pause state, provider availability and source-path
 rules determine whether an operation can run. MCP services check these before
 performing effects. Backing command, workspace, development, delivery and advice
 services also check the declared capability ceiling; retained workers recheck it
-before executing queued work. Hooks and native permission adapters reject calls outside the
-current role catalog early; they do not replace those service checks. Serena is
-included only for an eligible current workspace binding. Agent creation and Git
-operations, including branch names, remain behind MCP.
+before executing queued work. Managed-session hooks and native permission adapters
+reject calls outside the current role catalog early; they do not replace those
+service checks. Serena is included only for an eligible current workspace binding.
+Managed agent creation and Git operations, including branch names, remain behind MCP.
 
 The catalog is a map of configured role identities, with no required role count
 or fixed identity list. Each package selects a registered `role` adapter from
@@ -38,8 +38,13 @@ assessment, execution, coordination or acceptance tools. The supplied coordinati
 planning and specialist adapters preserve their command boundaries regardless of
 the configured role names. A new adapter is an installed implementation referenced
 by the trusted manifest; changing a role name or URL cannot implement new behavior.
-Native delegation remains
-explicitly disabled. Skills and execution options do not expand command authority.
+Native delegation remains explicitly disabled for managed collaborators. The
+package's `mcp_only` and `native_delegation: false` hook declarations govern those
+managed transports. The appointed interactive CO is the operator's native session,
+including when its role identity is an alias for CO behavior. Its native controls,
+tools and settings remain available; its hooks observe activity without applying
+the managed tool gate. Its Agentscient MCP calls still use the same role and work
+checks. Skills and execution options do not expand command authority.
 
 ## Operator runtime configuration
 
@@ -67,9 +72,9 @@ result further.
 
 `onboard` includes the package role, behavior, version and content/adapter revision. Private native
 profiles record the package and binding revision. Session startup telemetry records
-the selected package alongside its execution settings. Running sessions retain
-their startup model/harness settings; changing runtime preferences applies to a
-later start and does not change their command authority.
+the selected package alongside its execution settings. Changing runtime preferences
+applies to a later start. The operator may also change the running CO through native
+model/reasoning controls. Neither change alters its command authority.
 
 ## Maintainer changes
 
@@ -96,5 +101,6 @@ Deploy the matching source and generated export together, then restart control
 services and managed sessions to load package changes consistently. Validated
 catalog reads are cached by source, export and adapter-manifest contents, so changed
 files are revalidated. Current job/revision/role authorization uses the current
-catalog on each MCP call. A running native session retains its launch settings and
-native tool surface; restart it to use expanded native capabilities.
+catalog on each MCP call. A running managed session retains its launch settings and
+native tool surface; restart it to use expanded managed capabilities. The interactive
+CO's native controls remain available independently of that managed profile policy.

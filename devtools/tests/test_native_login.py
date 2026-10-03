@@ -62,6 +62,26 @@ class NativeLoginTests(unittest.TestCase):
                 get("codex").readiness("codex", None)
         probe.assert_not_called()
 
+    def test_operator_readiness_uses_native_login_without_managed_protocol_requirements(self):
+        for mode in ("keyring", "auto"):
+            with self.subTest(mode=mode):
+                contents = f'cli_auth_credentials_store="{mode}"\n'
+                (self.source / "config.toml").write_text(contents)
+                with patch("devtools.compat.codex_capability") as probe:
+                    result = get("codex").readiness("codex", None, config={"operator_console": True})
+                self.assertEqual(mode, result["login_storage"])
+                self.assertIn("Native TUI", result["protocol"])
+                self.assertIn("actual startup", result["protocol"])
+                probe.assert_not_called()
+                self.assertEqual(contents, (self.source / "config.toml").read_text())
+                self.assertFalse(self.private.exists())
+
+    def test_grok_operator_readiness_describes_the_native_tui(self):
+        native = get("grok").readiness("grok", None, config={"operator_console": True})
+        managed = get("grok").readiness("grok", None)
+        self.assertIn("Native TUI", native["protocol"])
+        self.assertIn("ACP", managed["protocol"])
+
     def test_independent_provider_uses_its_credentials_despite_native_keyring_setting(self):
         for selected in ("external", "openai"):
             with self.subTest(native_provider=selected):

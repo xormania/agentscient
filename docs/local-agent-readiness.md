@@ -249,8 +249,11 @@ maintained role/model/effort lineup into private policy. Enable your logged-in v
 and review ordered harness/model/reasoning preferences in the generated private
 `roles.json` and `vendors.json` files. See [runtime policy](shared-runtime-config.md).
 The dynamic team needs only the external CO member in `team.json`. Set
-`roles.json`'s `max_sessions` to at least two for XO plus a planner or specialist;
-allow more slots for concurrent jobs and audits.
+`roles.json`'s `max_sessions` to at least two for XO plus a planner or specialist,
+plus the effective `decisions.reserved_sessions` when semantic decisions are
+enabled. The maintained reserve is one, so the default minimum is three; allow
+more slots for concurrent jobs and audits. See [runtime capacity](shared-runtime-config.md)
+for the reserve policy.
 
 ```sh
 python3 devtools/run.py init \
@@ -303,8 +306,10 @@ python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
 Use `--profile`, `--model` and `--reasoning` for operator choices on this launch;
-see [CO startup and handover](session-handover.md). Keep its MCP connection active
-while managed startup, delivery and CI observation are needed. Agents do not
+the interactive CO also retains native commands, tools, settings, model/reasoning
+selection, delegation and exit controls. See [CO startup and handover](session-handover.md).
+Keep its MCP connection active while managed startup, delivery and CI observation
+are needed. Agents do not
 assemble a separate XO connection. For an existing external CO client, the
 `connection --state ...` command still exports an absolute normal `mcpServers`
 configuration without `--operator`; only MCP communications from that client are
@@ -340,8 +345,9 @@ and adopts the job list with `plan_adopt`. It coordinates one job directly or
 appoints one NCO per job for multiple jobs. Each collaborator receives its brief, role-scoped tools and job
 workspace automatically. Native managed profiles also attach the separate Serena
 provider when configured. Agents do not assemble connections or select branches.
-All collaborators use standalone managed conversations; Agentscient creates and
-coordinates them instead of harness-native subagents.
+Managed collaborators use standalone conversations; Agentscient creates and
+coordinates them instead of harness-native subagents. The appointed interactive
+CO uses the operator's native controls while retaining its role-bound MCP authority.
 
 Use the [role/tool reference](control-plane-roles-and-tools.md) for the actual
 catalog, source paths, retained operations, review and acceptance behavior.
@@ -370,8 +376,10 @@ Require the following evidence without prescribing how agents solve the job:
   inspects that delivery and concludes after CI and both current Codex reviews
   pass. CO relays the outcome to xor. Turnover preserves history and permits another job; merged worktrees
   retire after shutdown.
-- Native shell/edit attempts are denied; observed usage is reported honestly.
-  A stopped/restarted session is a new conversation, not claimed transcript recovery.
+- Managed workers' native shell/edit attempts are denied. The interactive CO
+  retains the operator's native tools and controls; verify model/reasoning changes
+  and normal exit in that session. Observed usage is reported honestly. A
+  stopped/restarted session is a new conversation, not claimed transcript recovery.
 
 After the run, the operator can export a compact evidence index for its work-order
 number (the number is an operator argument, not agent bookkeeping):
