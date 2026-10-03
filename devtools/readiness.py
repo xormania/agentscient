@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import shutil
@@ -92,6 +93,56 @@ def probe(argv, root=None, env=None):
     return result.stdout.strip()
 
 
+def startup_preflight(directory, timeout):
+    """Run existing read-only checks with one deadline, reaping timed-out probes.
+
+    The child isolates subprocess/provider timeouts from the interactive MCP
+    request. This is configuration evidence; a duty receipt proves the separate
+    live agent round trip. Online provider access remains explicitly untested.
+    """
+    if type(timeout) not in {int, float} or not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError("Startup preflight needs a positive finite time budget")
+
+    def blocked(detail):
+        return {"status": "blocked", "checks": [{"name": "startup preflight", "status": "failed", "detail": detail}],
+                "authenticated_acceptance": "not established by preflight"}
+
+    try:
+        process = subprocess.Popen(
+            [sys.executable, str(ENTRY), "doctor", "--state", str(directory), "--startup"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, start_new_session=True,
+        )
+    except OSError:
+        return blocked("Could not start the read-only preflight process")
+    try:
+        output, _ = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        # A probe may have detached from this process group while retaining
+        # stdout. Do not wait for that detached pipe writer to close it.
+        process.stdout.close()
+        try:
+            process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            return blocked("Startup preflight exceeded its time budget; its worker did not exit within the cleanup budget")
+        return blocked("Startup preflight exceeded its time budget; its worker was stopped")
+    if process.returncode not in {0, 2} or len(output) > 1024 * 1024:
+        return blocked("Startup preflight did not return a valid bounded result")
+    try:
+        result = json.loads(output)
+        if (not isinstance(result, dict) or result.get("status") not in {"blocked", "preflight_passed"}
+                or not isinstance(result.get("checks"), list)
+                or (process.returncode == 0) != (result["status"] == "preflight_passed")):
+            raise ValueError("Invalid result")
+    except (TypeError, ValueError):
+        return blocked("Startup preflight did not return a valid bounded result")
+    return result
+
+
 def platform(checkout, development):
     env = os.environ.copy()
     php = Path(development.get("php", "php"))
@@ -166,7 +217,7 @@ def managed_platform():
     return "Linux process identity, pidfd access, abstract Unix sockets and peer credentials are available."
 
 
-def doctor(directory, online=False):
+def doctor(directory, online=False, startup=False):
     directory = Path(directory).expanduser().resolve()
     checks = []
 
@@ -227,7 +278,11 @@ def doctor(directory, online=False):
             checks.append({"name": "Jev credential", "status": "not_checked",
                            "detail": "Jev features are disabled; no credential is required."})
     configured = config.get("project", {})
-    validated = check(
+    has_project = bool(set(configured) & {"checkout", "repository", "development", "serena"})
+    if startup and not has_project:
+        checks.append({"name": "project", "status": "not_checked",
+                       "detail": "No project capabilities are configured for this team."})
+    validated = None if startup and not has_project else check(
         "project",
         lambda: project(
             configured.get("checkout", ""),
@@ -259,14 +314,15 @@ def doctor(directory, online=False):
                 "A commit identity must be configured in Git or project.identity.",
             ),
         )
-        check(
-            "Symfony tools enabled",
-            lambda: require(
-                isinstance(configured.get("development"), dict),
-                "project.development must be an object ({} enables defaults).",
-            ),
-        )
-        check("locked PHP platform", lambda: platform(root, configured.get("development", {})))
+        if not startup or "development" in configured:
+            check(
+                "Symfony tools enabled",
+                lambda: require(
+                    isinstance(configured.get("development"), dict),
+                    "project.development must be an object ({} enables defaults).",
+                ),
+            )
+            check("locked PHP platform", lambda: platform(root, configured.get("development", {})))
         image = configured.get("serena", {}).get("image")
 
         def serena():
@@ -286,7 +342,8 @@ def doctor(directory, online=False):
                 "runtime_mounts": "verified by the separate integration test",
             }
 
-        check("Serena image", serena)
+        if not startup or "serena" in configured:
+            check("Serena image", serena)
         if online:
             check(
                 "Git remote target",

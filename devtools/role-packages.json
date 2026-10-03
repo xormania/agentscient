@@ -1,5 +1,5 @@
 {
-  "source_sha256": "61cbdaa9d4885330c7eeee2fd7a60ba9c9cd856840e529e0fddb9b95d2f7aaca",
+  "source_sha256": "bef0d232405daa84046ab3ca3d00d399eeff13688f2f41d75bd2c8f184b0a518",
   "catalog": {
     "version": 2,
     "defaults": {
@@ -67,11 +67,13 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [
             "direct",
-            "monitor"
+            "monitor",
+            "roll_call"
           ],
           "advice": [],
           "job": [],
@@ -135,7 +137,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [
             "conclude",
@@ -220,7 +223,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -312,7 +316,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -385,7 +390,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -458,7 +464,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -527,7 +534,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -607,7 +615,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -673,7 +682,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [],
@@ -740,7 +750,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -817,7 +828,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [
@@ -896,7 +908,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [
             "monitor",
@@ -976,7 +989,8 @@
           ],
           "session": [
             "onboard",
-            "skill_read"
+            "skill_read",
+            "readiness_report"
           ],
           "command": [],
           "advice": [

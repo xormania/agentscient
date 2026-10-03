@@ -1,5 +1,5 @@
 {
-  "source_sha256": "3b36fbb0acf1b293b9326eb4025d105bb1411cf1645ca4dd4bdf882c9ccab551",
+  "source_sha256": "5c3c7a5ae40ad0ac659acb2ec72a28cfeab59d83bf30c78ee09f0cbe1ce2afd6",
   "settings": {
     "version": 1,
     "features": {
@@ -351,6 +351,9 @@
           }
         }
       }
+    },
+    "readiness": {
+      "timeout_seconds": 30
     }
   }
 }

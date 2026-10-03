@@ -106,6 +106,18 @@ def scope_sql(scope, alias=""):
     )
 
 
+def message_sql(store, db, member, scope):
+    """Share current-message visibility between native delivery and MCP context."""
+    from .duty import permitted_message_in
+
+    clause, args = scope_sql(scope)
+    readiness, values = permitted_message_in(db, member, store)
+    if scope:
+        return ("((" + clause + " OR (work_order IS NULL AND category='readiness')) "
+                "AND (category!='readiness' OR (" + readiness + ")))", (*args, *values))
+    return "(" + readiness + ")", values
+
+
 def update_sql(scope, member, alias=""):
     clause, args = scope_sql(scope, alias)
     prefix = alias + "." if alias else ""
@@ -259,6 +271,11 @@ class Control:
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
             if kind == "message":
+                if not allowed and row["category"] == "readiness":
+                    sql, args = message_sql(self.store, db, self.member, scope)
+                    allowed = bool(db.execute(
+                        "SELECT 1 FROM messages WHERE id=? AND " + sql, (row["id"], *args),
+                    ).fetchone())
                 allowed = allowed and self.member in (row["sender"], row["recipient"])
         else:
             allowed = False
@@ -342,13 +359,19 @@ class Control:
                 if kind == "update":
                     return self._update(row)
                 if kind == "message":
-                    return {
+                    result = {
                         "reference": reference,
                         "from": row["sender"],
                         "text": row["body"],
                         "delivery": row["delivery"],
                         "type": row["category"],
                     }
+                    if row["category"] == "readiness":
+                        sql, args = message_sql(self.store, db, self.member, scope)
+                        result["readiness_current"] = bool(db.execute(
+                            "SELECT 1 FROM messages WHERE id=? AND " + sql, (row["id"], *args),
+                        ).fetchone())
+                    return result
             elif section == "brief":
                 result = {
                     "role": scope["role"],
@@ -391,7 +414,7 @@ class Control:
                 sql, args = update_sql(scope, self.member)
                 rows = db.execute("SELECT * FROM work_updates WHERE " + sql + " ORDER BY id DESC LIMIT 5", args)
                 result["recent_activity"] = [self._update(row, preview=True) for row in rows]
-                sql, args = scope_sql(scope)
+                sql, args = message_sql(self.store, db, self.member, scope)
                 result["incoming"] = [
                     self._message(row, preview=True)
                     for row in db.execute(
@@ -411,7 +434,7 @@ class Control:
                     return project_context(self.store, self.member, result)
                 return result
             elif section == "messages":
-                sql, args = scope_sql(scope)
+                sql, args = message_sql(self.store, db, self.member, scope)
                 rows = db.execute(
                     "SELECT * FROM messages WHERE recipient=? AND " + sql + " AND id>? ORDER BY id LIMIT 11",
                     (self.member, *args, after),
@@ -693,6 +716,14 @@ class Control:
         return INSTRUCTIONS + "\n" + self._context_notice(brief)
 
     def render(self, message):
+        if message.get("category") == "readiness":
+            return (
+                f"Live message #{message['id']} from {message['sender']} (message:{message['id']}) — readiness:\n"
+                f"{message['body']}\n\nFor a readiness challenge, call onboard and return its challenge and "
+                "onboarding revision through readiness_report, including blockers. A duty receipt is diagnostic "
+                "status for its parent; it does not assign work or need an ordinary work_report response. "
+                "Use work_context for current context."
+            )
         brief = {k: v for k, v in self.work_context().items() if k not in {"recent_activity", "incoming"}}
         signature = canonical(brief)
         with self._brief_lock:

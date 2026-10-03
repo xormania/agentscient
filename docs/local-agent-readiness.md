@@ -390,6 +390,16 @@ assemble a separate XO connection. For an existing external CO client, the
 configuration without `--operator`; only MCP communications from that client are
 visible to the service.
 
+Before giving work, ask CO to **run a roll call**. Its `roll_call` tool checks
+configured prerequisites and starts XO in standby for a live “reporting for duty”
+acknowledgement. CO relays the retained result and blockers; `starting` means the
+reply is still pending. This creates no work order. When you give the brief, XO
+starts in the real work context and reports ready again. Subsequent agents report
+to their commissioning parent automatically. See the
+[readiness contract](control-plane-roles-and-tools.md#reporting-for-duty).
+Existing frozen acceptance runs keep their frozen runtime; use a new run to test
+this capability after updating the runtime.
+
 `doctor` returns exit code 2 for a failed prerequisite. Its probes inspect the
 configured checkout, remote identity, Git identity, private state, effective
 configuration, required local Jev credential sources, locked real PHP platform,

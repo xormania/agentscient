@@ -17,6 +17,12 @@ from devtools.role_packages import adapter, default_role
 from devtools.rpc import RPC
 
 
+def readiness_message(text):
+    return any(marker in text for marker in (
+        "Readiness challenge.", "reporting for duty —", "unable to report ready —",
+    ))
+
+
 class Fixture:
     def __init__(self):
         self.harness = "codex" if "app-server" in sys.argv else "grok"
@@ -69,7 +75,9 @@ class Fixture:
 
     def remember_onboarding(self, onboard):
         self.role = onboard["role"]
-        self.planned = bool(onboard["context"]["plan_revision"])
+        self.planned = bool(onboard["context"].get("plan_revision"))
+        self.standby = onboard["context"].get("state") == "standby"
+        self.readiness = onboard.get("readiness")
         self.onboarded = True
 
     async def accept(self, text, hold, prompt_id=None):
@@ -89,10 +97,10 @@ class Fixture:
                 "update": {"sessionUpdate": "agent_message_chunk", "content": {"text": ""}},
                 **({"_meta": {"promptId": prompt_id}} if prompt_id else {}),
             }})
-        gates = Path.cwd() / "fixture-turns"
+        gates = None if self.standby or readiness_message(text) else Path.cwd() / "fixture-turns"
         try:
             await self.respond(text, ident)
-            if gates.is_dir():
+            if gates and gates.is_dir():
                 (gates / ("started-" + str(ident))).touch()
                 if hold:
                     async with asyncio.timeout(20):
@@ -111,10 +119,22 @@ class Fixture:
                         "update": {"sessionUpdate": "turn_completed", "prompt_id": prompt_id},
                         **({"_meta": {"promptId": prompt_id}} if prompt_id else {}),
                     }})
-            if gates.is_dir():
+            if gates and gates.is_dir():
                 (gates / ("completed-" + str(ident))).touch()
 
     async def respond(self, text, ident):
+        if self.readiness and self.readiness["status"] == "starting":
+            # Codex onboard may run before thread/start returns its native
+            # identity. Report only after a real prompt reached the session.
+            onboard = await self.tool("onboard", {})
+            self.remember_onboarding(onboard)
+            if self.readiness["status"] == "starting":
+                self.readiness = await self.tool("readiness_report", {
+                    "challenge": self.readiness["challenge"],
+                    "onboarding_revision": onboard["revision"],
+                })
+        if self.standby or readiness_message(text):
+            return
         if adapter(self.role) == "planner":
             await self.tool("work_report", {"kind": "result", "text": "Fixture plan ready", "evidence": {
                 "name": "fixture-plan.md", "content": "One job: demonstrate the live command path using a coder."}})

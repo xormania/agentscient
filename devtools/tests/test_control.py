@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -11,6 +12,88 @@ from devtools.api import API
 from devtools.control import Control
 
 
+class ReadinessContextTests(ControlFixture, unittest.TestCase):
+    def test_completed_work_co_receives_only_authorized_standby_readiness(self):
+        from devtools import processes, standby
+        from devtools.delivery import Delivery
+
+        team_path = self.state / "team.json"
+        team = json.loads(team_path.read_text())
+        team["co"] = "owner"
+        for member in team["members"]:
+            if member["name"] == "idle":
+                member.update(harness="codex", binary="/bin/true")
+        team_path.write_text(json.dumps(team))
+        parent = API(self.state, "owner")
+        # Conclude releases the execution team through Delivery.release while
+        # CO retains its completed work binding and conversation.
+        scope = parent.control.snapshot()
+        with self.store.connect() as db:
+            db.execute("UPDATE members SET harness='codex' WHERE name='idle'")
+            for child in parent.commands._descendants(db, scope):
+                Delivery.release(db, child["member"])
+            db.execute("UPDATE work_orders SET status='done' WHERE id=?", (self.order,))
+        with patch("devtools.readiness.startup_preflight", return_value={"status": "preflight_passed", "checks": []}):
+            member = parent.call("roll_call", {})["xo"]["member"]
+        with self.store.connect() as db:
+            revision = standby.binding(db, member)["revision"]
+        generation = self.store.begin_session(member, os.getpid(), standby_revision=revision)
+        processes.register(self.store, member, generation, os.getpid())
+        self.store.session(member, generation=generation, native_id="standby-native", state="idle")
+        child = API(self.state, member)
+        onboard = child.call("onboard", {})
+        ready = child.call("readiness_report", {key: onboard["readiness"][key]
+                           for key in ("challenge", "onboarding_revision")})
+        self.assertEqual("ready", ready["status"])
+        for arguments, field in (({}, "incoming"), ({"section": "messages"}, "messages")):
+            self.assertIn(ready["receipt"], [row["reference"] for row in parent.call("work_context", arguments)[field]])
+        self.assertTrue(parent.call("work_context", {"reference": ready["receipt"]})["readiness_current"])
+        self.assertEqual(int(ready["receipt"][8:]), self.store.take_delivery("owner", scoped=True)["id"])
+
+        # A null work scope and readiness label alone grant no visibility.
+        unrelated = self.store.send(member, "owner", "Unverified null-work readiness", key="unverified",
+                                    work_order=None, job=None)
+        with self.store.connect() as db:
+            db.execute("UPDATE messages SET category='readiness' WHERE id=?", (unrelated["id"],))
+        reference = "message:" + str(unrelated["id"])
+        with self.assertRaisesRegex(ValueError, "not available"):
+            parent.call("work_context", {"reference": reference})
+        self.assertNotIn(reference, [row["reference"] for row in parent.call("work_context", {"section": "messages"})["messages"]])
+        self.assertIsNone(self.store.take_delivery("owner", scoped=True))
+
+    def test_live_context_excludes_obsolete_ready_but_explicit_history_is_marked(self):
+        from devtools import duty, processes
+
+        with self.store.connect() as db:
+            db.execute("UPDATE members SET harness='codex' WHERE name='coder'")
+        generation = self.store.begin_session("coder", os.getpid())
+        processes.register(self.store, "coder", generation, os.getpid())
+        self.store.session("coder", generation=generation, native_id="fixture-native", state="idle")
+        child, parent = API(self.state, "coder"), API(self.state, "xo")
+        onboard = child.call("onboard", {})
+        ready = child.call("readiness_report", {
+            "challenge": onboard["readiness"]["challenge"], "onboarding_revision": onboard["revision"],
+        })
+        ordinary = self.store.send("coder", "xo", "Ordinary retained report", key="ordinary",
+                                   work_order=self.order, job=self.job)
+        self.assertIn(ready["receipt"], [row["reference"] for row in parent.call("work_context", {})["incoming"]])
+        self.assertTrue(parent.call("work_context", {"reference": ready["receipt"]})["readiness_current"])
+
+        # No watcher tick: every live read must derive freshness itself.
+        self.store.session("coder", generation=generation, state="stopped", desired="stopped", pid=None)
+        for arguments, field in (({}, "incoming"), ({"section": "messages"}, "messages")):
+            visible = [row["reference"] for row in parent.call("work_context", arguments)[field]]
+            self.assertNotIn(ready["receipt"], visible)
+            self.assertIn("message:" + str(ordinary["id"]), visible)
+        historical = parent.call("work_context", {"reference": ready["receipt"]})
+        self.assertFalse(historical["readiness_current"])
+        self.assertIn("startup checks passed", historical["text"])
+        duty.tick(self.store)
+        messages = parent.call("work_context", {"section": "messages"})["messages"]
+        self.assertTrue(any("unable to report ready" in row["text"] for row in messages))
+        self.assertNotIn(ready["receipt"], [row["reference"] for row in messages])
+
+
 class ControlTests(ControlFixture, unittest.TestCase):
     def setUp(self):
         super().setUp()
@@ -19,7 +102,7 @@ class ControlTests(ControlFixture, unittest.TestCase):
     def test_default_surface_supplies_brief_and_rejects_bypasses(self):
         coder = self.client("coder")
         self.assertEqual(
-            ["work_context", "work_report", "guidance_request", "onboard", "skill_read"],
+            ["work_context", "work_report", "guidance_request", "readiness_report", "onboard", "skill_read"],
             [r["name"] for r in coder.call("tools/list")["tools"]]
         )
         self.assertNotIn("Implement contract", coder.initialization["instructions"])

@@ -74,6 +74,8 @@ class Onboarding:
         return (
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
             "It supplies the complete shared/role instructions and current brief. "
+            "When it supplies a readiness challenge, call readiness_report with that challenge and onboarding revision "
+            "to report for duty, including any startup blockers. "
             "For subsequent work/context changes refresh work_context. "
             "Managed workers use standalone conversations; Agentscient owns their sessions and assignments. "
             "The appointed interactive CO is the operator's native console: its commands, tools, settings, "
@@ -119,7 +121,9 @@ class Onboarding:
             package=package,
             skills=[row["name"] for row in skills],
         )
-        return value
+        from .duty import onboard
+
+        return onboard(self.api, value)
 
     def read(self, name):
         skill = next((r for r in self.catalog() if r["name"] == name), None)

@@ -309,6 +309,16 @@ OPERATOR_TOOLS = [
 
 TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
+    spec("roll_call", "CO: check initial system readiness and exchange a live duty acknowledgement with XO. "
+         "Use status to inspect the retained result; initial checks create no work order.",
+         {"action": {"type": "string", "enum": ["start", "status"]}}),
+    spec("readiness_report", "Report for duty after onboard: return the current readiness challenge and onboarding revision. "
+         "The service checks evidence and routes your receipt to your parent. Report any blockers explicitly.",
+         {"challenge": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+          "onboarding_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "blockers": {"type": "array", "maxItems": 10,
+                       "items": {"type": "string", "minLength": 1, "maxLength": 600}}},
+         ("challenge", "onboarding_revision")),
     spec("onboard", "Load your current role onboarding, shared essentials, allowed tools and skill catalog.", readonly=True),
     spec("skill_read", "Load a relevant skill from your current role's onboard catalog.",
          {"name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"}}, ("name",), readonly=True),
@@ -426,6 +436,11 @@ class API:
         role = self.commands.role(scope)
         package = role_package(role) if role else None
         groups = package["mcp"] if package else {}
+        if scope is None and role and adapter(role) != "co":
+            # A standby identity supplies onboarding, never work authority.
+            allowed = {"work_context", "onboard", "skill_read", "readiness_report"}
+            declared = {name for names in groups.values() for name in names}
+            return [row for row in TOOLS if row["name"] in allowed & declared]
         # Appointed CO starts unbound. Native clients may cache this first list
         # without honoring list_changed after direct binds its work. Advertise
         # its configured reporting tools now; call() still checks actual scope.
@@ -601,6 +616,17 @@ class API:
         return result
 
     def invoke(self, name, args):
+        if name == "roll_call":
+            from . import standby
+
+            self.commands._capability(name)
+            if not self.commands.appointed_co():
+                raise ValueError("Only the appointed CO can initiate or inspect the initial roll call")
+            return standby.status(self) if args.get("action") == "status" else standby.start(self)
+        if name == "readiness_report":
+            from .duty import report
+
+            return report(self, **args)
         if name == "decision_resolve":
             from .decisions import Decisions
 
@@ -648,13 +674,30 @@ class API:
         if name in {tool for names in role_tools().values() for tool in names}:
             return getattr(self.commands, name)(**args)
         if name == "work_context":
-            if not self.control.current() and self.commands.appointed_co():
-                return {
-                    "role": "co",
-                    "state": "ready_to_direct",
-                    "next_action": "Use direct with the user's authorized objective and boundaries.",
-                }
-            return self.control.work_context(**args)
+            from . import duty, standby
+
+            scope = self.control.current()
+            if not scope and self.commands.role(scope):
+                if args.get("reference"):
+                    return duty.messages(self.store, self.member, reference=args["reference"])
+                if args.get("section") == "messages":
+                    return duty.messages(self.store, self.member, after=args.get("after", 0))
+                if args.get("section", "brief") != "brief":
+                    raise ValueError("Before work, use the readiness brief, messages or roll_call status")
+                if self.commands.appointed_co():
+                    return {
+                        "role": self.commands.role(scope),
+                        "state": "ready_to_direct",
+                        "next_action": "Use roll_call for initial readiness, or direct with the user's authorized objective and boundaries.",
+                        "roll_call": standby.status(self),
+                    }
+                return {**standby.context(self.store, self.member), "readiness": duty.current(self.store, self.member)}
+            value = self.control.work_context(**args)
+            if args.get("section", "brief") == "brief" and not args.get("reference"):
+                readiness = duty.current(self.store, self.member)
+                if readiness:
+                    value["readiness"] = readiness
+            return value
         if name == "work_report":
             return self.control.report(**args)
         if name == "guidance_request":

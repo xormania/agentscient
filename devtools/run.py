@@ -66,6 +66,7 @@ def main():
             command.add_argument("--role", help="Inspect one configured role's effective settings")
             command.add_argument("--job", type=int, help="Inspect one existing job's effective settings")
         elif name == "doctor":
+            command.add_argument("--startup", action="store_true", help="Check only capabilities configured for this team")
             command.add_argument(
                 "--online", action="store_true", help="Also read the Git remote and GitHub repository access"
             )
@@ -80,6 +81,7 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
+            command.add_argument("--standby-revision", type=int, help=argparse.SUPPRESS)
             command.add_argument("--launch-fd", type=int, help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
@@ -116,7 +118,7 @@ def main():
             from devtools import readiness
 
             options = (
-                {"online": args.online}
+                {"online": args.online, "startup": args.startup}
                 if args.command == "doctor"
                 else {"work_order": args.work_order}
                 if args.command == "evidence"
@@ -141,7 +143,8 @@ def main():
             serena_serve(args.state, args.member, args.generation)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd,
+                         standby_revision=args.standby_revision)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)

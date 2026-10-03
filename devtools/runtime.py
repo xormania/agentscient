@@ -240,6 +240,7 @@ def allocate(store, db, config, role, existing=None, selected=None):
     if interfaces:
         query += " WHERE role NOT IN (" + ",".join("?" for _ in interfaces) + ")"
     count = db.execute(query, interfaces).fetchone()[0]
+    count += db.execute("SELECT count(*) FROM standby_bindings").fetchone()[0]
     if count >= policy["max_sessions"]:
         raise ValueError("No available collaborator capacity; stop/release finished work or ask the operator.")
     if adapter(role) != "arbitrator":
@@ -257,6 +258,7 @@ def allocate(store, db, config, role, existing=None, selected=None):
     row = db.execute(
         "SELECT m.* FROM members m LEFT JOIN member_bindings b ON m.name=b.member "
         "WHERE m.name LIKE 'runtime-%' AND b.member IS NULL AND m.pid IS NULL AND m.state IN ('stopped','failed') "
+        "AND NOT EXISTS (SELECT 1 FROM standby_bindings s WHERE s.member=m.name) "
         "ORDER BY m.name LIMIT 1"
     ).fetchone()
     if row:

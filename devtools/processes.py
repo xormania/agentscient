@@ -58,6 +58,22 @@ def register(store, member, generation, pid):
     return record
 
 
+def registered_alive(store, member, generation, pid):
+    """Check the retained supervisor identity without scanning its process family.
+
+    Registration follows the session transaction, so an absent record does not
+    yet establish process death. A retained birth identity also fences PID reuse.
+    """
+    if not generation or not pid:
+        return None
+    path = store.directory / "processes" / identifier(member) / generation / f"{pid}.json"
+    try:
+        saved = json.loads(path.read_text())
+    except FileNotFoundError:
+        return None
+    return saved["pid"] == pid and identity(pid) == saved
+
+
 def owned(store, member, generation):
     if not generation:
         return []

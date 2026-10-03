@@ -238,6 +238,7 @@ exports are rejected. Empty `roles` and `jobs` sections may be omitted.
 | Section | Configurable behavior |
 | --- | --- |
 | `features` | Independent `selection`, `advice`, `filtering`, `guidance`, `completion` booleans. Defaults enable selection, filtering, guidance and completion; `advice` controls optional direct assessment tools and remains disabled. |
+| `readiness` | `timeout_seconds` (integer 1–300, default 30) for duty acknowledgements. Initial standby shares this deadline with preflight; preflight receives at most 10 seconds of the remaining budget. Project, role and job overlays use the normal precedence. |
 | `decisions` | Configured Arbitrator role, reserved sessions, provider failure handling, unresolved Choice labels, Noul/Choice/Score thresholds and per-purpose overrides. |
 | `connection`, `model`, `transport` | Installed adapter, HTTPS endpoint, credential reference, model, timeouts, attempts, retry statuses/delays and payload limits. |
 | `scope`, `assessment` | Mission/scope rubric, source/question counts, source excerpt limits and assessment rules. |
@@ -266,6 +267,23 @@ contents excluded and the source reference visible. `doctor` validates configura
 and checks required credential sources locally. It does not send a Jev request or
 establish provider authentication. The operator-only `config_status` MCP capability
 provides the same effective-settings inspection; agents do not select policies.
+
+CO's `roll_call` reuses `doctor --startup` in a bounded child process before the
+initial XO launch. This mode checks configured project, Symfony and Serena
+capabilities; teams without them do not acquire those prerequisites. It performs
+no online GitHub/Jev authentication request. Timeout kills the probe process
+group and gives the worker at most one second to exit. Detached descendants
+cannot hold the response open; their termination is not certified. The failure
+is retained. Initial standby reserves ordinary
+collaborator capacity and grants only readiness tools; it is separate from work
+bindings. The existing MCP lifecycle watcher launches it and expires missing
+acknowledgements. Keep CO's MCP connection active during the check.
+
+Readiness requests and receipts persist in team state and emit `readiness_*`
+telemetry. Each receipt is tied to its member, session generation, role/context
+and onboarding revision. Restarted or reassigned sessions need fresh evidence.
+See [reporting for duty](../docs/control-plane-roles-and-tools.md#reporting-for-duty)
+for the normal MCP sequence and the exact limits of a ready result.
 
 Policy files are resolved at each operation. Effective revisions identify cached
 evaluations and existing telemetry; a policy change during an assessment prevents
@@ -520,7 +538,7 @@ All commands run from the repository root and take `--state`:
 | `config [--role ROLE] [--job N]` | Print redacted effective settings and their revision without opening the credential source. |
 | `co [--profile PROFILE] [--brief-file PATH]` | Launch the configured CO role through its selected native harness adapter, optionally with an initial user brief. |
 | `watch [--action start\|stop\|status]` | Manage the existing GitHub observation process. |
-| `doctor` | Inspect local prerequisites; `--online` also reads Git/GitHub access. |
+| `doctor` | Inspect local prerequisites; `--online` also reads Git/GitHub access. `--startup` limits prerequisite checks to configured capabilities for the initial roll call. |
 | `evidence --work-order N` | Summarize existing run observations without certifying success. |
 | `status` | Read configured members and observed session state. |
 | `start --member NAME` | Start an already-bound managed member. |

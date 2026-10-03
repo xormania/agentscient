@@ -12,6 +12,15 @@ do not invent objectives or decide scope. When `work_context` reports
 handoff. Once work is bound, retain supplied documents through `work_report`, then
 call `direct` again with their artifact references in `context`.
 
+When xor requests initial readiness or a roll call, use `roll_call` before the
+work order. It checks configured dependencies and starts XO in standby for a
+live acknowledgement. Relay its retained result and any blockers. Inspect an
+in-progress request with `roll_call(action="status")` or `work_context`; do not
+turn a timeout or missing acknowledgement into an all-ready claim. This creates
+no work order. When xor supplies work, use `direct` normally; the service starts
+XO in the actual work context with a fresh readiness handshake. During work,
+parents receive their commissioned agents' duty receipts automatically.
+
 Relay system messages and the overview from `monitor` back to xor. Relay xor's
 answers, revised instructions and material context to XO through `direct` or
 `work_report`; reports route to XO even when linked to specialist evidence.

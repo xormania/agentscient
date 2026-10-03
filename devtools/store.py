@@ -15,7 +15,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 17
 
 
 def stamp():
@@ -154,6 +154,24 @@ class Store(State):
                 work_order INTEGER NOT NULL REFERENCES work_orders(id), job INTEGER REFERENCES jobs(id),
                 reports_to TEXT REFERENCES members(name), brief TEXT NOT NULL DEFAULT '',
                 revision INTEGER NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS standby_bindings (
+                member TEXT PRIMARY KEY REFERENCES members(name), role TEXT NOT NULL,
+                reports_to TEXT NOT NULL UNIQUE REFERENCES members(name), revision INTEGER NOT NULL,
+                launch_pending INTEGER NOT NULL DEFAULT 1, launch_error TEXT,
+                preflight TEXT NOT NULL DEFAULT '{}', deadline REAL NOT NULL,
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            if "runtime" in {row[1] for row in db.execute("PRAGMA table_info(standby_bindings)")}:
+                db.execute("ALTER TABLE standby_bindings DROP COLUMN runtime")
+            db.execute("""CREATE TABLE IF NOT EXISTS duty_readiness (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
+                parent TEXT REFERENCES members(name), role TEXT NOT NULL, generation TEXT NOT NULL,
+                binding TEXT NOT NULL, challenge TEXT NOT NULL UNIQUE, deadline REAL NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('starting','ready','blocked','timed_out','superseded')),
+                checks TEXT NOT NULL DEFAULT '[]', onboarding_revision TEXT,
+                challenge_message INTEGER REFERENCES messages(id), receipt_message INTEGER REFERENCES messages(id),
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE INDEX IF NOT EXISTS duty_readiness_member ON duty_readiness(member,id)")
+            db.execute("CREATE INDEX IF NOT EXISTS duty_readiness_parent ON duty_readiness(parent,id)")
             db.execute("""CREATE TABLE IF NOT EXISTS work_updates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT NOT NULL REFERENCES members(name),
                 kind TEXT NOT NULL, text TEXT NOT NULL, work_order INTEGER NOT NULL REFERENCES work_orders(id),
@@ -447,7 +465,7 @@ class Store(State):
             )
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
-    def begin_session(self, name, pid, *, binding_revision=None, expected_binding=UNSET, settings=None):
+    def begin_session(self, name, pid, *, binding_revision=None, standby_revision=None, expected_binding=UNSET, settings=None):
         from .sessions import lock
 
         generation = uuid.uuid4().hex
@@ -475,6 +493,17 @@ class Store(State):
                 if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
                     raise ValueError("Launch direction was superseded before the session started.")
                 db.execute("UPDATE member_bindings SET launch_pending=0,launch_error=NULL WHERE member=?", (name,))
+            if standby_revision is not None:
+                from .standby import authorized
+                from .standby import binding as standby_binding
+
+                scope = standby_binding(db, name)
+                if (binding_revision is not None or not scope or scope["revision"] != standby_revision
+                        or not scope["launch_pending"] or time.time() >= scope["deadline"]
+                        or not authorized(self, scope, db=db)
+                        or db.execute("SELECT 1 FROM member_bindings WHERE member=?", (name,)).fetchone()):
+                    raise ValueError("Standby launch was superseded before the session started.")
+                db.execute("UPDATE standby_bindings SET launch_pending=0,launch_error=NULL WHERE member=?", (name,))
             db.execute(
                 "UPDATE members SET generation=?,native_id=NULL,pid=?,state='starting',desired='running',updated=? WHERE name=?",
                 (generation, pid, stamp(), name),
@@ -486,6 +515,10 @@ class Store(State):
                 (name,),
             )
             self._event(db, name, "session_starting", {"generation": generation, "pid": pid, "settings": settings})
+            if row["harness"] != "external":
+                from .duty import begin_in
+
+                begin_in(self, db, name, generation)
         return generation
 
     def send(self, sender, recipient, body, *, key, reply_to=None, work_order=UNSET, job=UNSET):
@@ -578,12 +611,12 @@ class Store(State):
                     return None
             clause, args = "1", ()
             if scoped:
-                from .control import binding, scope_sql
+                from .control import binding, message_sql
 
-                clause, args = scope_sql(binding(db, member))
+                clause, args = message_sql(self, db, member, binding(db, member))
             row = db.execute(
                 "SELECT * FROM messages WHERE recipient=? AND delivery='queued' AND acknowledged IS NULL AND "
-                + clause
+                + "(" + clause + ")"
                 + " ORDER BY id LIMIT 1",
                 (member, *args),
             ).fetchone()

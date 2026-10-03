@@ -23,7 +23,7 @@ class CommandTests(CommandFixture, unittest.TestCase):
         self.assertIn("ready_to_direct", co.initialization["instructions"])
         # Native clients may retain only the first catalogue and ignore list_changed.
         cached = {row["name"]: row for row in co.call("tools/list")["tools"]}
-        self.assertEqual({"work_context", "work_report", "guidance_request", "direct", "monitor", "onboard", "skill_read"},
+        self.assertEqual({"work_context", "work_report", "guidance_request", "direct", "monitor", "roll_call", "onboard", "skill_read", "readiness_report"},
                          set(cached))
         onboarding = co.tool("onboard", {})
         self.assertEqual("ready_to_direct", onboarding["context"]["state"])
@@ -42,7 +42,7 @@ class CommandTests(CommandFixture, unittest.TestCase):
             self.assertTrue(report["reference"].startswith("update:"))
         self.assertEqual(cached, {row["name"]: row for row in co.call("tools/list")["tools"]})
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read"},
+            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read", "readiness_report"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))

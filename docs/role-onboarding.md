@@ -13,6 +13,13 @@ source provenance and hashes remain in skill reads, and exact delivered revision
 are recorded in telemetry. A delivery record means the content was supplied, not proof a model
 understood it. Onboarding does not create work or invent an acceptance gate.
 
+For a managed startup, onboarding also supplies a readiness challenge and its
+revision. The agent returns these through `readiness_report`, including actual
+blockers; the service validates and retains the duty receipt and routes it to
+the commissioning parent. This explicit response is distinct from supplying
+instructions or observing a live process. Initial XO standby has readiness
+authority only. See the [readiness contract](control-plane-roles-and-tools.md#reporting-for-duty).
+
 The shipped catalog supplies the defaults below. Role identities, behavior
 adapters and skill references are configured in `devtools/role-packages.cue`;
 the table is not a required role list.
