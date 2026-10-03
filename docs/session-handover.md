@@ -47,13 +47,18 @@ does not grant coordination, execution or acceptance authority in Agentscient.
 Managed worker launches keep their existing tool restrictions, isolated settings
 and login handling. Normal native authentication and consent remain in force.
 
-Grok CO adds a temporary plugin under the workspace's `.grok/plugins/` directory
-using native project/plugin trust. It leaves existing user and project settings
-intact. The connection and observer hooks run only in that CO launch environment;
-other sessions cannot attach through the generated connection. Normal exit removes
-the generated files if unchanged, preserving any operator edits. Codex adds its
-connection and observer hooks through session configuration overrides. Native hook
-trust still applies; disabling or declining observers can reduce telemetry.
+Grok CO registers a temporary connection with native `grok mcp add --scope user`
+and adds a personal observer-hook file. Native configuration writes preserve other
+settings but may reformat TOML. The connection and hooks run only in that CO launch
+environment. CO uses Grok's embedded backend (`--no-leader`) so an existing shared
+backend cannot supply another session's environment or connection settings; native
+tools and controls remain available. Normal exit uses native `mcp remove` and
+removes the hook file if their generated contents remain unchanged. Operator edits
+are preserved. A killed launcher can leave inert, generation-gated entries; inspect
+them with native `grok mcp list` and remove the named entry if needed.
+Codex adds its connection and observer hooks through session configuration
+overrides. Native hook trust still applies; disabling or declining observers can
+reduce telemetry. Loose plugins are not used as a substitute for MCP registration.
 
 Use the harness's native model/effort controls to change the running CO session;
 the launcher options above select its initial values. Native quit and interrupt
@@ -85,12 +90,16 @@ active for launch intents and background observation.
 | XO | `steer(action="replace", work=..., role=..., direction=...)` | Named specialist's role, job, workspace, history and evidence |
 | XO | `steer(action="pause" / "resume")` | A still-running native conversation |
 
-Replacement requests stop the old process, then launch the same member with the
-current role/vendor policy. They do not retry an uncertain message or replay a
-native conversation. Recovery uses the latest brief and durable reports. Inspect
-`monitor` for observed startup or a failure; fix operator configuration and use
-resume/replacement again if no runtime is available. Externally attached XO or
-specialists require their operator to reconnect them.
+Replacement requests stop the old process, then launch the same member. A retained
+assignment runtime must still match the current work and role/vendor policy; a
+changed policy or unavailable selected profile blocks startup instead of silently
+choosing another model. The coordinator must refresh that assignment's selection
+through `orchestrate` before retrying. XO selects a current profile at its own
+launch when its retained selection is stale.
+Replacement does not retry an uncertain message or replay a native conversation.
+Recovery uses the latest brief and durable reports. Inspect `monitor` for observed
+startup or a failure. Externally attached XO or specialists require their operator
+to reconnect them.
 
 Each launch has a new generation. Native MCP and hook commands carry that
 generation in a separate private profile directory. Old connections and old

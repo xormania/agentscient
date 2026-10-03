@@ -127,6 +127,7 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         self.assertNotIn("PreToolUse", json.loads((private / "observer-hooks.json").read_text()))
         for flag in ("--tools", "--no-subagents", "--no-memory", "--disable-web-search"):
             self.assertNotIn(flag, argv)
+        self.assertIn("--no-leader", argv)
         self.assertEqual("initial-model", argv[argv.index("--model") + 1])
         self.assertEqual("high", argv[argv.index("--effort") + 1])
 

@@ -12,14 +12,13 @@ import signal
 import sys
 import termios
 import time
-import tomllib
 import tty
 import uuid
 from contextlib import ExitStack
 
 from .api import API, SERVER
 from .launch import team_config
-from .profiles import claude_command, operator_console, prepare, retain_login, toml, tool_catalogue
+from .profiles import claude_command, operator_console, prepare, retain_login, toml
 from .runtime import co_role, resolve
 from .store import Store
 from .telemetry import Trace, Transcript, context, requested
@@ -32,30 +31,23 @@ def command(directory, member, config, private, server):
 
 
 def _command_builtin(directory, member, config, private, server, *, protocol):
-    """Build native CLI arguments without accepting arbitrary command fragments."""
+    """Build the appointed operator's TUI; workers use native transports."""
+    operator_console(directory, member)
+    if config.get("operator_console") is not True:
+        raise ValueError("Native console commands require an operator console profile.")
     instructions = API(directory, member).instructions()
     prompt = (
         "Call onboard; it supplies the shared and role instructions. Read only relevant skills not marked loaded. "
         "Recover current work and reports before asking the user what is next."
     )
     harness = protocol
-    operator = bool(config.get("operator_console"))
-    if operator:
-        operator_console(directory, member)
     argv, native_id = [config["binary"]], None
     if harness == "codex":
-        options = {
-            "mcp_servers": {SERVER: server},
-            "developer_instructions": instructions,
-            "sandbox_mode": "read-only",
-            "approval_policy": "on-request",
-        }
-        if operator:
-            options = {"mcp_servers." + SERVER: server}
-            options.update({"hooks." + name: groups for name, groups in
-                            json.loads((private / "observer-hooks.json").read_text()).items()})
-            # Do not replace the operator's developer_instructions config.
-            prompt = instructions + "\n\n" + prompt
+        options = {"mcp_servers." + SERVER: server}
+        options.update({"hooks." + name: groups for name, groups in
+                        json.loads((private / "observer-hooks.json").read_text()).items()})
+        # Do not replace the operator's developer_instructions config.
+        prompt = instructions + "\n\n" + prompt
         for source, target in (
             ("model", "model"),
             ("reasoning", "model_reasoning_effort"),
@@ -67,22 +59,12 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
             argv += ["-c", key + "=" + toml(value)]
         argv += ["--", prompt]
     elif harness == "claude":
-        return claude_command(config, private, instructions,
-                              tool_catalogue(directory, member, package_ceiling=True), prompt, managed=not operator)
+        return claude_command(config, private, instructions, {}, prompt, managed=False)
     elif harness == "grok":
         native_id = str(uuid.uuid4())
-        if not operator:
-            compatibility = {
-                name: {key: False for key in ("skills", "rules", "agents", "mcps", "hooks")}
-                for name in ("claude", "cursor")
-            }
-            path = private / "config.toml"
-            settings = tomllib.loads(path.read_text())
-            settings.update(mcp_servers={SERVER: server}, compat=compatibility)
-            path.write_text("\n".join(key + " = " + toml(value) for key, value in settings.items()) + "\n")
-            path.chmod(0o600)
-            argv += ["--tools", "search_tool,use_tool", "--no-subagents", "--no-memory", "--disable-web-search"]
-        argv += ["--session-id", native_id, "--rules", instructions + "\n" + prompt]
+        # A shared leader keeps its original environment and cannot inherit
+        # this generation's MCP/hook identity from a later TUI client.
+        argv += ["--no-leader", "--session-id", native_id, "--rules", instructions + "\n" + prompt]
         for source, flag in (("model", "--model"), ("reasoning", "--effort")):
             if config.get(source):
                 argv += [flag, config[source]]
@@ -93,6 +75,8 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
 
 def relay(argv, env, cwd, trace, poll):
     """Transparent PTY relay; capture output, never raw password/key input."""
+    from . import processes
+
     input_fd, output_fd = sys.stdin.fileno(), sys.stdout.fileno()
     original = termios.tcgetattr(input_fd) if os.isatty(input_fd) else None
     old_handlers = {}
@@ -128,8 +112,28 @@ def relay(argv, env, cwd, trace, poll):
     # are still filtered by Trace.clean. Very large output is bounded.
     decoder, pending = codecs.getincrementaldecoder("utf-8")("replace"), ""
     stop_at, status, input_open = None, None, True
-    trace.record("process_started", {"argv": argv, "pid": pid, "transport": "interactive/pty"})
+    owned = {}
+
+    def forward(data):
+        nonlocal pending
+        write_all(output_fd, data)
+        pending += decoder.decode(data)
+        while "\n" in pending or len(pending) > 65536:
+            end = pending.index("\n") + 1 if "\n" in pending else 65536
+            trace.record("terminal_output", {"text": pending[:end]})
+            pending = pending[end:]
+
+    def observe():
+        # The direct child cannot be reused before waitpid reaps it. Record its
+        # identity even if it has not yet entered the PTY's new session.
+        if status is None and (row := processes.identity(pid)):
+            owned[pid] = row
+        for row in processes.family(owned.values(), sessions=(pid,)):
+            owned[row["pid"]] = row
+        return processes.alive(owned.values())
+
     try:
+        trace.record("process_started", {"argv": argv, "pid": pid, "transport": "interactive/pty"})
         for sig, handler in ((signal.SIGWINCH, resize), (signal.SIGTERM, terminate), (signal.SIGHUP, terminate)):
             old_handlers[sig] = signal.signal(sig, handler)
         resize()
@@ -160,12 +164,8 @@ def relay(argv, env, cwd, trace, poll):
                     data = b""
                 if not data:
                     break
-                write_all(output_fd, data)
-                pending += decoder.decode(data)
-                while "\n" in pending or len(pending) > 65536:
-                    end = pending.index("\n") + 1 if "\n" in pending else 65536
-                    trace.record("terminal_output", {"text": pending[:end]})
-                    pending = pending[end:]
+                forward(data)
+            observe()
             waited, value = os.waitpid(pid, os.WNOHANG)
             if waited:
                 status = value
@@ -180,35 +180,47 @@ def relay(argv, env, cwd, trace, poll):
                         break
                     if not data:
                         break
-                    pending += decoder.decode(data)
-                    write_all(output_fd, data)
+                    forward(data)
                 break
     finally:
-        terminate()
-        if status is None:
-            deadline = time.monotonic() + 5
-            while time.monotonic() < deadline:
-                waited, value = os.waitpid(pid, os.WNOHANG)
-                if waited:
-                    status = value
-                    break
-                time.sleep(0.02)
-            if status is None:
-                os.killpg(pid, signal.SIGKILL)
-                _, status = os.waitpid(pid, 0)
-        # Native subprocesses belong to this session even if the TUI exits first.
         try:
-            os.killpg(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        pending += decoder.decode(b"", final=True)
-        if pending:
-            trace.record("terminal_output", {"text": pending})
-        os.close(master)
-        if original:
-            termios.tcsetattr(input_fd, termios.TCSADRAIN, original)
-        for sig, handler in old_handlers.items():
-            signal.signal(sig, handler)
+            terminate()
+            remaining = observe()
+            processes.signal_owned(remaining, signal.SIGTERM)
+            processes.signal_owned(remaining, signal.SIGCONT)
+            while remaining or status is None:
+                if status is None:
+                    waited, value = os.waitpid(pid, os.WNOHANG)
+                    if waited:
+                        status = value
+                if time.monotonic() >= stop_at + 5:
+                    processes.signal_owned(remaining, signal.SIGKILL)
+                    if status is None:
+                        _, status = os.waitpid(pid, 0)
+                    deadline = time.monotonic() + 1
+                    while remaining and time.monotonic() < deadline:
+                        processes.signal_owned(remaining, signal.SIGKILL)
+                        time.sleep(0.02)
+                        remaining = observe()
+                    if remaining:
+                        raise RuntimeError("Native CO processes are still stopping")
+                    break
+                remaining = observe()
+                if remaining or status is None:
+                    time.sleep(0.02)
+            pending += decoder.decode(b"", final=True)
+            if pending and sys.exc_info()[0] is None:
+                trace.record("terminal_output", {"text": pending})
+        finally:
+            try:
+                os.close(master)
+            finally:
+                try:
+                    if original:
+                        termios.tcsetattr(input_fd, termios.TCSADRAIN, original)
+                finally:
+                    for sig, handler in old_handlers.items():
+                        signal.signal(sig, handler)
     return os.waitstatus_to_exitcode(status)
 
 
@@ -274,9 +286,9 @@ def run(directory, profile=None, model=None, reasoning=None):
 
         with ExitStack() as native_settings:
             if getattr(get(config["harness"]), "protocol", None) == "grok":
-                from .console_plugin import grok_plugin
+                from .console_settings import grok_settings
 
-                native_settings.enter_context(grok_plugin(private, server, workspace))
+                native_settings.enter_context(grok_settings(config["binary"], private, server, workspace, env))
             exit_code = relay(argv, env, workspace, trace, poll)
         transcript.poll()
         if exit_code and store.member(member)["desired"] == "running":

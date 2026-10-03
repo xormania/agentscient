@@ -109,9 +109,13 @@ before importing this policy.
 {"version":1,"vendors":{"anthropic":{"available":false,"reason":"Usage exhausted"},"openai":{"available":true},"xai":{"available":true}}}
 ```
 
-Availability controls new launches only. The service tries a role's preferences in
-order, skipping disabled vendors and missing executables. It fails if none are
-available; it never enables another vendor or replays an interrupted task itself.
+Availability controls new launches only. Resolution without a retained assignment
+selection tries a role's preferences in order, skipping disabled vendors and
+missing executables. Assignment selection considers the eligible profiles as
+described above. A retained choice is revalidated against its exact profile and
+policy revision; an unavailable or stale choice fails instead of falling through
+to another profile. The service never enables another vendor or replays an
+interrupted task itself.
 An optional `reset_at` string is an operator reminder, not proof that quota reset.
 Save edits by replacing complete JSON files atomically. Malformed policy fails
 closed. Both files, the role catalog and the adapter manifest contribute to the
@@ -125,7 +129,10 @@ telemetry. CO/XO tools expose role capacity and work state without model selecto
 Operator `runtime_status` exposes policy, availability and resolution diagnostics
 through MCP. Model settings do not grant tools or authority.
 
-If a vendor runs out mid-session, mark it unavailable, stop the affected session,
-and resume the bound work after it stops. The next launch resolves current policy.
-The work, evidence and message history survive; a new native conversation is a
-new session, not a cross-vendor transcript migration.
+If a vendor runs out mid-session, mark it unavailable and stop the affected
+session. CO resolves current policy when relaunched; XO refreshes its stale
+selection at launch. A specialist with a retained assignment selection needs its
+coordinator to refresh the selection through `orchestrate` before resume or
+replacement can launch another configured profile. Inspect the resulting startup
+in `monitor`. The work, evidence and message history survive; a new native
+conversation is a new session, not a cross-vendor transcript migration.

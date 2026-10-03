@@ -10,6 +10,10 @@ import tomllib
 from pathlib import Path
 
 args = sys.argv[1:]
+if args[:1] == ["mcp"]:
+    from grok_mcp_fixture import main
+
+    raise SystemExit(main(args))
 exchange = Path(os.environ["AGENTSCIENT_CO_FIXTURE"])
 expected = json.loads(exchange.read_text())
 assert Path.cwd() == Path(expected["workspace"])
@@ -24,11 +28,14 @@ elif "--rules" in args:
     harness = "grok"
     assert Path(os.environ["GROK_HOME"]) == Path(os.environ["HOME"]) / ".grok"
     generation = os.environ["AGENTSCIENT_CO_GENERATION"]
-    plugin = Path.cwd() / ".grok/plugins" / ("agentscient-co-" + generation) / "plugin.json"
-    manifest = json.loads(plugin.read_text())
-    servers = manifest["mcpServers"]
-    assert set(servers) == {"agentscient_dev_" + generation}
-    assert "PreToolUse" not in manifest["hooks"]["hooks"]
+    native_home = Path(os.environ["GROK_HOME"])
+    configured = tomllib.loads((native_home / "config.toml").read_text())["mcp_servers"]
+    name = "agentscient_dev_" + generation
+    servers = {name: configured[name]}
+    hooks = json.loads((native_home / "hooks" / ("agentscient-co-" + generation + ".json")).read_text())
+    assert "PreToolUse" not in hooks["hooks"]
+    assert not (Path.cwd() / ".grok/plugins").exists()
+    assert "--no-leader" in args
     assert not {"--tools", "--no-subagents", "--no-memory", "--disable-web-search"} & set(args)
 else:
     harness = "codex"
