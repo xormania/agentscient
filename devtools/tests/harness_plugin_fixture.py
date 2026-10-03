@@ -61,3 +61,13 @@ class FixtureHarness:
         store.session(member, generation=generation, state="idle", native_id=session)
         store.event(member, "fixture_harness_ran", harness=self.name, argv=argv, permission=result,
                     profile=json.loads((private / "fixture.json").read_text()))
+
+
+class PromptFixtureHarness(FixtureHarness):
+    supports_initial_prompt = True
+
+    def command(self, directory, member, config, private, server):
+        argv, session = super().command(directory, member, config, private, server)
+        if config.get("initial_prompt") is not None:
+            argv += ["--", config["initial_prompt"]]
+        return argv, session

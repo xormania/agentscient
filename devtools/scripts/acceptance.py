@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import fcntl
 import importlib.util
+import inspect
 import json
 import os
 import re
@@ -390,6 +391,11 @@ def preflight(args, fixture, runtime, runner, *, online):
             api.launch.initialize(state, fixture, ["owner:external"], co="owner", project=project, runtime=True)
             selected = runner.configure_runtime(api, state, selected=selected, copied=copied)
             semantics = runner.configure_semantics(api, state, root, overlay)
+            if args.command == "run":
+                try:
+                    api.console.initial_prompt_profile(state, profile=args.profile)
+                except (ValueError, RuntimeError):
+                    raise SetupError("The selected CO profile cannot accept an automatic brief. Check --profile and its harness adapter before starting a new run.") from None
             try:
                 runner.require_selection_candidates(api, state, scenario, semantics)
             except ValueError:
@@ -442,7 +448,7 @@ def prepare(args, fixture, runtime, runner):
             except (SetupError, OSError, ValueError):
                 print("Could not remember this run; use --run-dir " + str(root) + " for subsequent commands.", file=sys.stderr)
     if result == 0 and args.command != "run":
-        print("Prepared. Next: doctor --online --run-dir PATH, then co --run-dir PATH; paste " + str(root / "brief.txt") + ".")
+        print("Prepared. Next: doctor --online --run-dir PATH, then co --brief --run-dir PATH. Brief: " + str(root / "brief.txt"))
     return result
 
 
@@ -462,6 +468,8 @@ def existing_run(args):
         return subprocess.call([sys.executable, "-I", "-B", str(Path(__file__).with_name("acceptance_collect.py")),
                                 *forwarded], env=environment())
     forwarded = [args.command, "--run-dir", str(root)]
+    if args.command == "co" and getattr(args, "brief", False):
+        forwarded.append("--brief")
     if getattr(args, "online", False):
         forwarded.append("--online")
     for name in ("profile", "work_order", "php"):
@@ -480,6 +488,17 @@ def checked_runtime(args, fixture):
     if git(runtime, "rev-parse", "HEAD") != pin:
         raise SetupError("Runtime does not match selected revision. Run update with a new runtime directory.")
     return runtime, load_fixture(fixture)
+
+
+def require_initial_brief(fixture, runtime, runner):
+    """Negotiate both sides before preparation can publish or use model accounts."""
+    help_result = capture([sys.executable, "-I", "-B", fixture / "acceptance/run.py", "co", "--help"])
+    if help_result.returncode or not re.search(r"(?<!\S)--brief(?:[\s,]|$)", help_result.stdout):
+        raise SetupError("The fixture does not support automatic CO briefing. Update fixture main before using run.")
+    api = runner.import_runtime(runtime)
+    if ("initial_prompt" not in inspect.signature(api.console.run).parameters
+            or not callable(getattr(api.console, "initial_prompt_profile", None))):
+        raise SetupError("The selected runtime does not support automatic CO briefing. Select a newer reviewed revision.")
 
 
 def run(args, fixture):
@@ -501,6 +520,7 @@ def run(args, fixture):
         if result:
             return result
         runtime, runner = checked_runtime(args, fixture)
+        require_initial_brief(fixture, runtime, runner)
         result = prepare(args, fixture, runtime, runner)
 
         def action(command, **options):
@@ -530,9 +550,8 @@ def run(args, fixture):
         result = action("doctor", online=True)
         if result:
             return failed(result)
-        print("\nPaste this brief into the CO session that opens next:\n", flush=True)
-        print((root / "brief.txt").read_text(), flush=True)
-        result = action("co", profile=args.profile)
+        print("Starting CO with the run's brief...", flush=True)
+        result = action("co", profile=args.profile, brief=True)
         if result:
             return failed(result)
         print("CO exited normally. Running the frozen independent verifier...", flush=True)
@@ -546,7 +565,7 @@ def run(args, fixture):
 
 def preview(args, fixture):
     print("Preview only: no credentials read, processes launched, network calls or files changed.")
-    print("Routine acceptance: acceptance.sh run tests clean source HEAD, prepares and remembers a new run, launches CO, then verifies on normal exit.")
+    print("Routine acceptance: acceptance.sh run tests clean source HEAD, prepares and remembers a new run, submits its brief to CO, then verifies on normal exit.")
     print("Inspect its retained evidence with acceptance.sh collect. The separate setup commands below retain their fixture-pin default.")
     print("Fixture: " + str(fixture))
     if fixture.is_dir():
@@ -570,7 +589,7 @@ def preview(args, fixture):
     print("Scenario: " + args.scenario)
     print("Run directory: " + (str(path(args.run_dir)) if args.run_dir else "supply a new --run-dir for prepare"))
     print("Sequence: update -> check --online -> prepare --run-dir PATH -> doctor --online --run-dir PATH")
-    print("Then: co --run-dir PATH; paste PATH/brief.txt; verify --online --run-dir PATH; stop --run-dir PATH")
+    print("Then: co --brief --run-dir PATH; verify --online --run-dir PATH; stop --run-dir PATH")
     print("update: fast-forward clean fixture main, provision a separate pinned runtime; requires GitHub access.")
     print("check: disposable private state, readiness/native credential checks; --online adds a small paid Jev request.")
     print("prepare: repeats online checks, installs dependencies in the new run, pushes its unique fixture branch.")
@@ -612,6 +631,8 @@ def parser():
             item.add_argument("--online", action="store_true", help="read-only remote checks; check also sends a small Jev request")
         if name in {"co", "run"}:
             item.add_argument("--profile", help="configured CO profile")
+        if name == "co":
+            item.add_argument("--brief", action="store_true", help="submit this run's brief as the initial user message (first launch only)")
         if name == "collect":
             item.add_argument("--output", help="diagnostic report destination")
         if name == "verify":

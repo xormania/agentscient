@@ -15,6 +15,7 @@ import time
 import tty
 import uuid
 from contextlib import ExitStack
+from pathlib import Path
 
 from .api import API, SERVER
 from .launch import team_config
@@ -23,11 +24,52 @@ from .runtime import co_role, resolve
 from .store import Store
 from .telemetry import Trace, Transcript, context, requested
 
+MAX_INITIAL_PROMPT_BYTES = 65536
 
-def command(directory, member, config, private, server):
+
+def validate_initial_prompt(value):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip() or "\0" in value:
+        raise ValueError("The initial CO brief must be nonempty UTF-8 text without NUL characters.")
+    try:
+        size = len(value.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ValueError("The initial CO brief must be valid UTF-8 text.") from error
+    if size > MAX_INITIAL_PROMPT_BYTES:
+        raise ValueError("The initial CO brief exceeds 64 KiB.")
+    return value
+
+
+def read_brief(path):
+    path = Path(path)
+    if not path.is_file():
+        raise ValueError("The initial CO brief must be a readable regular file.")
+    with path.open("rb") as stream:
+        payload = stream.read(MAX_INITIAL_PROMPT_BYTES + 1)
+    if len(payload) > MAX_INITIAL_PROMPT_BYTES:
+        raise ValueError("The initial CO brief exceeds 64 KiB.")
+    try:
+        return validate_initial_prompt(payload.decode("utf-8"))
+    except UnicodeDecodeError as error:
+        raise ValueError("The initial CO brief must be valid UTF-8 text.") from error
+
+
+def _prompt_adapter(config, *, required=False):
     from .harnesses import get
 
-    return get(config["harness"]).command(directory, member, config, private, server)
+    adapter = get(config["harness"])
+    if required:
+        if config.get("operator_console") is not True:
+            raise ValueError("An initial CO brief requires an operator console profile.")
+        if getattr(adapter, "supports_initial_prompt", False) is not True:
+            raise ValueError("The selected harness does not support an initial CO brief: " + config["harness"])
+    return adapter
+
+
+def command(directory, member, config, private, server):
+    initial_prompt = validate_initial_prompt(config.get("initial_prompt"))
+    return _prompt_adapter(config, required=initial_prompt is not None).command(directory, member, config, private, server)
 
 
 def _command_builtin(directory, member, config, private, server, *, protocol):
@@ -40,6 +82,7 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
         "Call onboard; it supplies the shared and role instructions. Read only relevant skills not marked loaded. "
         "Recover current work and reports before asking the user what is next."
     )
+    initial_prompt = config.get("initial_prompt")
     harness = protocol
     argv, native_id = [config["binary"]], None
     if harness == "codex":
@@ -57,9 +100,10 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
                 options[target] = config[source]
         for key, value in options.items():
             argv += ["-c", key + "=" + toml(value)]
-        argv += ["--", prompt]
+        argv += ["--", prompt + ("\n\n" + initial_prompt if initial_prompt is not None else "")]
     elif harness == "claude":
-        return claude_command(config, private, instructions, {}, prompt, managed=False)
+        return claude_command(config, private, instructions, {},
+                              prompt + ("\n\n" + initial_prompt if initial_prompt is not None else ""), managed=False)
     elif harness == "grok":
         native_id = str(uuid.uuid4())
         # A shared leader keeps its original environment and cannot inherit
@@ -68,6 +112,10 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
         for source, flag in (("model", "--model"), ("reasoning", "--effort")):
             if config.get(source):
                 argv += [flag, config[source]]
+        if initial_prompt is not None:
+            # Grok's positional prompt seeds the interactive TUI. --prompt-file
+            # and --single instead select headless mode and would close it.
+            argv += ["--", initial_prompt]
     else:
         raise ValueError("This builtin console does not implement the selected harness protocol.")
     return argv, native_id
@@ -224,7 +272,7 @@ def relay(argv, env, cwd, trace, poll):
     return os.waitstatus_to_exitcode(status)
 
 
-def run(directory, profile=None, model=None, reasoning=None):
+def _configuration(directory, profile=None, model=None, reasoning=None, *, require_initial_prompt=False):
     store = Store(directory)
     team = team_config(store.directory)
     member = team.get("co")
@@ -244,14 +292,30 @@ def run(directory, profile=None, model=None, reasoning=None):
     config = runtime_profile(role, config)
     # Internal launch mode, never an accepted profiles.json setting.
     config["operator_console"] = True
+    _prompt_adapter(config, required=require_initial_prompt)
     config["binary"] = shutil.which(config["binary"])
+    return store, member, scope, config
+
+
+def initial_prompt_profile(directory, profile=None):
+    """Resolve the actual CO brief adapter without allocating or preparing a session."""
+    return _configuration(directory, profile, require_initial_prompt=True)[3]
+
+
+def run(directory, profile=None, model=None, reasoning=None, *, initial_prompt=None):
+    initial_prompt = validate_initial_prompt(initial_prompt)
+    store, member, scope, config = _configuration(
+        directory, profile, model, reasoning, require_initial_prompt=initial_prompt is not None)
     generation = store.begin_session(member, os.getpid(), expected_binding=scope, settings=config)
     trace = Trace(directory, member, component="co-console", context=lambda: context(store, member))
     error, exit_code = None, None
     try:
         private, env, server = prepare(directory, member, config["harness"], config=config)
         workspace = store.member(member)["workspace"]
-        argv, native_id = command(directory, member, config, private, server)
+        # The brief is user input for this launch, never a retained runtime
+        # profile setting or a worker's instruction/configuration override.
+        command_config = config if initial_prompt is None else {**config, "initial_prompt": initial_prompt}
+        argv, native_id = command(directory, member, command_config, private, server)
         store.session(
             member,
             generation=generation,

@@ -151,8 +151,9 @@ bash devtools/scripts/acceptance.sh run
 
 `run` selects that checkout's exact `HEAD`, updates the fixture, provisions a
 separate immutable runtime and creates a fresh isolated run. It performs the
-existing online preparation checks and frozen doctor, displays the brief to paste
-into CO, then starts the native session. After CO exits normally, it runs the frozen
+existing online preparation checks and frozen doctor, then starts the native CO
+session with the run's brief as its first user message. No copying or pasting is
+required. After CO exits normally, it runs the frozen
 online verifier and collects diagnostics. A normal console exit alone does not
 establish acceptance; the verifier's result does. `--runtime-revision SHA` selects
 another committed runtime explicitly. The other setup options below also apply to
@@ -165,7 +166,7 @@ across shells. Use the same short commands afterwards:
 | Command | Purpose |
 | --- | --- |
 | `bash devtools/scripts/acceptance.sh status` | Read preparation status and the selected run path. |
-| `bash devtools/scripts/acceptance.sh co` | Open a new CO conversation for the retained work. Recover current context before giving new direction. |
+| `bash devtools/scripts/acceptance.sh co` | Open a new CO conversation for the retained work without resending the original brief. Recover current context before giving new direction. |
 | `bash devtools/scripts/acceptance.sh verify --online` | Run the frozen final verifier again when work is ready. |
 | `bash devtools/scripts/acceptance.sh collect` | Write a private, filtered diagnostic JSON file and print its path for sharing. |
 | `bash devtools/scripts/acceptance.sh stop` | Stop the remembered run's agents while retaining evidence and branches. |
@@ -178,6 +179,11 @@ run. Interrupting CO returns promptly and
 leaves the team and evidence available; it does not start verification or stop
 workers automatically. Stage failures retain the original failure result and any
 created run, with diagnostic collection when available.
+
+Automatic briefing requires a fixture and runtime that support it. `run` checks
+both before online preparation or branch publication. An older retained run still
+uses its frozen launcher; reopening it with plain `co` does not require briefing
+support or a brief file.
 If `stop` leaves uncertain queued or running operation records, the default guard
 still blocks replacement; inspect the diagnostics or deliberately choose a new
 `--run-dir` instead of deleting the old state.
@@ -251,8 +257,8 @@ It does not start CO. Failed preparations and all subsequent evidence are retain
 
 ```bash
 bash devtools/scripts/acceptance.sh doctor --online --run-dir "$HOME/agentscient-acceptance-001"
-bash devtools/scripts/acceptance.sh co --run-dir "$HOME/agentscient-acceptance-001"
-# Paste that run's brief.txt into CO, then inspect progress and the final result.
+bash devtools/scripts/acceptance.sh co --brief --run-dir "$HOME/agentscient-acceptance-001"
+# The first launch submits the brief automatically. Omit --brief when reopening CO.
 bash devtools/scripts/acceptance.sh status --run-dir "$HOME/agentscient-acceptance-001"
 bash devtools/scripts/acceptance.sh verify --online --run-dir "$HOME/agentscient-acceptance-001"
 bash devtools/scripts/acceptance.sh stop --run-dir "$HOME/agentscient-acceptance-001"

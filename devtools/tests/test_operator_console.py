@@ -131,6 +131,30 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         self.assertEqual("initial-model", argv[argv.index("--model") + 1])
         self.assertEqual("high", argv[argv.index("--effort") + 1])
 
+    def test_initial_brief_is_native_user_input_with_operator_controls_preserved(self):
+        brief = "--not-a-flag\nGreeting — keep $HOME, `literal`, and \"quotes\" intact.\n"
+        for harness in ("codex", "claude", "grok"):
+            with self.subTest(harness=harness):
+                config = self.config(harness)
+                private, _, server = prepare(self.directory, "owner", harness, config=config)
+                before, _ = command(self.directory, "owner", config, private, server)
+                argv, _ = command(self.directory, "owner", {**config, "initial_prompt": brief}, private, server)
+                self.assertEqual("--", argv[-2])
+                self.assertTrue(argv[-1].endswith(brief))
+                self.assertEqual(1, sum(value.count(brief) for value in argv))
+                for flag in ("--single", "--prompt-file", "--print", "--disable-slash-commands", "--tools"):
+                    self.assertNotIn(flag, argv)
+                self.assertNotIn("initial_prompt", config)
+                if harness == "grok":
+                    self.assertEqual(brief, argv[-1])
+                    self.assertEqual(before[before.index("--rules") + 1], argv[argv.index("--rules") + 1])
+                elif harness == "claude":
+                    self.assertEqual(before[before.index("--append-system-prompt") + 1],
+                                     argv[argv.index("--append-system-prompt") + 1])
+                self.assertEqual("initial-model", argv[argv.index("--model") + 1] if harness != "codex"
+                                 else tomllib.loads("\n".join(argv[i + 1] for i, item in enumerate(argv)
+                                                              if item == "-c"))["model"])
+
     def test_co_behavior_alias_and_initial_unbound_owner_can_use_operator_console(self):
         packages = copy.deepcopy(role_packages.catalog())
         packages["roles"]["liaison"] = packages["roles"]["co"]
@@ -143,17 +167,19 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
                             db.execute("UPDATE member_bindings SET role='liaison' WHERE member='owner'")
                         else:
                             db.execute("DELETE FROM member_bindings WHERE member='owner'")
-                    config = self.config("claude")
+                    config = self.config("claude") | {"initial_prompt": "Carry this operator brief to XO."}
                     private, _, server = prepare(self.directory, "owner", "claude", config=config)
                     argv, _ = command(self.directory, "owner", config, private, server)
                     self.assertNotIn("--disable-slash-commands", argv)
+                    self.assertTrue(argv[-1].endswith(config["initial_prompt"]))
                     self.assertNotIn("PreToolUse", json.loads((private / "settings.json").read_text())["hooks"])
 
     def test_runtime_profiles_cannot_enable_internal_operator_mode(self):
-        policy = runtime_policy()
-        policy["profiles"]["claude"]["operator_console"] = True
-        with self.assertRaisesRegex(ValueError, "Unknown runtime profile field"):
-            runtime.validate(policy, runtime.vendor_defaults(policy))
+        for key, value in (("operator_console", True), ("initial_prompt", "Run this brief.")):
+            policy = runtime_policy()
+            policy["profiles"]["claude"][key] = value
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, "Unknown runtime profile field"):
+                runtime.validate(policy, runtime.vendor_defaults(policy))
 
     def test_native_session_change_updates_console_metadata_only(self):
         generation = self.store.begin_session("owner", os.getpid())

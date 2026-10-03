@@ -12,6 +12,7 @@ from support import initialize
 
 from devtools import adapters, role_packages
 from devtools.api import API
+from devtools.console import command
 from devtools.harnesses import get
 from devtools.launch import agent, configuration, team_config
 from devtools.profiles import permitted
@@ -77,3 +78,39 @@ class HarnessPluginTests(unittest.TestCase):
         self.manifest.write_text(json.dumps(document))
         with self.assertRaisesRegex(ValueError, "Harness adapters"):
             get("incomplete")
+
+    def test_custom_harness_must_explicitly_support_initial_operator_briefs(self):
+        from devtools.tests.harness_plugin_fixture import FixtureHarness
+
+        config = {"harness": "fixture", "binary": "fixture", "operator_console": True,
+                  "initial_prompt": "Run this brief."}
+        with patch.object(FixtureHarness, "command") as custom:
+            with self.assertRaisesRegex(ValueError, "does not support an initial CO brief"):
+                command(self.state, "owner", config, self.root, {})
+        custom.assert_not_called()
+        document = json.loads(self.manifest.read_text())
+        document["adapters"]["harness"]["prompt-fixture"] = "devtools.tests.harness_plugin_fixture:PromptFixtureHarness"
+        self.manifest.write_text(json.dumps(document))
+        config["harness"] = "prompt-fixture"
+        argv, _ = command(self.state, "owner", config, self.root, {})
+        self.assertEqual(config["initial_prompt"], argv[-1])
+        self.assertEqual(["fixture", "--fixture-model", "fixture-default", "--", "Run this brief."], argv)
+        config["operator_console"] = False
+        with self.assertRaisesRegex(ValueError, "requires an operator console"):
+            command(self.state, "owner", config, self.root, {})
+
+    def test_builtin_harness_alias_inherits_initial_prompt_capability(self):
+        document = json.loads(self.manifest.read_text())
+        document["adapters"]["harness"]["native-alias"] = "devtools.harnesses:ClaudeHarness"
+        self.manifest.write_text(json.dumps(document))
+        team = json.loads((self.state / "team.json").read_text())
+        team["co"] = "owner"
+        (self.state / "team.json").write_text(json.dumps(team))
+        selected = get("native-alias")
+        self.assertTrue(selected.supports_initial_prompt)
+        argv, _ = command(self.state, "owner", {"harness": "native-alias", "binary": "fixture",
+                                               "operator_console": True, "initial_prompt": "brief"}, self.root, {})
+        self.assertTrue(argv[-1].endswith("\n\nbrief"))
+        self.assertEqual("--", argv[-2])
+        self.assertIn("--append-system-prompt", argv)
+        self.assertNotIn("--disable-slash-commands", argv)
