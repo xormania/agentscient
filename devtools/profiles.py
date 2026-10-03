@@ -1,4 +1,4 @@
-"""Private native settings. The only policy here is the requested MCP-only tool surface."""
+"""Managed native restrictions and additive settings for the operator console."""
 
 import hashlib
 import json
@@ -47,8 +47,8 @@ def toml(value):
     return json.dumps(value)
 
 
-def claude_command(config, private, instructions, catalogue, prompt):
-    """One native tool boundary for interactive CO and managed Claude workers."""
+def claude_command(config, private, instructions, catalogue, prompt, *, managed=True):
+    """Keep worker restrictions out of the operator's native console."""
     native_id = str(uuid.uuid4())
     debug = private / "native-debug.log"
     debug.write_text("")
@@ -56,21 +56,21 @@ def claude_command(config, private, instructions, catalogue, prompt):
     argv = [
         config["binary"],
         "--session-id", native_id,
-        "--setting-sources", "",
-        "--disable-slash-commands",
-        "--strict-mcp-config",
         "--mcp-config", str(private / "mcp.json"),
         "--settings", str(private / "settings.json"),
         "--debug-file", str(debug),
         "--dangerously-load-development-channels", "server:" + SERVER,
-        "--tools", "",
-        "--disallowedTools", "Agent,Task",
-        "--allowedTools", ",".join(
-            "mcp__" + provider + "__" + row["name"]
-            for provider, rows in catalogue.items() for row in rows
-        ),
         "--append-system-prompt", instructions,
     ]
+    if managed:
+        argv += [
+            "--setting-sources", "", "--disable-slash-commands", "--strict-mcp-config",
+            "--tools", "", "--disallowedTools", "Agent,Task",
+            "--allowedTools", ",".join(
+                "mcp__" + provider + "__" + row["name"]
+                for provider, rows in catalogue.items() for row in rows
+            ),
+        ]
     for source, flag in (("model", "--model"), ("reasoning", "--effort")):
         if config.get(source):
             argv += [flag, config[source]]
@@ -214,15 +214,31 @@ def prepare(directory, member, harness, config=None):
     scope = api.control.snapshot()
     if scope and harness not in role_package(scope["role"])["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
+    if (config or {}).get("operator_console"):
+        operator_console(directory, member)
     return get(harness).prepare(directory, member, config=config)
 
 
+def operator_console(directory, member):
+    """The console exception belongs only to the appointed external CO."""
+    from .launch import team_config
+    from .runtime import co_role
+
+    api = API(directory, member)
+    if team_config(directory).get("co") != member or api.store.member(member)["harness"] != "external":
+        raise ValueError("Native operator controls require the appointed external CO.")
+    co_role(api.control.snapshot())
+
+
 def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=None):
-    """Keep global settings untouched; reuse only the selected native login files."""
+    """Isolate managed workers; preserve the operator's native configuration."""
     directory = Path(directory).resolve()
     from .store import Store
 
     store = Store(directory)
+    operator = bool((config or {}).get("operator_console"))
+    if operator:
+        operator_console(directory, member)
     api = API(directory, member)
     scope = api.control.snapshot()
     package = role_package(scope["role"]) if scope else None
@@ -238,16 +254,13 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
     env = os.environ.copy()
     # Grok gets a private HOME below; the server still uses the operator's GitHub OAuth session.
     env.setdefault("GH_CONFIG_DIR", str(Path(env.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "gh"))
-    for key in (
-        "PYTHONPATH",
-        "PYTHONSTARTUP",
-        "CLAUDE_CODE_SIMPLE",
-        "CLAUDE_CODE_SAFE_MODE",
-        "CLAUDE_CODE_SESSION_ID",
-        "CODEX_THREAD_ID",
-        "GROK_SESSION_ID",
-    ):
+    cleared = ["CLAUDE_CODE_SESSION_ID", "CODEX_THREAD_ID", "GROK_SESSION_ID", "AGENTSCIENT_CO_GENERATION"]
+    if not operator:
+        cleared += ["PYTHONPATH", "PYTHONSTARTUP", "CLAUDE_CODE_SIMPLE", "CLAUDE_CODE_SAFE_MODE"]
+    for key in cleared:
         env.pop(key, None)
+    if operator:
+        env["AGENTSCIENT_CO_GENERATION"] = private.name
     lease_args = ["--generation", generation] if generation else []
     hook = shlex.join(
         [sys.executable, str(ENTRY), "hook", "--state", str(directory), "--member", member, "--harness", adapter_name or harness,
@@ -261,6 +274,7 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
             }
         ]
         for name in (package["hooks"]["events"] if package else HOOK_EVENTS)
+        if not operator or name != "PreToolUse"
     }
     server = {"command": sys.executable,
               "args": [str(ENTRY), "mcp", "--state", str(directory), "--member", member, *lease_args]}
@@ -276,6 +290,11 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
             servers[SERENA_SERVER] = serena_config(directory, member)
         write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
+        if operator:
+            # Native home, settings layers, login storage and permission policy
+            # belong to the operator. Only add our MCP server and observers.
+            write_json(private / "observer-hooks.json", groups)
+            return private, env, server
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
         settings = codex_settings(original, config)
         if settings["cli_auth_credentials_store"] == "file":
@@ -291,6 +310,9 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
         write_json(private / "hooks.json", {"hooks": groups})
         env["CODEX_HOME"] = str(private)
     elif harness == "grok":
+        if operator:
+            write_json(private / "observer-hooks.json", groups)
+            return private, env, server
         original = Path(os.environ.get("GROK_HOME", str(Path.home() / ".grok")))
         restore_login(private, original, harness)
         write_json(private / "hooks" / "agentscient-live.json", {"hooks": groups})
@@ -351,7 +373,17 @@ def _hook_builtin(directory, member, harness, payload, *, protocol):
     }.get(event, event)
     if event == "SessionStart" and isinstance(payload.get("session_id"), str):
         current = store.member(member)
-        if current["native_id"] is None and current["generation"] is not None:
+        replace = current["native_id"] is None
+        if current["detail"].get("transport") == "interactive/pty":
+            try:
+                operator_console(directory, member)
+            except ValueError:
+                pass  # A repaired managed seat can retain old console detail.
+            else:
+                # Native /clear and /resume can change the session inside this
+                # console generation. Keep trace context attached to that session.
+                replace = True
+        if replace and current["generation"] is not None:
             store.session(member, generation=current["generation"], native_id=payload["session_id"])
     tool = payload.get("tool_name", payload.get("toolName"))
     arguments = payload.get("tool_input", payload.get("toolInput", {}))

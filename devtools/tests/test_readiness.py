@@ -162,6 +162,7 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual("preflight_passed", result["status"], result)
         checks = {item["name"]: item for item in result["checks"]}
         self.assertEqual("claude", checks["Runtime role interface-v2"]["detail"]["harness"])
+        self.assertEqual("passed", checks["claude binary (CO operator)"]["status"])
         self.assertNotIn("Runtime role co", checks)
         self.assertEqual(database, (self.state / "live.sqlite3").read_bytes())
 
@@ -181,6 +182,23 @@ class ReadinessTests(unittest.TestCase):
         checks = {item["name"]: item for item in result["checks"]}
         self.assertEqual("passed", checks["codex binary (independent)"]["status"])
         self.assertEqual("ephemeral", checks["codex binary (independent)"]["detail"]["login_storage"])
+        self.assertEqual("failed", checks["codex binary"]["status"])
+        self.assertIn("dedicated CODEX_HOME", checks["codex binary"]["detail"])
+
+    def test_co_and_workers_sharing_codex_get_separate_login_readiness_checks(self):
+        policy = self.dynamic_team()
+        policy["roles"] = {role: ["codex"] for role in policy["roles"]}
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        home = self.root / "codex-home"
+        home.mkdir()
+        (home / "config.toml").write_text('cli_auth_credentials_store="keyring"\n')
+        result = self.preflight()
+        checks = {item["name"]: item for item in result["checks"]}
+        self.assertEqual("blocked", result["status"])
+        operator = checks["codex binary (CO operator)"]
+        self.assertEqual("passed", operator["status"])
+        self.assertEqual("keyring", operator["detail"]["login_storage"])
+        self.assertIn("Native TUI", operator["detail"]["protocol"])
         self.assertEqual("failed", checks["codex binary"]["status"])
         self.assertIn("dedicated CODEX_HOME", checks["codex binary"]["detail"])
 

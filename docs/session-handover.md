@@ -30,23 +30,35 @@ they do not edit the configured profile. Omit them to use the configured values,
 package defaults or permitted native defaults. Ordinary agent MCP tools do not
 accept these runtime choices.
 
-The launcher opens the native interactive terminal with a private profile and
-the common MCP server. Project files are accessed through role tools. The CO calls
-`onboard`, which includes its shared and role instructions. Use `skill_read` only
+The launcher opens the native interactive terminal in the appointed member's
+workspace and attaches the common MCP server. This is the operator's own session:
+native model/reasoning selection, slash commands, tools, settings, delegation and
+quit controls remain available under the harness's normal configuration and
+permissions. The same treatment applies to a configured role alias with CO behavior;
+it does not apply to managed collaborators that happen to use the same harness.
+The CO calls `onboard`, which includes its shared and role instructions. Use `skill_read` only
 for relevant skills not already marked `loaded`. CO then relays xor's instructions
 to XO; XO creates managed tmux sessions for the specialist roles. Claude may show
 its native development-channel consent.
-CO and worker launches share native tool restrictions. Claude uses one command
-builder with the configured role's tool ceiling, so creating a work binding can
-enable reporting without relaunching CO. MCP and hooks authorize each call against
-the current binding. Grok's interactive settings preserve the prepared session
-restrictions when adding the CO's MCP connection.
-Normal native authentication and consent remain in force.
-Supported Codex/Grok file-based login data is retained privately for the same
-member and harness across launches. A changed operator login takes precedence;
-the runtime does not write back to the operator's global credential file. Codex
-keyring accounts need the dedicated file-login setup described in the operator
-reference before a private profile can reuse them.
+Console hooks observe lifecycle and tool activity without applying the managed
+MCP-only tool gate. Agentscient MCP still authorizes every call against the current
+role and work binding. CO remains xor's interface to XO; access to native controls
+does not grant coordination, execution or acceptance authority in Agentscient.
+Managed worker launches keep their existing tool restrictions, isolated settings
+and login handling. Normal native authentication and consent remain in force.
+
+Grok CO adds a temporary plugin under the workspace's `.grok/plugins/` directory
+using native project/plugin trust. It leaves existing user and project settings
+intact. The connection and observer hooks run only in that CO launch environment;
+other sessions cannot attach through the generated connection. Normal exit removes
+the generated files if unchanged, preserving any operator edits. Codex adds its
+connection and observer hooks through session configuration overrides. Native hook
+trust still applies; disabling or declining observers can reduce telemetry.
+
+Use the harness's native model/effort controls to change the running CO session;
+the launcher options above select its initial values. Native quit and interrupt
+commands pass through the terminal relay. Closing its input also shuts down the
+child session and restores the caller's terminal.
 
 ## Swap CO
 

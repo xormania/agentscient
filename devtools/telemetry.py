@@ -134,7 +134,11 @@ def requested(store, member, config, private=None):
     from .harnesses import get
 
     inherited = {}
-    if private and getattr(get(config["harness"]), "protocol", None) == "codex" and (private / "config.toml").is_file():
+    # A native operator console resolves several user/project config layers.
+    # A private worker snapshot cannot stand in for those effective settings.
+    if (not config.get("operator_console") and private
+            and getattr(get(config["harness"]), "protocol", None) == "codex"
+            and (private / "config.toml").is_file()):
         values = tomllib.loads((private / "config.toml").read_text())
         inherited = {
             k: values.get(v)

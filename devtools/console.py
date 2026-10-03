@@ -3,6 +3,7 @@
 import codecs
 import errno
 import fcntl
+import json
 import os
 import pty
 import select
@@ -14,10 +15,11 @@ import time
 import tomllib
 import tty
 import uuid
+from contextlib import ExitStack
 
 from .api import API, SERVER
 from .launch import team_config
-from .profiles import claude_command, prepare, retain_login, toml, tool_catalogue
+from .profiles import claude_command, operator_console, prepare, retain_login, toml, tool_catalogue
 from .runtime import co_role, resolve
 from .store import Store
 from .telemetry import Trace, Transcript, context, requested
@@ -37,6 +39,9 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
         "Recover current work and reports before asking the user what is next."
     )
     harness = protocol
+    operator = bool(config.get("operator_console"))
+    if operator:
+        operator_console(directory, member)
     argv, native_id = [config["binary"]], None
     if harness == "codex":
         options = {
@@ -45,6 +50,12 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
             "sandbox_mode": "read-only",
             "approval_policy": "on-request",
         }
+        if operator:
+            options = {"mcp_servers." + SERVER: server}
+            options.update({"hooks." + name: groups for name, groups in
+                            json.loads((private / "observer-hooks.json").read_text()).items()})
+            # Do not replace the operator's developer_instructions config.
+            prompt = instructions + "\n\n" + prompt
         for source, target in (
             ("model", "model"),
             ("reasoning", "model_reasoning_effort"),
@@ -57,30 +68,21 @@ def _command_builtin(directory, member, config, private, server, *, protocol):
         argv += ["--", prompt]
     elif harness == "claude":
         return claude_command(config, private, instructions,
-                              tool_catalogue(directory, member, package_ceiling=True), prompt)
+                              tool_catalogue(directory, member, package_ceiling=True), prompt, managed=not operator)
     elif harness == "grok":
         native_id = str(uuid.uuid4())
-        # Isolated HOME and cwd prevent project/user MCP and plugin discovery.
-        compatibility = {
-            name: {key: False for key in ("skills", "rules", "agents", "mcps", "hooks")}
-            for name in ("claude", "cursor")
-        }
-        path = private / "config.toml"
-        settings = tomllib.loads(path.read_text())
-        settings.update(mcp_servers={SERVER: server}, compat=compatibility)
-        path.write_text("\n".join(key + " = " + toml(value) for key, value in settings.items()) + "\n")
-        path.chmod(0o600)
-        argv += [
-            "--session-id",
-            native_id,
-            "--tools",
-            "search_tool,use_tool",
-            "--no-subagents",
-            "--no-memory",
-            "--disable-web-search",
-            "--rules",
-            instructions + "\n" + prompt,
-        ]
+        if not operator:
+            compatibility = {
+                name: {key: False for key in ("skills", "rules", "agents", "mcps", "hooks")}
+                for name in ("claude", "cursor")
+            }
+            path = private / "config.toml"
+            settings = tomllib.loads(path.read_text())
+            settings.update(mcp_servers={SERVER: server}, compat=compatibility)
+            path.write_text("\n".join(key + " = " + toml(value) for key, value in settings.items()) + "\n")
+            path.chmod(0o600)
+            argv += ["--tools", "search_tool,use_tool", "--no-subagents", "--no-memory", "--disable-web-search"]
+        argv += ["--session-id", native_id, "--rules", instructions + "\n" + prompt]
         for source, flag in (("model", "--model"), ("reasoning", "--effort")):
             if config.get(source):
                 argv += [flag, config[source]]
@@ -148,6 +150,7 @@ def relay(argv, env, cwd, trace, poll):
                     write_all(master, data)
                 else:
                     input_open = False
+                    terminate()
             if master in readable:
                 try:
                     data = os.read(master, 65536)
@@ -227,14 +230,15 @@ def run(directory, profile=None, model=None, reasoning=None):
                 raise ValueError(key + " must be nonempty text")
             config[key] = value
     config = runtime_profile(role, config)
+    # Internal launch mode, never an accepted profiles.json setting.
+    config["operator_console"] = True
     config["binary"] = shutil.which(config["binary"])
     generation = store.begin_session(member, os.getpid(), expected_binding=scope, settings=config)
     trace = Trace(directory, member, component="co-console", context=lambda: context(store, member))
     error, exit_code = None, None
     try:
         private, env, server = prepare(directory, member, config["harness"], config=config)
-        workspace = private / "console"
-        workspace.mkdir(mode=0o700, exist_ok=True)
+        workspace = store.member(member)["workspace"]
         argv, native_id = command(directory, member, config, private, server)
         store.session(
             member,
@@ -268,7 +272,12 @@ def run(directory, profile=None, model=None, reasoning=None):
             transcript.poll()
             return True
 
-        exit_code = relay(argv, env, workspace, trace, poll)
+        with ExitStack() as native_settings:
+            if getattr(get(config["harness"]), "protocol", None) == "grok":
+                from .console_plugin import grok_plugin
+
+                native_settings.enter_context(grok_plugin(private, server, workspace))
+            exit_code = relay(argv, env, workspace, trace, poll)
         transcript.poll()
         if exit_code and store.member(member)["desired"] == "running":
             error = f"Native CO exited with status {exit_code}"

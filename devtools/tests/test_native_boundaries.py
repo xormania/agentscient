@@ -119,7 +119,7 @@ class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
         self.assertEqual(["agent", "stdio"], argv[-2:])
         self.assertEqual("bound-session", native.session)
 
-    def test_claude_co_and_worker_share_role_ceiling_and_live_tool_authority(self):
+    def test_managed_claude_profiles_keep_role_ceiling_and_live_tool_authority(self):
         packages = role_packages.catalog()
         packages["roles"]["liaison"] = packages["roles"]["co"]
         packages["defaults"]["co"] = "liaison"
@@ -156,6 +156,9 @@ class NativeBoundaryTests(NativeBoundaryFixture, unittest.TestCase):
                 self.assertIn("mcp__agentscient_dev__work_context", allowed)
                 self.assertEqual("", argv[argv.index("--tools") + 1])
                 self.assertEqual({"Agent", "Task"}, set(argv[argv.index("--disallowedTools") + 1].split(",")))
+                self.assertIn("--disable-slash-commands", argv)
+                self.assertIn("--strict-mcp-config", argv)
+                self.assertEqual("", argv[argv.index("--setting-sources") + 1])
                 settings = json.loads(Path(argv[argv.index("--settings") + 1]).read_text())
                 self.assertIn("PreToolUse", settings["hooks"])
                 if mode == "bootstrap":
