@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+import sys
 import tomllib
 import unittest
 from itertools import product
@@ -24,10 +25,34 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         self.team = json.loads(self.team_file.read_text())
         self.team["co"] = "owner"
         self.team_file.write_text(json.dumps(self.team))
+        self.codex_binary = self.root / "codex-fixture"
+        self.codex_version("codex-cli 0.122.0")
+
+    def codex_version(self, output, exit_code=0):
+        self.codex_binary.write_text(
+            f"#!{sys.executable}\nimport sys\n"
+            "assert sys.argv[1:] == ['--version']\n"
+            f"print({output!r})\nraise SystemExit({exit_code})\n"
+        )
+        self.codex_binary.chmod(0o700)
 
     def config(self, harness):
-        return {"binary": "fixture", "workspace": str(self.workspace), "harness": harness,
+        return {"binary": str(self.codex_binary) if harness == "codex" else "fixture",
+                "workspace": str(self.workspace), "harness": harness,
                 "model": "initial-model", "reasoning": "high", "operator_console": True}
+
+    def test_unsupported_codex_is_rejected_before_operator_profile_is_written(self):
+        for output, code in (("codex-cli 0.121.0", 0), ("codex-cli 0.122.0-alpha.1", 0),
+                             ("unknown-client 9.9.9", 0), ("codex-cli 0.122.0", 1)):
+            with self.subTest(output=output, exit_code=code):
+                self.codex_version(output, code)
+                with self.assertRaisesRegex(ValueError, "Codex CLI 0.122.0 or newer"):
+                    prepare(self.directory, "owner", "codex", config=self.config("codex"))
+                self.assertFalse((self.directory / "profiles").exists())
+        # Workers keep their existing protocol checks; the CO version gate
+        # must not prevent creation of a managed profile on the same binary.
+        _, _, server = prepare(self.directory, "worker", "codex", config={"binary": str(self.codex_binary)})
+        self.assertNotIn("default_tools_approval_mode", server)
 
     def test_claude_owner_keeps_native_controls_and_observes_without_tool_denial(self):
         config = self.config("claude")

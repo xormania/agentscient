@@ -87,7 +87,7 @@ class CodexHarness(BuiltinHarness):
         import tomllib
         from pathlib import Path
 
-        from .compat import codex_capability
+        from .compat import codex_capability, require_codex_mcp_approval
         from .profiles import codex_settings
 
         home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
@@ -100,8 +100,9 @@ class CodexHarness(BuiltinHarness):
             mode = settings.get("cli_auth_credentials_store", "file")
             if not isinstance(mode, str) or mode not in {"file", "ephemeral", "keyring", "auto"}:
                 raise ValueError("Unsupported Codex cli_auth_credentials_store setting.")
+            approval = require_codex_mcp_approval(binary, probe)
             return {"protocol": "Native TUI authentication and session creation are checked on actual startup.",
-                    "login_storage": mode}
+                    "login_storage": mode, "mcp_approval": approval}
         settings = codex_settings(home, config)
         capability = codex_capability(binary)
         if capability["status"] != "supported":

@@ -4,7 +4,7 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from support import initialize
 
@@ -67,13 +67,34 @@ class NativeLoginTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 contents = f'cli_auth_credentials_store="{mode}"\n'
                 (self.source / "config.toml").write_text(contents)
+                version_probe = Mock(return_value="codex-cli 0.122.0")
                 with patch("devtools.compat.codex_capability") as probe:
-                    result = get("codex").readiness("codex", None, config={"operator_console": True})
+                    result = get("codex").readiness("codex", version_probe, config={"operator_console": True})
                 self.assertEqual(mode, result["login_storage"])
                 self.assertIn("Native TUI", result["protocol"])
                 self.assertIn("actual startup", result["protocol"])
                 probe.assert_not_called()
+                version_probe.assert_called_once_with(["codex", "--version"])
+                self.assertEqual("0.122.0", result["mcp_approval"]["version"])
                 self.assertEqual(contents, (self.source / "config.toml").read_text())
+                self.assertFalse(self.private.exists())
+
+    def test_operator_readiness_requires_supported_mcp_approval_version(self):
+        for output, supported in (("codex-cli 0.121.0", False), ("codex-cli 0.122.0-alpha.1", False),
+                                  ("codex-cli 0.122.0", True), ("codex-cli 0.122.0+build.1", True),
+                                  ("codex-cli 0.159.2", True), ("codex-cli 0.123.0-alpha.1", True),
+                                  ("codex-cli 1.0.0", True), ("wrapper 9.9.9", False),
+                                  ("codex-cli 0.122.0 garbage", False), ("codex-cli unknown", False)):
+            with self.subTest(output=output), patch("devtools.compat.codex_capability") as managed_probe:
+                probe = Mock(return_value=output)
+                if supported:
+                    result = get("codex").readiness("/chosen/codex", probe, config={"operator_console": True})
+                    self.assertEqual(output.split()[1], result["mcp_approval"]["version"])
+                else:
+                    with self.assertRaisesRegex(ValueError, "update the configured Codex binary"):
+                        get("codex").readiness("/chosen/codex", probe, config={"operator_console": True})
+                probe.assert_called_once_with(["/chosen/codex", "--version"])
+                managed_probe.assert_not_called()
                 self.assertFalse(self.private.exists())
 
     def test_grok_operator_readiness_describes_the_native_tui(self):

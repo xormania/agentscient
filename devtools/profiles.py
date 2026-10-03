@@ -244,6 +244,10 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
     package = role_package(scope["role"]) if scope else None
     if package and (adapter_name or harness) not in package["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
+    if operator and harness == "codex":
+        from .compat import require_codex_mcp_approval
+
+        require_codex_mcp_approval(config["binary"])
     generation = store.member(member)["generation"]
     private = directory / "profiles" / member
     if generation:
