@@ -71,7 +71,7 @@
         {
           "name": "Prepare CUE for configuration validation",
           "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}",
-          "uses": "cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1",
+          "uses": "cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c",
           "with": {
             "version": "v0.17.1"
           }
