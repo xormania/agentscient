@@ -16,6 +16,11 @@ dependencies; their presence does not require a new wrapper or custom Maker.
 Managed local agents use role-bound MCP tools without a general shell tool in
 persistent conversations. This runtime restriction does not limit the tools
 authorized for maintainers building or repairing the dev-lane itself.
+The appointed interactive CO is xor's own native session. The operator retains
+the harness's model/reasoning selection, commands, tools, settings, delegation and
+exit controls. Managed-worker restrictions do not apply to that console, including
+when its configured role has another name with CO behavior. Native controls do not
+grant additional Agentscient MCP authority or change CO's interface responsibility.
 The control plane supplies work context and routes reports and guidance. Normal
 agents cannot select arbitrary work, recipients, or backing-provider operations.
 Trusted operator setup is separate; never give managed agents the `--operator`
@@ -28,10 +33,11 @@ directly. For multiple jobs, XO appoints one NCO per job and owns dependencies
 between jobs. NCO coordinates specialists within its job and requests planning or
 scope changes through XO; only XO commissions planners and accepts jobs. A planner
 investigates and reports a plan without editing source or coordinating execution.
-Each agent runs in a standalone managed native conversation. Agentscient owns
-session creation, assignments and coordination; agents do not use harness-native
-subagents. Role and work authority come from the service binding and are enforced
-by MCP tools, independently of model, harness, reasoning settings or skills.
+Each managed collaborator runs in a standalone native conversation. Agentscient
+owns its session creation, assignments and coordination; managed collaborators do
+not use harness-native subagents. Role and work authority come from the service
+binding and are enforced by MCP tools, independently of model, harness, reasoning
+settings or skills.
 With semantic decisions enabled, the service applies Jev's selections among
 configured eligible roles and runtimes. Unresolved questions go to a service-bound
 Arbitrator; its evidenced resolution resumes the waiting operation through the

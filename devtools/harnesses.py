@@ -6,6 +6,8 @@ arguments, catalogue=...), hook(directory, member, payload), run(directory,
 member, config, generation), command(directory, member, config, private, server),
 channel(private), retain_login(directory, member, generation), and
 readiness(binary, probe, config=None). config supplies the selected runtime snapshot.
+The validated operator_console launch mode preserves native operator controls;
+ordinary managed profiles continue to enforce their role's native restrictions.
 prepare returns (private_path, environment, MCP_config);
 command returns (argv, native_session_id). run owns one persistent session;
 the common launcher retains generation, work binding and cleanup ownership.
@@ -78,12 +80,25 @@ class CodexHarness(BuiltinHarness):
 
     def readiness(self, binary, probe, config=None):
         import os
+        import tomllib
         from pathlib import Path
 
         from .compat import codex_capability
         from .profiles import codex_settings
 
-        settings = codex_settings(Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))), config)
+        home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))).expanduser()
+        if (config or {}).get("operator_console"):
+            # The operator TUI retains its native home and credential store. It
+            # does not depend on the managed app-server protocol or file-login
+            # import used by isolated workers.
+            path = home / "config.toml"
+            settings = tomllib.loads(path.read_text()) if path.is_file() else {}
+            mode = settings.get("cli_auth_credentials_store", "file")
+            if not isinstance(mode, str) or mode not in {"file", "ephemeral", "keyring", "auto"}:
+                raise ValueError("Unsupported Codex cli_auth_credentials_store setting.")
+            return {"protocol": "Native TUI authentication and session creation are checked on actual startup.",
+                    "login_storage": mode}
+        settings = codex_settings(home, config)
         capability = codex_capability(binary)
         if capability["status"] != "supported":
             raise ValueError("Installed Codex must support TurnStartParams.toolOutput; update before launch.")
@@ -94,6 +109,11 @@ class GrokHarness(BuiltinHarness):
     protocol = "grok"
     vendor = "xai"
     readiness_message = "ACP authentication and session creation are checked on actual startup."
+
+    def readiness(self, binary, probe, config=None):
+        if (config or {}).get("operator_console"):
+            return {"protocol": "Native TUI authentication and session creation are checked on actual startup."}
+        return super().readiness(binary, probe, config)
 
 
 class ClaudeHarness(BuiltinHarness):

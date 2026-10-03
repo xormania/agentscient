@@ -32,14 +32,14 @@ def identity(pid):
     return observed[0] if observed else None
 
 
-def family(records):
-    """Capture descendants before a killed parent can reparent them elsewhere."""
+def family(records, *, sessions=()):
+    """Capture descendants, including an owned session after its leader exits."""
     table = {}
     for entry in Path('/proc').iterdir():
         if entry.name.isdecimal() and (observed := status(int(entry.name))):
             table[int(entry.name)] = observed
     found = {row['pid']: row for row in records if table.get(row['pid'], (None,))[0] == row}
-    sessions = {row['pid'] for row in found.values() if row['session'] == row['pid']}
+    sessions = set(sessions) | {row['pid'] for row in found.values() if row['session'] == row['pid']}
     while True:
         extra = {pid: row for pid, (row, parent) in table.items()
                  if pid not in found and (parent in found or row['session'] in sessions)}

@@ -37,8 +37,10 @@ setup and repair; it is not attached to managed agents. Live conversation is the
 coordination mechanism. XO allocates responsibilities and routes guidance through
 each collaborator's work binding.
 
-Each collaborator is a standalone managed native session. Agentscient creates and
-coordinates those sessions; harness-native subagents are not used. Model, harness
+Each managed collaborator is a standalone native session. Agentscient creates and
+coordinates those sessions; managed collaborators do not use harness-native
+subagents. The appointed interactive CO preserves the operator's native commands,
+tools, settings, model/reasoning selection, delegation and exit controls. Model, harness
 and reasoning choices do not widen the service-enforced role or work authority.
 
 ## Runtime

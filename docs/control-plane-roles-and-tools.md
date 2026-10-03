@@ -35,10 +35,12 @@ references identify information; they do not retarget the caller's work.
 CO relays questions requiring xor's intent and returns xor's answer. XO handles coordination and
 execution decisions within the brief. Specialists investigate and act within their
 responsibilities, asking for guidance when needed. A message does not grant new
-role or work authority. Every collaborator runs in a standalone managed native
-session. Agentscient owns session creation and coordination; harness-native
-subagents are not used. Model, harness, reasoning and skills do not widen the
-service-enforced role or work boundary.
+role or work authority. Every managed collaborator runs in a standalone native
+session. Agentscient owns its session creation and coordination; managed
+collaborators do not use harness-native subagents. The appointed interactive CO
+retains the operator's native commands, tools, settings, model/reasoning selection,
+delegation and exit controls. Model, harness, reasoning and skills do not widen
+the service-enforced role or work boundary.
 
 ## Role catalog
 

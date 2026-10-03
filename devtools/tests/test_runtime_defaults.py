@@ -51,8 +51,11 @@ class RuntimeDefaultTests(unittest.TestCase):
 
     def enable_fixture_executables(self):
         policy, vendors, _ = runtime.load(self.state)
+        grok = Path(__file__).with_name("grok_mcp_fixture.py")
+        grok.chmod(0o755)
         for profile in policy["profiles"].values():
-            profile["binary"] = sys.executable
+            # Grok CO performs native MCP registration before the relayed TUI.
+            profile["binary"] = str(grok) if profile["harness"] == "grok" else sys.executable
         for vendor in vendors["vendors"].values():
             vendor["available"] = True
         (self.state / "roles.json").write_text(json.dumps(policy))

@@ -39,8 +39,12 @@ xor. XO owns planning, execution, coordination and acceptance. For fixed-member
 teams, at least two other slots support XO and a producer. A third allows concurrent
 audit. Shared runtime teams allocate seats from `roles.json` capacity. Multiple slots
 can use the same installed harness. External slots connect their own MCP clients.
-Each collaborator is a standalone managed native session. Agentscient owns its
-creation and coordination; harness-native subagents are not used.
+Each managed collaborator is a standalone native session. Agentscient owns its
+creation and coordination; managed collaborators do not use harness-native
+subagents. The appointed interactive CO is the operator's own session and retains
+native commands, model/reasoning selection, tools, settings, delegation and exit
+controls. This also applies to configured role aliases with CO behavior. Its
+Agentscient MCP authority and interface responsibility remain role-bound.
 
 Each managed slot accepts optional `model` and `reasoning` strings and a `binary`
 path. Model selection is not hardcoded. Active sessions keep their startup settings;
@@ -77,16 +81,17 @@ not hardcoded. Maintain the CUE definition and checked-in JSON export together.
 
 ### Native login storage
 
-Native profiles isolate harness settings from the operator's configuration. Codex
-and Grok reuse file-based `auth.json` login data and retain private refreshes across
+Managed worker profiles isolate harness settings from the operator's configuration.
+Codex and Grok reuse file-based `auth.json` login data and retain private refreshes across
 generations for the same source home; changing that home or replacing the source
 login takes precedence. Codex also preserves its
 native login-method and workspace constraints. Native authentication and provider
 consent still apply; a copied file does not prove that the account is authenticated.
 
-Codex `keyring` and `auto` storage cannot be copied into a different `CODEX_HOME`:
-the native keyring identity depends on that path, and an existing `auth.json` may
-belong to a stale account. Readiness and profile creation report this explicitly.
+For managed Codex workers, `keyring` and `auto` storage cannot be copied into a
+different `CODEX_HOME`: the native keyring identity depends on that path, and an
+existing `auth.json` may belong to a stale account. Worker readiness and profile
+creation report this explicitly.
 Keep a global keyring login if desired and create a separate file-backed login home
 for Agentscient using Codex's native login command. For a new directory:
 
@@ -97,16 +102,21 @@ printf '%s\n' 'cli_auth_credentials_store = "file"' > "$codex_login_home/config.
 chmod 600 "$codex_login_home/config.toml"
 CODEX_HOME="$codex_login_home" codex login
 CODEX_HOME="$codex_login_home" python3 devtools/run.py doctor --state "$HOME/.local/state/agentscient-live"
-CODEX_HOME="$codex_login_home" python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
 Use that source home in the environment of the service launching managed Codex
-sessions too. The launcher does not modify the original login or configuration.
+sessions. The worker launcher does not modify the original login or configuration.
 Codex `ephemeral` mode stays ephemeral: file credentials are neither imported nor
 retained. The operator must supply the native session's authentication in that mode.
 Independent model providers use their configured native credentials instead of an
 OpenAI account. Their profiles skip account-file reuse; the effective runtime
 provider override is honored during both readiness and profile creation.
+
+The interactive CO preserves native operator settings rather than inheriting the
+managed worker profile restrictions. Codex CO uses the operator's normal
+`CODEX_HOME`, so it can use the existing keyring or auto credential storage. A team
+that also selects managed Codex workers still needs a supported worker login source.
+See [CO startup and handover](../docs/session-handover.md) for native controls.
 
 ### Planning and NCO setup
 
@@ -882,23 +892,31 @@ The installed harness adapters are selected through `adapters.json`. The followi
 behaviors describe the shipped adapters; another installed adapter owns its native
 protocol, readiness checks and session transport.
 
-Codex keeps one app-server thread and receives peer messages through
+Managed Codex keeps one app-server thread and receives peer messages through
 `turn/start.toolOutput`. Its dynamic tools proxy the actual stdio MCP server.
 Startup checks that the installed binary advertises the required tool-output API.
-Grok keeps one ACP session, using `session/prompt` when idle and `_x.ai/interject`
-while busy. Claude keeps its native interactive session and receives MCP channel
-notifications. Delivery waits for the native channel registration log entry;
+Managed Grok keeps one ACP session, using `session/prompt` when idle and
+`_x.ai/interject` while busy. Managed Claude keeps its native interactive session
+and receives MCP channel notifications. Delivery waits for the native channel registration log entry;
 initial MCP handshake alone does not establish a ready channel.
 
 Claude may need its native development-channel approval. Attach to the tmux
 terminal returned by `session_start`. The approval remains in the native UI;
 there is no replacement repository permission process.
 
-Private profiles expose this team's MCP surface and deny native shell/filesystem
-tools. Codex and Grok reuse only selected local login/configuration information;
+Managed private profiles expose this team's MCP surface and deny native
+shell/filesystem tools. Codex and Grok reuse only selected local login/configuration information;
 Claude retains its native account login. These settings do not form an OS sandbox.
 Global harness settings are not rewritten. Vendor protocol changes can require an
 adapter update; startup failures and delivery errors remain visible in telemetry.
+
+The `co` command uses each harness's interactive terminal for the appointed
+external CO seat. It retains the operator's native controls and uses observer
+hooks without the managed tool gate. Ordinary Agentscient MCP checks still apply,
+including generation fencing and the current role/work binding. Native commands
+and quit controls pass through the relay; closing its input terminates the child
+session and restores the terminal. This console behavior does not alter Claude,
+Codex or Grok profiles used by managed collaborators.
 
 Operator equivalents are available for bootstrap and troubleshooting:
 

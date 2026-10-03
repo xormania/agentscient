@@ -233,10 +233,12 @@ class SessionTests(unittest.TestCase):
             goal = GOAL | {"objective": "Owner direction through " + harness}
             incoming = "XO measured result for " + harness
             exchange.write_text(json.dumps({"role": self.co.control.snapshot()["role"], "goal": goal,
-                                            "predecessor": predecessor, "incoming": incoming}))
+                                            "predecessor": predecessor, "incoming": incoming,
+                                            "workspace": str(self.workspace)}))
             process = subprocess.Popen(
                 [sys.executable, str(ENTRY), "co", "--state", str(self.state), "--profile", harness],
                 env=env | {"AGENTSCIENT_CO_FIXTURE": str(exchange)},
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -247,12 +249,16 @@ class SessionTests(unittest.TestCase):
                 context = xo.call("work_context", {})
                 self.assertEqual(goal["objective"], context["work"]["objective"])
                 xo.call("work_report", {"text": incoming, "kind": "result"})
+                # Keep owner input connected until the native fixture exits;
+                # communicate() closes stdin and now intentionally ends the CO.
+                process.wait(timeout=15)
                 stdout, stderr = process.communicate(timeout=15)
             finally:
                 if process.poll() is None:
                     process.terminate()
                     process.communicate(timeout=5)
                 else:
+                    process.stdin.close()
                     process.stdout.close()
                     process.stderr.close()
             self.assertEqual(0, process.returncode, stdout + stderr)
@@ -265,6 +271,7 @@ class SessionTests(unittest.TestCase):
             self.assertEqual("stopped", self.store.member("owner")["state"])
             self.assertEqual("external", self.store.member("owner")["harness"])
         self.assertEqual(3, len(set(generations)))
+        self.assertFalse((self.workspace / ".grok").exists())
         rows = [json.loads(line) for line in (self.state / "telemetry/owner.jsonl").read_text().splitlines()]
         output = [row for row in rows if row["kind"] == "terminal_output"]
         self.assertEqual({"codex", "claude", "grok"}, {row["context"]["harness"] for row in output})

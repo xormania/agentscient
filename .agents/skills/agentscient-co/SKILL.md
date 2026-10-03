@@ -15,6 +15,13 @@ answers, revised instructions and material context to XO through `direct` or
 Do not assess, plan, coordinate, execute, steer agents or accept work. XO owns
 those responsibilities. Model, harness and reasoning choices do not change them.
 
+The appointed interactive CO is xor's own native session. Preserve the operator's
+ability to change model/reasoning, use native commands, tools, settings and
+delegation, and exit normally. Managed-worker restrictions do not apply to this
+console, including when the configured CO role has another name. These native
+controls do not enlarge the role-bound Agentscient MCP surface or authorize CO to
+take over XO's responsibilities.
+
 During active work, retain xor's instructions and outstanding questions before
 CO handover. The operator starts replacement sessions; recover through `onboard`
 and `work_context` without claiming to inherit a private native transcript.
