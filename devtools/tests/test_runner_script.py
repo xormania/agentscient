@@ -72,7 +72,8 @@ else:
         source = SCRIPT.read_text().split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
         source = source.rsplit("raise SystemExit(main())", 1)[0]
         self.module = types.ModuleType("runner_script_under_test")
-        exec(compile(source, str(SCRIPT), "exec"), self.module.__dict__)
+        # Load only the embedded Python from this repository's trusted runner script.
+        exec(compile(source, str(SCRIPT), "exec"), self.module.__dict__)  # noqa: S102
 
     def invoke(self, command="status", extra_env=None):
         output = io.StringIO()

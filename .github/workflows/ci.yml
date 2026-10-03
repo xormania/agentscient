@@ -65,7 +65,13 @@
         },
         {
           "name": "Lint live support",
-          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/*.py .github/tests",
+          "id": "lint",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
+        },
+        {
+          "name": "Verify security lint coverage",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" .github/lint_checks.py",
           "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
         },
         {

@@ -104,6 +104,22 @@ class RoutingTests(unittest.TestCase):
             "test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields",
         ], re.findall(r"--allow-skip (\S+)", verify["run"]))
 
+    def test_security_lint_and_calibration_are_required_after_installation(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = workflow["jobs"]["changes"]["steps"]
+        install = next(step for step in steps if step.get("name") == "Install linter")
+        lint = next(step for step in steps if step.get("id") == "lint")
+        calibration = next(step for step in steps if ".github/lint_checks.py" in step.get("run", ""))
+        self.assertLess(steps.index(install), steps.index(lint))
+        self.assertLess(steps.index(lint), steps.index(calibration))
+        self.assertEqual(["$RUNNER_TEMP/live-mcp-venv/bin/python", "-m", "ruff", "check", "devtools", ".github"],
+                         shlex.split(lint["run"]))
+        self.assertEqual(["$RUNNER_TEMP/live-mcp-venv/bin/python", ".github/lint_checks.py"],
+                         shlex.split(calibration["run"]))
+        for step in (install, lint, calibration):
+            self.assertEqual("${{ steps.select.outputs['live-mcp'] == 'true' }}", step["if"])
+            self.assertNotIn("continue-on-error", step)
+
     def test_lane_accepts_only_deliberate_skips_and_successful_selected_jobs(self):
         for selected in ("true", "false"):
             needs = {"changes": {"result": "success", "outputs": dict.fromkeys(ci.JOBS, selected)}}
