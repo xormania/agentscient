@@ -248,8 +248,13 @@ creates the work order and claims an available XO slot. Later calls revise that
 work order and deliver the revised instructions to XO. Changed context invalidates
 older plans and assignments; XO coordinates the execution team's response. CO
 remains xor's existing session and does not choose or revise the objective itself.
-To pass prepared documents, retain them as evidence with CO's `work_report`, then
-call `direct` with `context` containing the returned `artifact:` references. The
+CO's configured reporting tools are advertised from session startup so native
+clients that cache their initial tool list can use them after `direct` binds the
+work order. Reports and guidance still require that current binding; discovery
+does not grant authority to call them before work exists.
+To pass prepared documents, first establish the work order with `direct`, retain
+them as evidence with CO's `work_report`, then call `direct` again with `context`
+containing the returned `artifact:` references. The
 service shares those documents with the team; unrelated evidence stays scoped.
 Omitting `context` on a later call preserves it; an empty list clears it.
 
@@ -434,6 +439,9 @@ Default validation is container lint, YAML lint and PHPUnit. Operators can confi
 named fixed commands; agents provide a name, never a shell command. These application
 commands and Composer plugins run as the local service user. The tool interface does
 not provide OS containment for application code.
+Development subprocesses filter inherited environment variables and do not set
+`APP_ENV` or `APP_DEBUG`; the project's application and test bootstrap choose them.
+Composer remains noninteractive.
 
 Framework inspection, generation, checks and configured submission return retained
 operation receipts promptly. Compact completion notices (including failed-check

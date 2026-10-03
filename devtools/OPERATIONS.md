@@ -518,7 +518,7 @@ All commands run from the repository root and take `--state`:
 | `init` | Create team configuration and state; refuses to replace an existing team. |
 | `connection` | Print the normal CO MCP connection with absolute local paths. |
 | `config [--role ROLE] [--job N]` | Print redacted effective settings and their revision without opening the credential source. |
-| `co [--profile PROFILE]` | Launch the configured CO role through its selected native harness adapter. |
+| `co [--profile PROFILE] [--brief-file PATH]` | Launch the configured CO role through its selected native harness adapter, optionally with an initial user brief. |
 | `watch [--action start\|stop\|status]` | Manage the existing GitHub observation process. |
 | `doctor` | Inspect local prerequisites; `--online` also reads Git/GitHub access. |
 | `evidence --work-order N` | Summarize existing run observations without certifying success. |
@@ -917,6 +917,14 @@ including generation fencing and the current role/work binding. Native commands
 and quit controls pass through the relay; closing its input terminates the child
 session and restores the terminal. This console behavior does not alter Claude,
 Codex or Grok profiles used by managed collaborators.
+
+`co --brief-file PATH` submits a UTF-8 file as initial user input while keeping
+the interactive session and native controls. The file must be nonblank, contain
+no NUL characters and be at most 64 KiB. Omit the option when reopening retained
+work to avoid resending its original brief. The brief is not a retained runtime
+profile setting. Custom adapters opt in with `supports_initial_prompt = True`
+and consume command-only `config["initial_prompt"]` as user input; unsupported
+adapters reject it before a session is allocated.
 
 Operator equivalents are available for bootstrap and troubleshooting:
 

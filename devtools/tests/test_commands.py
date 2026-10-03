@@ -21,13 +21,23 @@ class CommandTests(CommandFixture, unittest.TestCase):
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
         co = self.client("owner")
         self.assertIn("ready_to_direct", co.initialization["instructions"])
-        self.assertEqual({"work_context", "direct", "monitor", "onboard", "skill_read"},
-                         {r["name"] for r in co.call("tools/list")["tools"]})
+        # Native clients may retain only the first catalogue and ignore list_changed.
+        cached = {row["name"]: row for row in co.call("tools/list")["tools"]}
+        self.assertEqual({"work_context", "work_report", "guidance_request", "direct", "monitor", "onboard", "skill_read"},
+                         set(cached))
+        for name in ("work_report", "guidance_request"):
+            with self.subTest(tool=name), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool(name, {"text": "No work has been authorized"})
         idle = self.client("xo")
+        self.assertEqual(["work_context"], [row["name"] for row in idle.call("tools/list")["tools"]])
         with self.assertRaisesRegex(ValueError, "not available"):
             idle.tool("direct", GOAL)
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
+        for name in ("work_report", "guidance_request"):
+            report = co.tool(cached[name]["name"], {"text": "Owner direction after binding"})
+            self.assertTrue(report["reference"].startswith("update:"))
+        self.assertEqual(cached, {row["name"]: row for row in co.call("tools/list")["tools"]})
         self.assertEqual(
             {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
@@ -41,8 +51,11 @@ class CommandTests(CommandFixture, unittest.TestCase):
         del config["co"]
         (self.state / "team.json").write_text(json.dumps(config))
         self.co.control.unbind("owner")
-        with self.assertRaisesRegex(ValueError, "not available"):
-            co.tool("direct", GOAL)
+        self.assertEqual(["work_context"], [row["name"] for row in co.call("tools/list")["tools"]])
+        for name, arguments in (("direct", GOAL), ("work_report", {"text": "Stale catalogue"}),
+                                ("guidance_request", {"text": "Stale catalogue"})):
+            with self.subTest(tool=name), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool(cached[name]["name"], arguments)
 
     def test_retries_and_concurrent_allocation_keep_one_job_and_member(self):
         first = self.co.call("direct", GOAL)

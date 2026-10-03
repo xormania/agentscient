@@ -6,11 +6,13 @@ import io
 import json
 import os
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 SENTINEL = "acceptance-test-secret-must-not-be-printed-19d88a"
@@ -437,6 +439,293 @@ class AcceptanceScriptTests(unittest.TestCase):
         self.assertIn("FAIL codex", output.getvalue())
         self.assertIn("FAIL claude", output.getvalue())
         self.assertIn("GitHub login is unavailable", str(caught.exception))
+
+    def fake_workflow(self, *, co_exit=0, verify_exit=0, prepare_exit=0, doctor_exit=0):
+        """Real local Git and frozen subprocesses, with network/preflight replaced."""
+        # Match the real checkout when unittest imports the helper without -B.
+        # Other untracked files still make source HEAD ineligible for a new run.
+        (self.source / ".gitignore").write_text("__pycache__/\n")
+        collector = self.script.with_name("acceptance_collect.py")
+        collector.write_text(
+            "import json, pathlib, sys\n"
+            "root = pathlib.Path(sys.argv[sys.argv.index('--run-dir') + 1])\n"
+            "with (root / 'actions.jsonl').open('a') as f: f.write(json.dumps(['collect']) + '\\n')\n"
+        )
+        source_pin = self.initialize_repository(self.source, "agentscient")
+        frozen = (
+            "import json, pathlib, sys\n"
+            "root = pathlib.Path(sys.argv[sys.argv.index('--run-dir') + 1])\n"
+            "command = sys.argv[1]\n"
+            "with (root / 'actions.jsonl').open('a') as f: f.write(json.dumps(sys.argv[1:]) + '\\n')\n"
+            "if command == 'verify': (root / 'report.json').write_text(json.dumps({'status': 'passed'}))\n"
+            "raise SystemExit(" + repr({"co": co_exit, "verify": verify_exit, "doctor": doctor_exit}) + ".get(command, 0))\n"
+        )
+        entry = self.fixture / "acceptance/run.py"
+        entry.write_text(
+            "import json, pathlib, sqlite3, subprocess, sys\n"
+            "args = sys.argv[1:]\n"
+            "root = pathlib.Path(args[args.index('--run-dir') + 1]); root.mkdir()\n"
+            "runtime = args[args.index('--agentscient') + 1]\n"
+            "revision = subprocess.check_output(['git', '-C', runtime, 'rev-parse', 'HEAD'], text=True).strip()\n"
+            "manifest = {'version': 1, 'repository': 'uscient/agentscient-test-repo', 'run_id': '9' * 32,\n"
+            " 'run_root': str(root), 'target': 'acceptance/' + '9' * 32, 'agentscient_root': runtime,\n"
+            " 'agentscient_sha': revision, 'status': " + repr("failed" if prepare_exit else "prepared") + "}\n"
+            "(root / 'run.json').write_text(json.dumps(manifest))\n"
+            "(root / 'brief.txt').write_text('RUN-SPECIFIC-BRIEF\\n')\n"
+            "runner = root / 'verifier/acceptance/run.py'; runner.parent.mkdir(parents=True)\n"
+            "runner.write_text(" + repr(frozen) + ")\n"
+            "(root / 'state').mkdir()\n"
+            "with sqlite3.connect(root / 'state/live.sqlite3') as db:\n"
+            " db.execute('CREATE TABLE members (state TEXT, pid INTEGER, desired TEXT)')\n"
+            " db.execute('CREATE TABLE operations (state TEXT)')\n"
+            "raise SystemExit(" + str(prepare_exit) + ")\n"
+        )
+        self.git(self.fixture, "add", ".")
+        self.git(self.fixture, "commit", "--quiet", "-m", "Executable acceptance fixture")
+        self.git(self.fixture, "update-ref", "refs/remotes/origin/main", "HEAD")
+        helper = self.module()
+
+        def update(options, fixture):
+            selected = helper.runtime_path(options, options.runtime_revision)
+            if not selected.exists():
+                selected.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(self.source, selected)
+            return 0
+
+        # This fixture exercises orchestration; negotiation has separate tests
+        # using real --help subprocesses and supported/legacy runtime signatures.
+        helper.require_initial_brief = Mock()
+        return helper, update, source_pin
+
+    def test_run_orchestrates_frozen_commands_once_and_remembers_source_head(self):
+        helper, update, source_pin = self.fake_workflow()
+        output = io.StringIO()
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                patch.object(helper, "preflight", return_value=True) as preflight, \
+                patch.object(helper, "load_fixture", return_value=object()), contextlib.redirect_stdout(output):
+            self.assertEqual(0, helper.main(["run"]))
+            root = helper.remembered_run()
+            pointer = json.loads((helper.manager_root() / "last-run.json").read_text())
+            self.assertEqual(source_pin, pointer["agentscient_sha"])
+            self.assertEqual(helper.manager_root() / "runs", root.parent)
+            actions = [json.loads(line) for line in (root / "actions.jsonl").read_text().splitlines()]
+            self.assertEqual(["doctor", "co", "verify", "collect"], [row[0] for row in actions])
+            self.assertIn("--online", actions[0])
+            self.assertIn("--brief", actions[1])
+            self.assertIn("--online", actions[2])
+            self.assertEqual(0, helper.main(["status"]))
+            self.assertEqual(0, helper.main(["co"]))
+            resumed = json.loads((root / "actions.jsonl").read_text().splitlines()[-1])
+            self.assertEqual("co", resumed[0])
+            self.assertNotIn("--brief", resumed)
+        preflight.assert_called_once()
+        helper.require_initial_brief.assert_called_once()
+        self.assertTrue(preflight.call_args.kwargs["online"])
+        self.assertNotIn("RUN-SPECIFIC-BRIEF", output.getvalue())
+        self.assertIn("Acceptance passed", output.getvalue())
+        self.assertNotEqual(self.pin, source_pin)
+        self.assertFalse((self.root / "external-command-calls.log").exists())
+
+    def test_automatic_brief_requires_both_fixture_and_runtime_support(self):
+        helper = self.module()
+        def supported(state, profile=None, *, initial_prompt=None):
+            pass
+        def legacy(state, profile=None):
+            pass
+        runner = SimpleNamespace(import_runtime=Mock(return_value=SimpleNamespace(
+            console=SimpleNamespace(run=supported, initial_prompt_profile=Mock()))))
+        entry = self.fixture / "acceptance/run.py"
+        entry.write_text("print('  --brief  Submit the initial user message')\n")
+        helper.require_initial_brief(self.fixture, self.runtime, runner)
+        runner.import_runtime.assert_called_once_with(self.runtime)
+        runner.import_runtime.return_value.console.run = legacy
+        with self.assertRaisesRegex(helper.SetupError, "selected runtime"):
+            helper.require_initial_brief(self.fixture, self.runtime, runner)
+        for text in ("--brief-file", "legacy fixture help", ""):
+            entry.write_text("print(" + repr(text) + ")\n")
+            runner.import_runtime.reset_mock()
+            with self.assertRaisesRegex(helper.SetupError, "fixture does not support"):
+                helper.require_initial_brief(self.fixture, self.runtime, runner)
+            runner.import_runtime.assert_not_called()
+
+    def test_unsupported_brief_stops_before_preflight_or_run_creation(self):
+        helper, update, _ = self.fake_workflow()
+        helper.require_initial_brief.side_effect = helper.SetupError("Unsupported automatic brief")
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                patch.object(helper, "preflight") as preflight, patch.object(helper, "prepare") as prepare, \
+                patch.object(helper, "load_fixture", return_value=object()), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(1, helper.main(["run"]))
+            preflight.assert_not_called()
+            prepare.assert_not_called()
+            self.assertFalse((helper.manager_root() / "last-run.json").exists())
+
+    def test_selected_co_profile_is_checked_before_credentials_or_paid_preflight(self):
+        helper = self.module()
+        args = helper.parser().parse_args(["run", "--profile", "custom-operator", "--run-dir", str(self.run)])
+        api = SimpleNamespace(
+            readiness=SimpleNamespace(project=Mock(return_value={}), doctor=Mock()),
+            launch=SimpleNamespace(initialize=Mock()),
+            console=SimpleNamespace(initial_prompt_profile=Mock(side_effect=ValueError("unsupported adapter"))),
+        )
+        runner = SimpleNamespace(
+            read_scenario=Mock(return_value={}), import_runtime=Mock(return_value=api),
+            semantic_overlay=Mock(return_value={}), select_harnesses=Mock(return_value=["custom"]),
+            configure_runtime=Mock(return_value=["custom"]), configure_semantics=Mock(return_value={"effective": []}),
+            require_selection_candidates=Mock(),
+        )
+        with patch.object(helper, "configuration_path", return_value=None), \
+                patch.object(helper, "development_commands", return_value=("php", "composer")), \
+                patch.object(helper.shutil, "which", side_effect=lambda name: "/fake/" + name), \
+                patch.object(helper, "native_credentials") as credentials, \
+                patch.object(helper, "github_access") as github, patch.object(helper, "probe_jev") as jev, \
+                patch.object(helper.subprocess, "call") as publish:
+            with self.assertRaisesRegex(helper.SetupError, "selected CO profile"):
+                helper.prepare(args, self.fixture, self.runtime, runner)
+        self.assertEqual({"profile": "custom-operator"}, api.console.initial_prompt_profile.call_args.kwargs)
+        credentials.assert_not_called()
+        github.assert_not_called()
+        api.readiness.doctor.assert_not_called()
+        jev.assert_not_called()
+        publish.assert_not_called()
+        self.assertFalse(self.run.exists())
+        runner.require_selection_candidates.assert_not_called()
+
+    def test_run_failures_preserve_evidence_and_never_verify_or_stop_early(self):
+        for options, expected in (({"prepare_exit": 3}, ["collect"]),
+                                  ({"prepare_exit": 130}, []),
+                                  ({"doctor_exit": 4}, ["doctor", "collect"]),
+                                  ({"doctor_exit": 130}, ["doctor"]),
+                                  ({"co_exit": 5}, ["doctor", "co", "collect"]),
+                                  ({"co_exit": 130}, ["doctor", "co"]),
+                                  ({"verify_exit": 6}, ["doctor", "co", "verify", "collect"]),
+                                  ({"verify_exit": 143}, ["doctor", "co", "verify"])):
+            with self.subTest(options=options):
+                # Each scenario gets a new runtime instead of mutating a prepared one.
+                case = AcceptanceScriptTests()
+                case.setUp()
+                self.addCleanup(case.doCleanups)
+                helper, update, _ = case.fake_workflow(**options)
+                with patch.dict(os.environ, case.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                        patch.object(helper, "preflight", return_value=True), patch.object(helper, "load_fixture", return_value=object()), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(next(iter(options.values())), helper.main(["run"]))
+                    root = helper.remembered_run()
+                action_log = root / "actions.jsonl"
+                actions = [json.loads(line)[0] for line in action_log.read_text().splitlines()] if action_log.exists() else []
+                self.assertEqual(expected, actions)
+                self.assertTrue((root / "run.json").is_file())
+                self.assertNotIn("stop", actions)
+
+    def test_remembered_identity_and_explicit_selection_cannot_silently_retarget(self):
+        self.frozen_run("raise SystemExit(0)\n")
+        helper = self.module()
+        with patch.dict(os.environ, self.env, clear=True), contextlib.redirect_stdout(io.StringIO()):
+            helper.remember_run(self.run)
+            pointer = helper.manager_root() / "last-run.json"
+            before = pointer.read_bytes()
+            other = self.root / "other run"
+            shutil.copytree(self.run, other)
+            value = json.loads((other / "run.json").read_text())
+            value["run_root"] = str(other)
+            (other / "run.json").write_text(json.dumps(value))
+            self.assertEqual(0, helper.main(["status", "--run-dir", str(other)]))
+            self.assertEqual(before, pointer.read_bytes())
+            manifest = json.loads((self.run / "run.json").read_text())
+            manifest["agentscient_sha"] = "a" * 40
+            (self.run / "run.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(helper.SetupError, "identity changed"):
+                helper.remembered_run()
+
+    def test_active_run_and_concurrent_launcher_block_before_network_or_preparation(self):
+        helper, update, _ = self.fake_workflow()
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update) as provision, \
+                patch.object(helper, "preflight", return_value=True), patch.object(helper, "load_fixture", return_value=object()), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(0, helper.main(["run"]))
+            root = helper.remembered_run()
+            calls = provision.call_count
+            for state in ("queued", "running"):
+                with sqlite3.connect(root / "state/live.sqlite3") as db:
+                    db.execute("INSERT INTO operations VALUES (?)", (state,))
+                self.assertEqual(1, helper.main(["run"]))
+                self.assertEqual(calls, provision.call_count)
+                with sqlite3.connect(root / "state/live.sqlite3") as db:
+                    db.execute("DELETE FROM operations")
+            for member in (("stopped", None, "running"), ("stopped", 123, "stopped"), ("starting", None, "stopped")):
+                with sqlite3.connect(root / "state/live.sqlite3") as db:
+                    db.execute("INSERT INTO members VALUES (?,?,?)", member)
+                self.assertEqual(1, helper.main(["run"]))
+                self.assertEqual(calls, provision.call_count)
+                with sqlite3.connect(root / "state/live.sqlite3") as db:
+                    db.execute("DELETE FROM members")
+            with helper.implicit_run_lock():
+                self.assertEqual(1, helper.main(["run"]))
+            self.assertEqual(calls, provision.call_count)
+            (root / "state/live.sqlite3").unlink()
+            self.assertEqual(1, helper.main(["run"]))
+            self.assertEqual(calls, provision.call_count)
+
+    def test_failed_preflight_preserves_previous_pointer_and_dirty_source_never_updates(self):
+        helper, update, _ = self.fake_workflow()
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update) as provision, \
+                patch.object(helper, "preflight", return_value=True) as preflight, \
+                patch.object(helper, "load_fixture", return_value=object()), contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(0, helper.main(["run"]))
+            pointer = helper.manager_root() / "last-run.json"
+            before = pointer.read_bytes()
+            preflight.return_value = False
+            self.assertEqual(1, helper.main(["run"]))
+            self.assertEqual(before, pointer.read_bytes())
+            (self.source / "unfinished.txt").write_text("operator edits")
+            calls = provision.call_count
+            self.assertEqual(1, helper.main(["run"]))
+            self.assertEqual(calls, provision.call_count)
+            self.assertEqual(before, pointer.read_bytes())
+
+    def test_explicit_revision_wins_over_source_head(self):
+        helper, update, source_pin = self.fake_workflow()
+        self.assertNotEqual(self.pin, source_pin)
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                patch.object(helper, "preflight", return_value=True), patch.object(helper, "load_fixture", return_value=object()), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, helper.main(["run", "--runtime-revision", self.pin, "--runtime", str(self.runtime)]))
+            root = helper.remembered_run()
+            self.assertEqual(self.pin, json.loads((root / "run.json").read_text())["agentscient_sha"])
+
+    def test_keyboard_interrupt_does_not_start_verification_or_collection(self):
+        helper, update, _ = self.fake_workflow()
+        execute = helper.existing_run
+        calls = []
+
+        def interrupted(args):
+            calls.append(args.command)
+            if args.command == "co":
+                raise KeyboardInterrupt
+            return execute(args)
+
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                patch.object(helper, "preflight", return_value=True), patch.object(helper, "load_fixture", return_value=object()), \
+                patch.object(helper, "existing_run", side_effect=interrupted), contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(130, helper.main(["run"]))
+            self.assertTrue((helper.remembered_run() / "run.json").is_file())
+            with helper.implicit_run_lock():
+                pass
+        self.assertEqual(["doctor", "co"], calls)
+
+    def test_pointer_failure_does_not_replace_failed_preparation_status(self):
+        helper, update, _ = self.fake_workflow(prepare_exit=3)
+        errors = io.StringIO()
+        with patch.dict(os.environ, self.env, clear=True), patch.object(helper, "update", side_effect=update), \
+                patch.object(helper, "preflight", return_value=True), patch.object(helper, "load_fixture", return_value=object()), \
+                patch.object(helper, "remember_run", side_effect=OSError("private path must not be printed")), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
+            self.assertEqual(3, helper.main(["run", "--run-dir", str(self.run)]))
+        self.assertIn("Could not remember", errors.getvalue())
+        self.assertNotIn("private path must not be printed", errors.getvalue())
+        self.assertTrue((self.run / "run.json").is_file())
 
 
 if __name__ == "__main__":

@@ -64,7 +64,11 @@ def main():
             {name: list(argv) for name, argv in DEFAULT_CHECKS.items()}
             if args.full_checks else {"generated-test": ["php", "vendor/bin/phpunit", "tests/FixtureGeneratedTest.php"]}
         )
-        checks["tests" if args.full_checks else "generated-test"].extend(["--log-events-text", str(events)])
+        test_check = checks["tests" if args.full_checks else "generated-test"]
+        # Populate both PHP environment arrays so a runtime APP_ENV override cannot
+        # hide behind an installation whose variables_order omits $_ENV.
+        test_check[1:1] = ["-d", "variables_order=EGPCS"]
+        test_check.extend(["--log-events-text", str(events)])
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
         config["project"].update({
@@ -147,9 +151,21 @@ def main():
             tests = completed(
                 coder,
                 "framework_generate",
-                {"maker": "make:test", "arguments": {"type": "TestCase", "name": "FixtureGeneratedTest"}},
+                {"maker": "make:test", "arguments": {"type": "KernelTestCase", "name": "FixtureGeneratedTest"}},
             )["result"]
             assert tests["exit_code"] == 0, tests
+            generated_test = workspace / "tests/FixtureGeneratedTest.php"
+            test_source = generated_test.read_text()
+            environment_assertion = "$this->assertSame('test', $kernel->getEnvironment());"
+            assert test_source.count(environment_assertion) == 1, test_source
+            # Extend the maintained Maker's kernel test with actual access to the
+            # test-only container that application integration tests depend on.
+            test_source = test_source.replace(
+                environment_assertion,
+                environment_assertion + "\n"
+                "        $this->assertSame($kernel->getContainer()->get('test.service_container'), static::getContainer());",
+            )
+            generated_test.write_text(test_source)
             validation = completed(coder, "work_check", {})
             report["validation"] = validation
             assert validation["passed"], validation
@@ -165,6 +181,7 @@ def main():
                             "autoconfigured command execution",
                             "Mate server-info",
                             "test generation",
+                            "test environment and service container through work_check",
                             "configured checks",
                         ],
                         "mate": mate["result"],

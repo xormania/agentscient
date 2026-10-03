@@ -1,6 +1,8 @@
 """CO launch choices honor the current configured identity before registration."""
 
+import contextlib
 import copy
+import io
 import json
 import sys
 import tempfile
@@ -10,7 +12,8 @@ from unittest.mock import patch
 
 from support import initialize, runtime_policy
 
-from devtools import console, role_packages
+from devtools import adapters, console, role_packages
+from devtools import run as entry
 from devtools.api import API
 from devtools.control import Control
 from devtools.store import Store
@@ -70,6 +73,89 @@ class COConfigurationTests(unittest.TestCase):
         self.assertEqual("interface", selected["selection"]["role"])
         self.assertEqual("interface", selected["role_package"]["role"])
         self.assertIsNone(Control(self.store, "owner").snapshot())
+
+    def test_initial_prompt_reaches_command_only_and_is_not_a_runtime_setting(self):
+        brief = "Greeting acceptance\nUnicode: café\n"
+        with patch.object(console, "prepare", return_value=(self.private, {}, {})) as prepare, \
+                patch.object(console, "command", return_value=(["fixture"], "fixture-session")) as command, \
+                patch.object(console, "relay", return_value=0), patch.object(console, "retain_login"):
+            self.assertEqual(0, console.run(self.state, initial_prompt=brief))
+        self.assertEqual(brief, command.call_args.args[2]["initial_prompt"])
+        self.assertNotIn("initial_prompt", prepare.call_args.kwargs["config"])
+        selected = self.store.events(kind="session_starting")["events"][-1]["data"]["settings"]
+        self.assertNotIn("initial_prompt", selected)
+        self.assertNotIn(brief, (self.state / "roles.json").read_text())
+
+    def test_invalid_initial_prompt_is_rejected_before_runtime_or_session_allocation(self):
+        before = self.store.member("owner")
+        for brief in ("", " \n", "nul\0byte", b"bytes", "\ud800", "é" * 32769):
+            with self.subTest(brief=repr(brief[:20])), patch.object(console, "resolve") as resolve, \
+                    patch.object(console, "prepare") as prepare, self.assertRaisesRegex(ValueError, "brief"):
+                console.run(self.state, initial_prompt=brief)
+            resolve.assert_not_called()
+            prepare.assert_not_called()
+            self.assertEqual(before, self.store.member("owner"))
+        self.assertEqual([], self.store.events(kind="session_starting")["events"])
+
+    def test_unsupported_harness_brief_is_rejected_before_session_allocation(self):
+        from devtools.harnesses import CodexHarness
+
+        before = self.store.member("owner")
+        with patch.object(CodexHarness, "supports_initial_prompt", False), \
+                patch.object(console, "prepare") as prepare, \
+                self.assertRaisesRegex(ValueError, "does not support an initial CO brief"):
+            console.run(self.state, initial_prompt="Run the acceptance work order.")
+        prepare.assert_not_called()
+        self.assertEqual(before, self.store.member("owner"))
+        self.assertEqual([], self.store.events(kind="session_starting")["events"])
+
+    def test_brief_preflight_checks_selected_custom_adapter_and_vendor_availability(self):
+        manifest = self.root / "adapters.json"
+        document = json.loads(adapters.MANIFEST.read_text())
+        document["adapters"]["harness"]["fixture"] = "devtools.tests.harness_plugin_fixture:FixtureHarness"
+        manifest.write_text(json.dumps(document))
+        self.packages["roles"]["co"]["runtime"]["harnesses"].append("fixture")
+        self.policy["profiles"]["custom"] = {"harness": "fixture", "vendor": "fixture-vendor", "binary": sys.executable}
+        self.policy["roles"]["co"] = ["custom", "codex"]
+        self.write_policy()
+        vendors_file = self.state / "vendors.json"
+        vendors = json.loads(vendors_file.read_text())
+        vendors["vendors"]["fixture-vendor"] = {"available": True}
+        vendors_file.write_text(json.dumps(vendors))
+        before = self.store.member("owner")
+        with patch.object(adapters, "MANIFEST", manifest), patch.object(console, "prepare") as prepare, \
+                patch.object(console, "relay") as relay:
+            for profile in (None, "custom"):
+                with self.subTest(profile=profile), self.assertRaisesRegex(ValueError, "initial CO brief: fixture"):
+                    console.initial_prompt_profile(self.state, profile=profile)
+            self.assertEqual("codex", console.initial_prompt_profile(self.state, profile="codex")["harness"])
+            vendors["vendors"]["fixture-vendor"]["available"] = False
+            vendors_file.write_text(json.dumps(vendors))
+            self.assertEqual("codex", console.initial_prompt_profile(self.state)["harness"])
+        prepare.assert_not_called()
+        relay.assert_not_called()
+        self.assertEqual(before, self.store.member("owner"))
+        self.assertEqual([], self.store.events(kind="session_starting")["events"])
+
+    def test_cli_brief_file_preserves_utf8_and_rejects_invalid_files_before_launch(self):
+        brief = self.root / "brief.txt"
+        content = "--Greeting\r\nUnicode: café\n"
+        brief.write_bytes(content.encode("utf-8"))
+        arguments = ["run.py", "co", "--state", str(self.state), "--brief-file", str(brief)]
+        with patch.object(sys, "argv", arguments), patch.object(console, "run", return_value=0) as run:
+            self.assertEqual(0, entry.main())
+        run.assert_called_once_with(str(self.state), None, None, None, initial_prompt=content)
+        for payload in (b"", b"  \n", b"\xff", b"nul\0byte", b"x" * 65537):
+            brief.write_bytes(payload)
+            with self.subTest(payload=repr(payload[:20])), patch.object(sys, "argv", arguments), \
+                    patch.object(console, "run") as run, contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(2, entry.main())
+            run.assert_not_called()
+        brief.unlink()
+        with patch.object(sys, "argv", arguments), patch.object(console, "run") as run, \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(2, entry.main())
+        run.assert_not_called()
 
     def test_existing_bound_co_uses_its_identity_and_profile_preferences(self):
         self.packages["roles"]["liaison"] = copy.deepcopy(self.packages["roles"]["co"])

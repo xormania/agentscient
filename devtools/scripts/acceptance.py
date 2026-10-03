@@ -3,20 +3,26 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import importlib.util
+import inspect
 import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import tempfile
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[2]
 FIXTURE_REPOSITORY = "uscient/agentscient-test-repo"
 RUNTIME_REPOSITORY = "uscient/agentscient"
-RUN_COMMANDS = {"status", "doctor", "co", "verify", "stop"}
+RUN_COMMANDS = {"status", "doctor", "co", "verify", "stop", "collect"}
 SHA = re.compile(r"[0-9a-f]{40}")
 
 
@@ -26,6 +32,97 @@ class SetupError(Exception):
 
 def path(value):
     return Path(value).expanduser().resolve()
+
+
+def manager_root():
+    return path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "agentscient-acceptance"
+
+
+def run_manifest(value):
+    root = path(value)
+    if root.name == "run.json":
+        root = root.parent
+    manifest = json.loads((root / "run.json").read_text())
+    if (not isinstance(manifest, dict) or manifest.get("version") != 1 or manifest.get("repository") != FIXTURE_REPOSITORY
+            or not re.fullmatch(r"[0-9a-f]{32}", str(manifest.get("run_id", "")))
+            or manifest.get("run_root") != str(root)
+            or manifest.get("target") != "acceptance/" + manifest["run_id"]):
+        raise SetupError("Invalid run manifest; use the original isolated --run-dir.")
+    return root, manifest
+
+
+def run_identity(manifest):
+    keys = ("run_root", "run_id", "agentscient_root", "agentscient_sha")
+    if (not all(isinstance(manifest.get(key), str) and manifest[key] for key in keys)
+            or not SHA.fullmatch(manifest["agentscient_sha"])):
+        raise SetupError("Run manifest lacks its recorded runtime identity.")
+    return {key: manifest[key] for key in keys}
+
+
+def remembered_run():
+    pointer = manager_root() / "last-run.json"
+    if not pointer.exists():
+        raise SetupError("No remembered acceptance run. Supply --run-dir or start with acceptance.sh run.")
+    selected = json.loads(pointer.read_text())
+    if not isinstance(selected, dict) or selected.get("version") != 1 or not isinstance(selected.get("run_root"), str):
+        raise SetupError("Invalid last-run pointer; select the original --run-dir explicitly.")
+    root, manifest = run_manifest(selected["run_root"])
+    if selected != {"version": 1, **run_identity(manifest)}:
+        raise SetupError("Remembered run identity changed; select the original --run-dir explicitly.")
+    return root
+
+
+def remember_run(root):
+    _, manifest = run_manifest(root)
+    pointer = {"version": 1, **run_identity(manifest)}
+    directory = manager_root()
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with tempfile.NamedTemporaryFile(mode="w", dir=directory, prefix=".last-run-", delete=False) as handle:
+        temporary = Path(handle.name)
+        json.dump(pointer, handle)
+        handle.write("\n")
+    try:
+        temporary.replace(directory / "last-run.json")
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+@contextlib.contextmanager
+def implicit_run_lock():
+    directory = manager_root()
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(directory / "run.lock", os.O_CREAT | os.O_RDWR, 0o600)
+    with os.fdopen(descriptor, "w") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SetupError("Another acceptance run command is active. Use status, co, or collect for the remembered run.") from None
+        yield
+
+
+def require_previous_idle():
+    if not (manager_root() / "last-run.json").exists():
+        return
+    root = remembered_run()
+    database = root / "state/live.sqlite3"
+    if not database.exists():
+        _, manifest = run_manifest(root)
+        if manifest.get("status") == "prepared":
+            raise SetupError("The prepared remembered run has no state database. Inspect its files or select a new --run-dir explicitly.")
+        return
+    try:
+        with contextlib.closing(sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)) as db:
+            db.execute("PRAGMA query_only=ON")
+            db.execute("BEGIN")
+            active = db.execute("SELECT count(*) FROM members WHERE state NOT IN ('stopped','failed') "
+                                "OR pid IS NOT NULL OR desired='running'").fetchone()[0]
+            active += db.execute("SELECT count(*) FROM operations WHERE state IN ('queued','running')").fetchone()[0]
+    except sqlite3.Error:
+        raise SetupError("Cannot establish whether the remembered run is active. Inspect it with status/collect, or select a new --run-dir explicitly.") from None
+    if active:
+        raise SetupError("The remembered run still has active sessions or operations: " + str(root)
+                         + ". Resume with co, inspect with collect, or stop it before starting another run."
+                         + " An explicit new --run-dir allows a separate run.")
 
 
 def environment():
@@ -109,8 +206,7 @@ def selected_revision(args, fixture):
 def runtime_path(args, pin):
     if args.runtime:
         return path(args.runtime)
-    state = path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state")))
-    return state / "agentscient-acceptance/runtimes" / pin
+    return manager_root() / "runtimes" / pin
 
 
 def configuration_path(args):
@@ -191,7 +287,8 @@ def update(args, fixture):
             staged.rename(runtime)
     print("Updated fixture main: " + str(fixture))
     print("Selected runtime: " + str(runtime))
-    print("Next: check --online. No active run or source-runtime branch was changed.")
+    if args.command != "run":
+        print("Next: check --online. No active run or source-runtime branch was changed.")
     return 0
 
 
@@ -294,6 +391,11 @@ def preflight(args, fixture, runtime, runner, *, online):
             api.launch.initialize(state, fixture, ["owner:external"], co="owner", project=project, runtime=True)
             selected = runner.configure_runtime(api, state, selected=selected, copied=copied)
             semantics = runner.configure_semantics(api, state, root, overlay)
+            if args.command == "run":
+                try:
+                    api.console.initial_prompt_profile(state, profile=args.profile)
+                except (ValueError, RuntimeError):
+                    raise SetupError("The selected CO profile cannot accept an automatic brief. Check --profile and its harness adapter before starting a new run.") from None
             try:
                 runner.require_selection_candidates(api, state, scenario, semantics)
             except ValueError:
@@ -337,30 +439,37 @@ def prepare(args, fixture, runtime, runner):
     for name in selected_harnesses(args):
         forwarded += ["--harness", name]
     # Fresh interpreter: keep preparation identical to running the fixture CLI directly.
-    result = subprocess.call([sys.executable, "-I", "-B", str(fixture / "acceptance/run.py"), *forwarded], env=environment())
-    if result == 0:
-        print("Prepared. Next: doctor --online --run-dir PATH, then co --run-dir PATH; paste PATH/brief.txt.")
+    try:
+        result = subprocess.call([sys.executable, "-I", "-B", str(fixture / "acceptance/run.py"), *forwarded], env=environment())
+    finally:
+        if args.command == "run" and (root / "run.json").is_file():
+            try:
+                remember_run(root)
+            except (SetupError, OSError, ValueError):
+                print("Could not remember this run; use --run-dir " + str(root) + " for subsequent commands.", file=sys.stderr)
+    if result == 0 and args.command != "run":
+        print("Prepared. Next: doctor --online --run-dir PATH, then co --brief --run-dir PATH. Brief: " + str(root / "brief.txt"))
     return result
 
 
 def existing_run(args):
-    root = path(args.run_dir)
-    if root.name == "run.json":
-        root = root.parent
+    root, manifest = run_manifest(args.run_dir or remembered_run())
     # Status must not execute fixture code. Action commands let the frozen CLI
     # apply its complete validation after this inexpensive directory check.
-    manifest = json.loads((root / "run.json").read_text())
-    if (not isinstance(manifest, dict) or manifest.get("version") != 1 or manifest.get("repository") != FIXTURE_REPOSITORY
-            or not re.fullmatch(r"[0-9a-f]{32}", str(manifest.get("run_id", "")))
-            or manifest.get("run_root") != str(root)
-            or manifest.get("target") != "acceptance/" + manifest["run_id"]):
-        raise SetupError("Invalid run manifest; use the original isolated --run-dir.")
     if args.command == "status":
         print(json.dumps({key: manifest.get(key) for key in
                           ("status", "run_root", "target", "agentscient_root", "agentscient_sha", "gates")}, indent=2))
         print("Preparation status is not final product acceptance; use verify --online.")
         return 0
+    if args.command == "collect":
+        forwarded = ["--run-dir", str(root)]
+        if getattr(args, "output", None):
+            forwarded += ["--output", str(path(args.output))]
+        return subprocess.call([sys.executable, "-I", "-B", str(Path(__file__).with_name("acceptance_collect.py")),
+                                *forwarded], env=environment())
     forwarded = [args.command, "--run-dir", str(root)]
+    if args.command == "co" and getattr(args, "brief", False):
+        forwarded.append("--brief")
     if getattr(args, "online", False):
         forwarded.append("--online")
     for name in ("profile", "work_order", "php"):
@@ -370,8 +479,94 @@ def existing_run(args):
     return subprocess.call([sys.executable, "-I", "-B", str(root / "verifier/acceptance/run.py"), *forwarded], env=environment())
 
 
+def checked_runtime(args, fixture):
+    repository(fixture, FIXTURE_REPOSITORY)
+    git(fixture, "merge-base", "--is-ancestor", "HEAD", "refs/remotes/origin/main")
+    pin = selected_revision(args, fixture)
+    runtime = runtime_path(args, pin)
+    repository(runtime, RUNTIME_REPOSITORY)
+    if git(runtime, "rev-parse", "HEAD") != pin:
+        raise SetupError("Runtime does not match selected revision. Run update with a new runtime directory.")
+    return runtime, load_fixture(fixture)
+
+
+def require_initial_brief(fixture, runtime, runner):
+    """Negotiate both sides before preparation can publish or use model accounts."""
+    help_result = capture([sys.executable, "-I", "-B", fixture / "acceptance/run.py", "co", "--help"])
+    if help_result.returncode or not re.search(r"(?<!\S)--brief(?:[\s,]|$)", help_result.stdout):
+        raise SetupError("The fixture does not support automatic CO briefing. Update fixture main before using run.")
+    api = runner.import_runtime(runtime)
+    if ("initial_prompt" not in inspect.signature(api.console.run).parameters
+            or not callable(getattr(api.console, "initial_prompt_profile", None))):
+        raise SetupError("The selected runtime does not support automatic CO briefing. Select a newer reviewed revision.")
+
+
+def run(args, fixture):
+    implicit = args.run_dir is None
+    with implicit_run_lock() if implicit else contextlib.nullcontext():
+        if implicit:
+            require_previous_idle()
+        if args.runtime_revision is None:
+            repository(SOURCE, RUNTIME_REPOSITORY)
+            args.runtime_revision = git(SOURCE, "rev-parse", "HEAD")
+            print("Testing clean source HEAD: " + args.runtime_revision, flush=True)
+        if implicit:
+            parent = manager_root() / "runs"
+            parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            args.run_dir = str(parent / (datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:12]))
+        root = path(args.run_dir)
+        print("Acceptance run: " + str(root), flush=True)
+        result = update(args, fixture)
+        if result:
+            return result
+        runtime, runner = checked_runtime(args, fixture)
+        require_initial_brief(fixture, runtime, runner)
+        result = prepare(args, fixture, runtime, runner)
+
+        def action(command, **options):
+            return existing_run(argparse.Namespace(command=command, run_dir=str(root), **options))
+
+        def collect():
+            if not (root / "run.json").is_file():
+                return
+            try:
+                collected = action("collect") == 0
+            except (SetupError, OSError, ValueError):
+                collected = False
+            if not collected:
+                print("Diagnostics collection did not complete; retry acceptance.sh collect --run-dir " + str(root), file=sys.stderr)
+
+        def failed(code):
+            if code < 0 or code in {130, 143}:
+                print("Acceptance interrupted. Run/evidence retained at " + str(root), flush=True)
+                return 128 - code if code < 0 else code
+            print("Acceptance is not established. Evidence retained at " + str(root), flush=True)
+            collect()
+            print("Inspect with acceptance.sh status or collect --run-dir " + str(root) + ". No agents were stopped.")
+            return code
+
+        if result:
+            return failed(result)
+        result = action("doctor", online=True)
+        if result:
+            return failed(result)
+        print("Starting CO with the run's brief...", flush=True)
+        result = action("co", profile=args.profile, brief=True)
+        if result:
+            return failed(result)
+        print("CO exited normally. Running the frozen independent verifier...", flush=True)
+        result = action("verify", online=True)
+        if result:
+            return failed(result)
+        print("Acceptance passed. Report: " + str(root / "report.json"), flush=True)
+        collect()
+        return 0
+
+
 def preview(args, fixture):
     print("Preview only: no credentials read, processes launched, network calls or files changed.")
+    print("Routine acceptance: acceptance.sh run tests clean source HEAD, prepares and remembers a new run, submits its brief to CO, then verifies on normal exit.")
+    print("Inspect its retained evidence with acceptance.sh collect. The separate setup commands below retain their fixture-pin default.")
     print("Fixture: " + str(fixture))
     if fixture.is_dir():
         pin = selected_revision(args, fixture)
@@ -394,7 +589,7 @@ def preview(args, fixture):
     print("Scenario: " + args.scenario)
     print("Run directory: " + (str(path(args.run_dir)) if args.run_dir else "supply a new --run-dir for prepare"))
     print("Sequence: update -> check --online -> prepare --run-dir PATH -> doctor --online --run-dir PATH")
-    print("Then: co --run-dir PATH; paste PATH/brief.txt; verify --online --run-dir PATH; stop --run-dir PATH")
+    print("Then: co --brief --run-dir PATH; verify --online --run-dir PATH; stop --run-dir PATH")
     print("update: fast-forward clean fixture main, provision a separate pinned runtime; requires GitHub access.")
     print("check: disposable private state, readiness/native credential checks; --online adds a small paid Jev request.")
     print("prepare: repeats online checks, installs dependencies in the new run, pushes its unique fixture branch.")
@@ -406,21 +601,22 @@ def preview(args, fixture):
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     commands = result.add_subparsers(dest="command", required=True)
-    for name in ("preview", "update", "check", "prepare", "status", "doctor", "co", "verify", "stop"):
+    for name in ("preview", "run", "update", "check", "prepare", "status", "doctor", "co", "verify", "stop", "collect"):
         item = commands.add_parser(name, help={
             "preview": "show paths and effects only (default)", "update": "fetch/fast-forward fixture main and provision pinned runtime",
+            "run": "test clean source HEAD: prepare, launch CO, then verify its retained outcome",
             "check": "check credentials/config/platform in disposable state", "prepare": "check online, create run and push unique fixture branch",
             "status": "read preparation status", "doctor": "check run readiness and write doctor.json",
             "co": "start authenticated CO (provider usage)", "verify": "run frozen verifier and write evidence",
-            "stop": "stop run agents, retaining files and branches"}[name])
+            "stop": "stop run agents, retaining files and branches", "collect": "write filtered diagnostic bundle"}[name])
         if name in RUN_COMMANDS:
-            item.add_argument("--run-dir", required=True)
+            item.add_argument("--run-dir", help="original run directory (default: validated remembered run)")
         else:
             item.add_argument("--fixture", help="fixture checkout (default: sibling fixture-ag or agentscient-test-repo)")
             item.add_argument("--runtime", help="clean checkout at selected revision (default: separate revision-specific state directory)")
             item.add_argument("--runtime-revision", type=exact_revision,
-                              help="explicit full commit SHA for a new run (default: fixture workflow pin)")
-        if name in {"preview", "check", "prepare"}:
+                              help="explicit full commit SHA (default: clean source HEAD for run; fixture workflow pin otherwise)")
+        if name in {"preview", "run", "check", "prepare"}:
             item.add_argument("--configuration", help="private semantic overlay (default: ~/.config/agentscient/configuration.json)")
             group = item.add_mutually_exclusive_group()
             group.add_argument("--runtime-from", help="existing team whose validated role/vendor policy is copied")
@@ -429,12 +625,16 @@ def parser():
             item.add_argument("--php", default="php", help="owned PHP executable or command on PATH")
             item.add_argument("--composer", default="composer", help="Composer executable or command on PATH")
             item.add_argument("--serena-image", default="agentscient-serena:v2-beta")
-        if name in {"preview", "prepare"}:
+        if name in {"preview", "run", "prepare"}:
             item.add_argument("--run-dir", required=name == "prepare")
         if name in {"check", "doctor", "verify"}:
             item.add_argument("--online", action="store_true", help="read-only remote checks; check also sends a small Jev request")
-        if name == "co":
+        if name in {"co", "run"}:
             item.add_argument("--profile", help="configured CO profile")
+        if name == "co":
+            item.add_argument("--brief", action="store_true", help="submit this run's brief as the initial user message (first launch only)")
+        if name == "collect":
+            item.add_argument("--output", help="diagnostic report destination")
         if name == "verify":
             item.add_argument("--work-order", type=int)
             item.add_argument("--php")
@@ -457,14 +657,9 @@ def main(argv=None):
             return preview(args, fixture)
         if args.command == "update":
             return update(args, fixture)
-        repository(fixture, FIXTURE_REPOSITORY)
-        git(fixture, "merge-base", "--is-ancestor", "HEAD", "refs/remotes/origin/main")
-        pin = selected_revision(args, fixture)
-        runtime = runtime_path(args, pin)
-        repository(runtime, RUNTIME_REPOSITORY)
-        if git(runtime, "rev-parse", "HEAD") != pin:
-            raise SetupError("Runtime does not match selected revision. Run update with a new runtime directory.")
-        runner = load_fixture(fixture)
+        if args.command == "run":
+            return run(args, fixture)
+        runtime, runner = checked_runtime(args, fixture)
         if args.command == "prepare":
             return prepare(args, fixture, runtime, runner)
         return 0 if preflight(args, fixture, runtime, runner, online=args.online) else 1

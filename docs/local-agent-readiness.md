@@ -142,6 +142,60 @@ The optional private overlay defaults to `~/.config/agentscient/configuration.js
 when present, otherwise normal runtime defaults use `TYPESAFE_API_KEY`. Explicit
 `--configuration` paths must exist. GitHub Actions secrets are not local credentials.
 
+For repeated acceptance after a reviewed change, use a clean checkout of the
+committed revision whose CI passed:
+
+```bash
+bash devtools/scripts/acceptance.sh run
+```
+
+`run` selects that checkout's exact `HEAD`, updates the fixture, provisions a
+separate immutable runtime and creates a fresh isolated run. It performs the
+existing online preparation checks and frozen doctor, then starts the native CO
+session with the run's brief as its first user message. No copying or pasting is
+required. After CO exits normally, it runs the frozen
+online verifier and collects diagnostics. A normal console exit alone does not
+establish acceptance; the verifier's result does. `--runtime-revision SHA` selects
+another committed runtime explicitly. The other setup options below also apply to
+`run`.
+
+The run directory is generated beneath
+`${XDG_STATE_HOME:-$HOME/.local/state}/agentscient-acceptance/runs/` and remembered
+across shells. Use the same short commands afterwards:
+
+| Command | Purpose |
+| --- | --- |
+| `bash devtools/scripts/acceptance.sh status` | Read preparation status and the selected run path. |
+| `bash devtools/scripts/acceptance.sh co` | Open a new CO conversation for the retained work without resending the original brief. Recover current context before giving new direction. |
+| `bash devtools/scripts/acceptance.sh verify --online` | Run the frozen final verifier again when work is ready. |
+| `bash devtools/scripts/acceptance.sh collect` | Write a private, filtered diagnostic JSON file and print its path for sharing. |
+| `bash devtools/scripts/acceptance.sh stop` | Stop the remembered run's agents while retaining evidence and branches. |
+
+An explicit `--run-dir PATH` on an existing-run command selects an older run
+without changing the remembered one. The default `run` blocks concurrent
+invocations and a still-active remembered team; resume or explicitly stop that
+team first. Supplying a new `--run-dir PATH` to `run` deliberately starts a separate
+run. Interrupting CO returns promptly and
+leaves the team and evidence available; it does not start verification or stop
+workers automatically. Stage failures retain the original failure result and any
+created run, with diagnostic collection when available.
+
+Automatic briefing requires a fixture and runtime that support it. `run` checks
+both before online preparation or branch publication. An older retained run still
+uses its frozen launcher; reopening it with plain `co` does not require briefing
+support or a brief file.
+If `stop` leaves uncertain queued or running operation records, the default guard
+still blocks replacement; inspect the diagnostics or deliberately choose a new
+`--run-dir` instead of deleting the old state.
+
+`collect` reads retained state through the recorded runtime. It includes bounded
+session, message, operation and failure evidence, applies the runtime's credential
+filter and does not package the live database, private profiles or credential files.
+Its output is diagnostic evidence, not an acceptance certificate.
+
+The individual setup commands remain available for troubleshooting or explicitly
+testing the fixture workflow's reference runtime:
+
 ```bash
 bash devtools/scripts/acceptance.sh update --fixture ../fixture-ag
 bash devtools/scripts/acceptance.sh check --online --fixture ../fixture-ag
@@ -157,7 +211,7 @@ That immutable runtime path lives under
 It never changes the branch of the checkout containing these scripts or repoints
 a runtime recorded by an older run. An explicit `--runtime` must match the selected
 revision.
-`--configuration` is accepted by `preview`, `check` and `prepare`; it is not an
+`--configuration` is accepted by `run`, `preview`, `check` and `prepare`; it is not an
 `update` option. Add it only to those commands, rather than to shared update options.
 
 To test a newer reviewed Agentscient commit before the fixture updates its reference,
@@ -203,8 +257,8 @@ It does not start CO. Failed preparations and all subsequent evidence are retain
 
 ```bash
 bash devtools/scripts/acceptance.sh doctor --online --run-dir "$HOME/agentscient-acceptance-001"
-bash devtools/scripts/acceptance.sh co --run-dir "$HOME/agentscient-acceptance-001"
-# Paste that run's brief.txt into CO, then inspect progress and the final result.
+bash devtools/scripts/acceptance.sh co --brief --run-dir "$HOME/agentscient-acceptance-001"
+# The first launch submits the brief automatically. Omit --brief when reopening CO.
 bash devtools/scripts/acceptance.sh status --run-dir "$HOME/agentscient-acceptance-001"
 bash devtools/scripts/acceptance.sh verify --online --run-dir "$HOME/agentscient-acceptance-001"
 bash devtools/scripts/acceptance.sh stop --run-dir "$HOME/agentscient-acceptance-001"
@@ -216,6 +270,12 @@ reads the manifest and reports preparation state, not final acceptance. `doctor`
 and `verify` retain evidence, `co` launches real authenticated clients, and `stop`
 stops that run's agents while preserving its files and remote branches. Only the
 frozen verifier's actual product, gate and delivery evidence establishes acceptance.
+
+Runtime fixes require a new run with the reviewed revision. Preserve the old run
+and stop its agents with `stop`; editing its recorded runtime or protected test
+setup invalidates the frozen evidence. A failed test run can also leave fixture
+database changes behind when it boots without the test environment's transaction
+support, so retrying that workspace is not a clean baseline.
 
 ### Team setup without the fixture helper
 

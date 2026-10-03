@@ -50,6 +50,7 @@ def main():
             command.add_argument("--profile", help="Select one configured CO profile; default uses availability order")
             command.add_argument("--model", help="Override the model for this CO session")
             command.add_argument("--reasoning", help="Override native reasoning effort for this CO session")
+            command.add_argument("--brief-file", type=Path, help="Submit this UTF-8 brief as the initial CO user prompt")
         elif name == "init":
             command.add_argument("--runtime", action="store_true", help="Create shared role/vendor runtime policy")
             command.add_argument("--co", help="Name of the external user-facing CO session")
@@ -96,9 +97,10 @@ def main():
                 return 0
             result = getattr(watcher, args.action)(Store(args.state))
         elif args.command == "co":
-            from devtools.console import run
+            from devtools.console import read_brief, run
 
-            return run(args.state, args.profile, args.model, args.reasoning)
+            initial_prompt = read_brief(args.brief_file) if args.brief_file is not None else None
+            return run(args.state, args.profile, args.model, args.reasoning, initial_prompt=initial_prompt)
         elif args.command == "init":
             from devtools.readiness import project
 

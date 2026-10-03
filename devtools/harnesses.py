@@ -8,6 +8,9 @@ channel(private), retain_login(directory, member, generation), and
 readiness(binary, probe, config=None). config supplies the selected runtime snapshot.
 The validated operator_console launch mode preserves native operator controls;
 ordinary managed profiles continue to enforce their role's native restrictions.
+Adapters may declare supports_initial_prompt = True to accept the command-only
+config["initial_prompt"] as actual initial user input in an interactive CO.
+Without that declaration a requested brief fails before session allocation.
 prepare returns (private_path, environment, MCP_config);
 command returns (argv, native_session_id). run owns one persistent session;
 the common launcher retains generation, work binding and cleanup ownership.
@@ -35,6 +38,7 @@ def get(name):
 class BuiltinHarness:
     protocol = None
     supports_provider = False
+    supports_initial_prompt = True
 
     def prepare(self, directory, member, config=None):
         from .profiles import _prepare_builtin
