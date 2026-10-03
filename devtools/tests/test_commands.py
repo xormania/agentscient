@@ -25,6 +25,9 @@ class CommandTests(CommandFixture, unittest.TestCase):
         cached = {row["name"]: row for row in co.call("tools/list")["tools"]}
         self.assertEqual({"work_context", "work_report", "guidance_request", "direct", "monitor", "onboard", "skill_read"},
                          set(cached))
+        onboarding = co.tool("onboard", {})
+        self.assertEqual("ready_to_direct", onboarding["context"]["state"])
+        self.assertIn("establish the work order with `direct` before `work_report`", onboarding["role_instructions"])
         for name in ("work_report", "guidance_request"):
             with self.subTest(tool=name), self.assertRaisesRegex(ValueError, "not available"):
                 co.tool(name, {"text": "No work has been authorized"})

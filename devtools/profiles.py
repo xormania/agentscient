@@ -291,8 +291,12 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
         write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
         if operator:
-            # Native home, settings layers, login storage and permission policy
-            # belong to the operator. Only add our MCP server and observers.
+            # Native home, settings layers, login storage and global permissions
+            # belong to the operator. Approve our role-bound MCP surface by
+            # default so native approval_policy=never does not deadlock writes.
+            # Native per-tool overrides still take precedence over this default;
+            # server-side role/work/generation checks remain authoritative.
+            server["default_tools_approval_mode"] = "approve"
             write_json(private / "observer-hooks.json", groups)
             return private, env, server
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
