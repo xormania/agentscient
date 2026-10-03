@@ -95,11 +95,15 @@ verified again before use; an invalid download fails the job.
 Serena uses a unique image tag per run and attempt, passed through to the integration
 and removed afterwards. Concurrent jobs sharing the WSL Docker daemon cannot
 replace the image another job is about to test. Layer caching remains available.
-The Serena source revision and PHPactor archive checksum are pinned; the base
-image tag, apt packages and Python dependency resolution are not fully locked.
-Cold builds can therefore differ from cached builds even at the same repository
-revision. CI currently verifies the image it builds, not reproducibility across
-those builds.
+Serena's PHP base and uv installer use immutable image digests. APT uses only
+signed, dated Debian snapshots and fails on any metadata fetch error. Python
+runtime dependencies come from the pinned Serena revision's own `uv.lock`;
+build dependencies have a separate complete hash lock and build isolation is
+disabled. The build checks dependency compatibility and unchanged upstream lock
+metadata. PHPactor remains checksum-verified. These inputs fix dependency
+selection per platform; CI verifies the resulting image's behavior, without
+claiming byte-identical OCI builds. See the [image maintenance guide](../devtools/serena/README.md)
+for updates, lock regeneration and cold-build acceptance.
 
 Test fixtures use short HTTP shutdown polling and explicit release markers for
 work that must remain running through an MCP disconnect. Assertions wait for the

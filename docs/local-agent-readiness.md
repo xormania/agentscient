@@ -238,6 +238,10 @@ composer install --prefer-dist --no-interaction
 docker build --tag agentscient-serena:v2-beta devtools/serena
 ```
 
+The Serena build locks its base image, Debian snapshot, Python runtime/build
+dependencies and PHPactor archive. See [image maintenance](../devtools/serena/README.md)
+for updating those pins and verifying a cold build.
+
 Authenticate the Git remote, GitHub and the native harnesses using their usual local
 login. The GitHub service reuses `gh auth token`, an operator-maintained `token_file`
 in `team.json`'s `github` section, or `AGENTSCIENT_GITHUB_TOKEN`. Credentials never
