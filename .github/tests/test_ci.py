@@ -23,7 +23,7 @@ class RoutingTests(unittest.TestCase):
         pull_request = workflow["on"]["pull_request"]
         self.assertNotIn("branches", pull_request)
         self.assertNotIn("branches-ignore", pull_request)
-        self.assertEqual(["opened", "reopened", "synchronize"], pull_request["types"])
+        self.assertEqual(["opened", "reopened", "synchronize", "edited"], pull_request["types"])
         self.assertEqual({"branches": ["dev", "master"]}, workflow["on"]["push"])
         self.assertEqual({"contents": "read"}, workflow["permissions"])
         self.assertNotIn("pull_request_target", workflow["on"])
@@ -185,6 +185,25 @@ class GitRangeTests(unittest.TestCase):
             needs["live-mcp"]["result"] = "skipped"
             with self.assertRaises(ValueError):
                 ci.gate(needs)
+
+    def test_retargeted_pr_runs_again_and_selects_changes_relative_to_its_new_base(self):
+        workflow = json.loads((ROOT / ".github/workflows/ci.yml").read_text())
+        self.assertIn("edited", workflow["on"]["pull_request"]["types"])
+        self.git("checkout", "-b", "work-order/fixture")
+        self.write("devtools/change.py")
+        previous_base = self.commit()
+        self.git("checkout", "-b", "work-order/fixture-job-1")
+        self.write("docs/change.md")
+        head = self.commit()
+        original = {"pull_request": {"base": {"sha": previous_base}}}
+        self.assertEqual(set(), ci.select(ci.changed_paths("pull_request", original, head, self.root)))
+        self.git("checkout", "dev")
+        self.git("merge", "--no-ff", "work-order/fixture-job-1", "-m", "Retargeted PR merge")
+        retargeted = {"action": "edited", "changes": {"base": {"ref": {"from": "work-order/fixture"}}},
+                      "pull_request": {"base": {"ref": "dev", "sha": self.base}}}
+        paths = ci.changed_paths("pull_request", retargeted, self.git("rev-parse", "HEAD"), self.root)
+        self.assertEqual({"devtools/change.py", "docs/change.md"}, set(paths))
+        self.assertEqual({"live-mcp", "maker-mate", "serena"}, ci.select(paths))
 
     def test_push_and_merge_group_include_all_commits_deletions_and_rename_sides(self):
         self.git("mv", "src/old.php", "README-moved.md")

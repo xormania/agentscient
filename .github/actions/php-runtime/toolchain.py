@@ -136,8 +136,8 @@ def install(config, paths):
         urls = asset_urls(config, release)
         for key in missing:
             download(urls[key], paths[key], config[key]["sha256"])
-    # Reuse the cache verification and isolated PHP extraction already tested by CI.
-    subprocess.run(["bash", str(HERE / "install-php.sh"), "unused-verified-cache", config["php"]["sha256"]], check=True)
+    # Extraction rechecks the selected local archive before executing its PHP.
+    subprocess.run(["bash", str(HERE / "install-php.sh"), str(paths["php"]), config["php"]["sha256"]], check=True)
     runtime = Path(Path(os.environ["GITHUB_PATH"]).read_text().splitlines()[-1])
     shutil.copyfile(paths["composer"], runtime / "composer.phar")
     wrapper = runtime / "composer"

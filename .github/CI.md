@@ -1,6 +1,9 @@
 # Continuous integration
 
 [ci.yml](workflows/ci.yml) runs on pull requests targeting any branch, pushes to `dev` and `master`, merge groups, and manual invocation.
+Pull-request edits rerun CI, including base-branch changes, so retargeting a stacked
+PR recomputes its selected suites against the new base. Title and body edits also
+rerun the same checks.
 The workflow always starts so its required `lane` check can report a result.
 The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
@@ -10,7 +13,7 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 | `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with checked discovery, an execution/skip census and the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
-| `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
+| `serena` | Build the provider image from the pinned Serena source and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
 | `lane` | Requires successful selection and every selected job to succeed. Accepts a skipped job only when the selector explicitly excluded it. |
 
 The Symfony job uploads its tested revision, dependency observations, PHPUnit
@@ -92,6 +95,11 @@ verified again before use; an invalid download fails the job.
 Serena uses a unique image tag per run and attempt, passed through to the integration
 and removed afterwards. Concurrent jobs sharing the WSL Docker daemon cannot
 replace the image another job is about to test. Layer caching remains available.
+The Serena source revision and PHPactor archive checksum are pinned; the base
+image tag, apt packages and Python dependency resolution are not fully locked.
+Cold builds can therefore differ from cached builds even at the same repository
+revision. CI currently verifies the image it builds, not reproducibility across
+those builds.
 
 Test fixtures use short HTTP shutdown polling and explicit release markers for
 work that must remain running through an MCP disconnect. Assertions wait for the
@@ -216,6 +224,9 @@ provenance and inputs to explicit publication, never installation fallbacks.
 Credentials are excluded from redirected asset-storage requests. A valid warm
 cache needs no release request. Missing/corrupt entries are downloaded, checked
 and atomically published to the cache before isolated job installation.
+`toolchain.py` owns downloads and cache publication; `install-php.sh` only verifies
+and extracts the selected local PHP archive into a fresh runtime. A missing or
+changed archive at extraction fails without a second download path.
 
 [Retain CI toolchain](workflows/retain-toolchain.yml) is an operator-only manual
 workflow, separate from pull-request CI. Its publication job alone has
