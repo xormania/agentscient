@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import unittest
 from unittest.mock import patch
@@ -14,6 +15,20 @@ from devtools.workspaces import git
 
 class DevelopmentTests(DevelopmentFixture, unittest.TestCase):
 
+    def test_checks_leave_application_environment_to_project_configuration(self):
+        program = (
+            "import json, os\n"
+            "print(json.dumps({name: os.environ.get(name) for name in "
+            "('APP_ENV', 'APP_DEBUG', 'COMPOSER_NO_INTERACTION')}))\n"
+        )
+        self.configure({"environment": [sys.executable, "-c", program]})
+        with patch.dict(os.environ, {"APP_ENV": "prod", "APP_DEBUG": "0", "COMPOSER_NO_INTERACTION": "0"}):
+            result = Development(self.store, "coder").check()
+        self.assertTrue(result["passed"], result)
+        self.assertEqual(
+            {"APP_ENV": None, "APP_DEBUG": None, "COMPOSER_NO_INTERACTION": "1"},
+            json.loads(result["checks"][0]["output"]),
+        )
 
     def test_checks_complete_after_client_disconnect_and_route_evidence(self):
         argv, started, release = held_check(self.root)

@@ -217,8 +217,25 @@ class PackageBoundaryTests(unittest.TestCase):
         team["co"] = "owner"
         (self.state / "team.json").write_text(json.dumps(team))
         api.control.unbind("owner")
-        self.assertEqual({"work_context", "onboard", "skill_read", "direct", "monitor"}, {r["name"] for r in api.tools()})
-        self.assertNotIn("work_report", {r["name"] for r in api.tools()})
+        self.assertEqual(names, {row["name"] for row in api.tools()})
+        with self.assertRaisesRegex(ValueError, "not available"):
+            api.call("work_report", {"text": "Unbound report"})
+
+    def test_bootstrap_catalogue_uses_configured_co_alias_and_capabilities(self):
+        api = API(self.state, "owner")
+        team = json.loads((self.state / "team.json").read_text())
+        team["co"] = "owner"
+        (self.state / "team.json").write_text(json.dumps(team))
+        api.control.unbind("owner")
+        packages = role_packages.catalog()
+        packages["roles"]["liaison"] = packages["roles"].pop("co")
+        packages["defaults"]["co"] = "liaison"
+        packages["roles"]["liaison"]["mcp"]["bound"].remove("guidance_request")
+        with patch("devtools.role_packages._catalog", return_value=packages):
+            self.assertEqual({"work_context", "work_report", "onboard", "skill_read", "direct", "monitor"},
+                             {row["name"] for row in api.tools()})
+            with self.assertRaisesRegex(ValueError, "not available"):
+                api.call("work_report", {"text": "Unbound aliased CO"})
 
     def test_role_change_restricts_hooks_and_mcp_calls_before_service_effects(self):
         api = API(self.state, "coder")

@@ -11,7 +11,7 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 | --- | --- |
 | `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
 | `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with checked discovery, an execution/skip census and the ten slowest tests listed in the log. |
-| `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
+| `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated kernel test through `work_check`, checking the test environment and test service container. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
 | `serena` | Build the provider image from the pinned Serena source and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
 | `lane` | Requires successful selection and every selected job to succeed. Accepts a skipped job only when the selector explicitly excluded it. |
@@ -56,7 +56,9 @@ comparisons run everything. A selector failure, missing output, or failed,
 cancelled or unexpectedly skipped selected job makes `lane` fail.
 
 Maker/Mate still installs the locked PHP development dependencies to exercise
-the actual tools. Its fixture configures only the generated test as a check;
+the actual tools. Its fixture configures only the generated kernel test as a check,
+with PHP's environment variables enabled (`variables_order=EGPCS`) so a forced
+application environment cannot be hidden by the interpreter's defaults;
 normal agents retain their default container, YAML and application test checks.
 The product workflow can also be invoked manually on its own.
 

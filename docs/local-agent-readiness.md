@@ -217,6 +217,12 @@ and `verify` retain evidence, `co` launches real authenticated clients, and `sto
 stops that run's agents while preserving its files and remote branches. Only the
 frozen verifier's actual product, gate and delivery evidence establishes acceptance.
 
+Runtime fixes require a new run with the reviewed revision. Preserve the old run
+and stop its agents with `stop`; editing its recorded runtime or protected test
+setup invalidates the frozen evidence. A failed test run can also leave fixture
+database changes behind when it boots without the test environment's transaction
+support, so retrying that workspace is not a clean baseline.
+
 ### Team setup without the fixture helper
 
 These terminal commands are for the operator. Participating agents use MCP. Start

@@ -98,7 +98,10 @@ class Development:
             for k, v in os.environ.items()
             if k in {"PATH", "HOME", "LANG", "TMPDIR", "COMPOSER_HOME", "COMPOSER_CACHE_DIR"}
         }
-        env.update(APP_ENV="dev", APP_DEBUG="1", COMPOSER_NO_INTERACTION="1")
+        # Let the project's bootstrap and test configuration select APP_ENV and
+        # APP_DEBUG. Forcing dev here can override PHPUnit's server variables
+        # through Symfony's preferred $_ENV values and disable test isolation.
+        env["COMPOSER_NO_INTERACTION"] = "1"
         php = Path(self.config.get("php", "php"))
         if php.is_absolute():
             env["PATH"] = str(php.parent) + os.pathsep + env.get("PATH", "")

@@ -420,13 +420,17 @@ class API:
     def tools(self):
         if self.operator:
             return OPERATOR_TOOLS
-        return self._tools(self.control.current())
+        return self._tools(self.control.current(), discovery=True)
 
-    def _tools(self, scope):
+    def _tools(self, scope, *, discovery=False):
         role = self.commands.role(scope)
         package = role_package(role) if role else None
         groups = package["mcp"] if package else {}
-        allowed = set(groups.get("bound", [])) if scope else {"work_context"}
+        # Appointed CO starts unbound. Native clients may cache this first list
+        # without honoring list_changed after direct binds its work. Advertise
+        # its configured reporting tools now; call() still checks actual scope.
+        bound_tools = scope or discovery and role and adapter(role) == "co"
+        allowed = set(groups.get("bound", [])) if bound_tools else {"work_context"}
         if role:
             allowed |= set(groups["session"]) | set(groups["command"])
         if scope and adapter(role) != "co" and advice_configured(self.store, role=role, job=scope["job"]):
