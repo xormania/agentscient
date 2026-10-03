@@ -271,8 +271,10 @@ provides the same effective-settings inspection; agents do not select policies.
 CO's `roll_call` reuses `doctor --startup` in a bounded child process before the
 initial XO launch. This mode checks configured project, Symfony and Serena
 capabilities; teams without them do not acquire those prerequisites. It performs
-no online GitHub/Jev authentication request. Timeout stops and reaps the probe
-process group, then retains the failure. Initial standby reserves ordinary
+no online GitHub/Jev authentication request. Timeout kills the probe process
+group and gives the worker at most one second to exit. Detached descendants
+cannot hold the response open; their termination is not certified. The failure
+is retained. Initial standby reserves ordinary
 collaborator capacity and grants only readiness tools; it is separate from work
 bindings. The existing MCP lifecycle watcher launches it and expires missing
 acknowledgements. Keep CO's MCP connection active during the check.

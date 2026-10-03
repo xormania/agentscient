@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -9,6 +10,40 @@ from support import until
 
 from devtools.api import API
 from devtools.control import Control
+
+
+class ReadinessContextTests(ControlFixture, unittest.TestCase):
+    def test_live_context_excludes_obsolete_ready_but_explicit_history_is_marked(self):
+        from devtools import duty, processes
+
+        with self.store.connect() as db:
+            db.execute("UPDATE members SET harness='codex' WHERE name='coder'")
+        generation = self.store.begin_session("coder", os.getpid())
+        processes.register(self.store, "coder", generation, os.getpid())
+        self.store.session("coder", generation=generation, native_id="fixture-native", state="idle")
+        child, parent = API(self.state, "coder"), API(self.state, "xo")
+        onboard = child.call("onboard", {})
+        ready = child.call("readiness_report", {
+            "challenge": onboard["readiness"]["challenge"], "onboarding_revision": onboard["revision"],
+        })
+        ordinary = self.store.send("coder", "xo", "Ordinary retained report", key="ordinary",
+                                   work_order=self.order, job=self.job)
+        self.assertIn(ready["receipt"], [row["reference"] for row in parent.call("work_context", {})["incoming"]])
+        self.assertTrue(parent.call("work_context", {"reference": ready["receipt"]})["readiness_current"])
+
+        # No watcher tick: every live read must derive freshness itself.
+        self.store.session("coder", generation=generation, state="stopped", desired="stopped", pid=None)
+        for arguments, field in (({}, "incoming"), ({"section": "messages"}, "messages")):
+            visible = [row["reference"] for row in parent.call("work_context", arguments)[field]]
+            self.assertNotIn(ready["receipt"], visible)
+            self.assertIn("message:" + str(ordinary["id"]), visible)
+        historical = parent.call("work_context", {"reference": ready["receipt"]})
+        self.assertFalse(historical["readiness_current"])
+        self.assertIn("startup checks passed", historical["text"])
+        duty.tick(self.store)
+        messages = parent.call("work_context", {"section": "messages"})["messages"]
+        self.assertTrue(any("unable to report ready" in row["text"] for row in messages))
+        self.assertNotIn(ready["receipt"], [row["reference"] for row in messages])
 
 
 class ControlTests(ControlFixture, unittest.TestCase):

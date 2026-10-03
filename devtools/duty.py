@@ -123,23 +123,38 @@ def _finish(store, db, row, status, checks):
     return row
 
 
+def _status_in(store, db, row):
+    """Derive current readiness once for retained updates and read-only views."""
+    from .processes import registered_alive
+
+    session = db.execute("SELECT generation,state,desired,pid FROM members WHERE name=?", (row["member"],)).fetchone()
+    if not session or session["generation"] != row["generation"] or not _parent_current(db, row, store):
+        return "superseded"
+    if row["status"] in {"starting", "ready"}:
+        alive = registered_alive(store, row["member"], row["generation"], session["pid"])
+        if (session["desired"] != "running" or session["state"] in {"stopped", "failed"}
+                or alive is False or row["status"] == "ready" and alive is not True):
+            return "blocked"
+    if row["status"] == "starting" and time.time() >= row["deadline"]:
+        return "timed_out"
+    return row["status"]
+
+
 def _refresh(store, db, row):
     if not row:
         return None
-    session = db.execute("SELECT generation,state,desired FROM members WHERE name=?", (row["member"],)).fetchone()
-    scope = _scope(db, row["member"])
-    if (not session or session["generation"] != row["generation"] or not scope or _identity(scope) != row["binding"]
-            or not _parent_current(db, row, store)):
+    status = _status_in(store, db, row)
+    if status == "superseded":
         if row["status"] in {"starting", "ready"}:
             db.execute("UPDATE duty_readiness SET status='superseded',updated=? WHERE id=?", (stamp(), row["id"]))
             db.execute("UPDATE messages SET delivery='superseded' WHERE id IN (?,?) AND delivery='queued'",
                        (row["challenge_message"], row["receipt_message"]))
             row = {**row, "status": "superseded"}
         return row
-    if row["status"] in {"starting", "ready"} and (session["desired"] != "running" or session["state"] in {"stopped", "failed"}):
+    if status == "blocked" and row["status"] != status:
         return _finish(store, db, row, "blocked", json.loads(row["checks"]) + [
             {"name": "session", "status": "failed", "detail": "Native session stopped before current readiness could be established or retained."}])
-    if row["status"] == "starting" and time.time() >= row["deadline"]:
+    if status == "timed_out" and row["status"] != status:
         return _finish(store, db, row, "timed_out", [
             {"name": "acknowledgement", "status": "failed", "detail": "No complete startup acknowledgement before the deadline."}])
     return row
@@ -151,14 +166,7 @@ def snapshot_in(store, db, member):
     row = _latest(db, member)
     if not row:
         return None
-    session = db.execute("SELECT generation,state,desired FROM members WHERE name=?", (member,)).fetchone()
-    status = row["status"]
-    if not session or session["generation"] != row["generation"] or not _parent_current(db, row, store):
-        status = "superseded"
-    elif status in {"starting", "ready"} and (session["desired"] != "running" or session["state"] in {"stopped", "failed"}):
-        status = "blocked"
-    elif status == "starting" and time.time() >= row["deadline"]:
-        status = "timed_out"
+    status = _status_in(store, db, row)
     if status != row["status"]:
         row = {**row, "status": status, "receipt_message": None,
                "checks": canonical([{ "name": "current_session", "status": "failed",
@@ -206,6 +214,7 @@ def onboard(api, value):
 
 
 def _checks(api, scope, session):
+    from .processes import registered_alive
     from .role_packages import role
 
     package = role(scope["role"])
@@ -215,7 +224,9 @@ def _checks(api, scope, session):
         checks.append({"name": name, "status": "passed" if condition else "failed", "detail": detail})
 
     check("native_session", bool(session["native_id"] and session["desired"] == "running" and
-                                 session["state"] in {"starting", "idle", "active"}), "Current native session identity and live process state.")
+                                 session["state"] in {"starting", "idle", "active"} and
+                                 registered_alive(api.store, api.member, session["generation"], session["pid"]) is True),
+          "Current native session identity and live process state.")
     check("harness", session["harness"] in package["runtime"]["harnesses"],
           "Current harness is permitted by the configured role package.")
     check("workspace", Path(session["workspace"]).is_dir(), "Configured workspace exists; product behavior is not exercised.")
@@ -272,8 +283,7 @@ def permitted_message_in(db, member, store):
         "WHERE (d.member=? OR d.parent=?) AND d.status!='superseded'", (member, member)
     ):
         row = dict(source)
-        session = db.execute("SELECT generation FROM members WHERE name=?", (row["member"],)).fetchone()
-        if not session or session["generation"] != row["generation"] or not _parent_current(db, row, store):
+        if not _parent_current(db, row, store):
             continue
         if row["member"] == member and row["status"] == "starting" and time.time() < row["deadline"]:
             identifiers.append(row["challenge_message"])

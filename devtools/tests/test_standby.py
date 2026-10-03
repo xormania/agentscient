@@ -1,5 +1,7 @@
 import json
 import os
+import subprocess
+import sys
 import time
 import unittest
 from unittest.mock import patch
@@ -7,7 +9,7 @@ from unittest.mock import patch
 from fixtures.commands import GOAL
 from fixtures.runtime import RuntimeFixture
 
-from devtools import duty, standby
+from devtools import duty, processes, standby
 from devtools.api import API
 from devtools.launch import configuration, start
 from devtools.runtime import allocate
@@ -150,10 +152,54 @@ class StandbyTests(RuntimeFixture, unittest.TestCase):
         member = self.request()["xo"]["member"]
         with self.store.connect() as db:
             db.execute("UPDATE standby_bindings SET deadline=? WHERE member=?", (time.time() - 1, member))
+        self.assertEqual("timed_out", standby.status(self.co)["state"])
         with patch("devtools.launch.start", side_effect=AssertionError("Must not launch")):
             standby.tick(self.store)
         self.assertEqual(0, self.scope(member)["launch_pending"])
         self.assertEqual("stopped", self.store.member(member)["desired"])
+        self.assertEqual("timed_out", standby.status(self.co)["state"])
+
+    def test_abrupt_supervisor_death_invalidates_ready_and_new_roll_call_retries(self):
+        member = self.request()["xo"]["member"]
+        before = self.scope(member)
+        process = subprocess.Popen([sys.executable, "-c", "import signal; signal.pause()"])
+        try:
+            generation = self.store.begin_session(member, process.pid, standby_revision=before["revision"])
+            registered = processes.register(self.store, member, generation, process.pid)
+            self.assertIsNotNone(registered)
+            self.store.session(member, generation=generation, state="idle", native_id="standby-native")
+            xo = API(self.state, member)
+            onboard = xo.call("onboard", {})
+            result = xo.call("readiness_report", {key: onboard["readiness"][key]
+                             for key in ("challenge", "onboarding_revision")})
+            self.assertEqual("ready", result["status"])
+            # A reused PID must not make a previous birth identity look live.
+            with patch("devtools.processes.identity", return_value={**registered, "start": "different-birth"}):
+                with self.store.connect() as db:
+                    self.assertEqual("blocked", duty.snapshot_in(self.store, db, member)["status"])
+            process.kill()
+            process.wait(timeout=5)
+            # No graceful session update or watcher tick occurs between death
+            # and these reads. The receipt and queued delivery must be current.
+            self.assertIsNone(self.store.take_delivery("owner", scoped=True))
+            self.assertEqual("blocked", standby.status(self.co)["state"])
+            retried = self.request()
+            self.assertEqual("starting", retried["state"])
+            self.assertEqual(member, retried["xo"]["member"])
+            revision = self.scope(member)["revision"]
+            self.assertGreater(revision, before["revision"])
+            self.assertEqual("stopped", self.store.member(member)["desired"])
+            with patch("devtools.readiness.startup_preflight") as preflight:
+                standby.start(self.co)
+            preflight.assert_not_called()
+            self.assertEqual(revision, self.scope(member)["revision"])
+            with patch("devtools.launch.start") as launch:
+                standby.tick(self.store)
+            launch.assert_called_once_with(self.state, member, standby_revision=revision)
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=5)
 
     def test_expired_native_handshake_stops_standby_and_can_be_retried(self):
         member = self.request()["xo"]["member"]

@@ -1,11 +1,16 @@
 """The initial roll call reuses doctor under one bounded child-process budget."""
 
 import json
+import os
+import select
+import signal
+import subprocess
 import time
 import unittest
 from unittest.mock import patch
 
 from fixtures.commands import CommandFixture
+from support import until
 
 from devtools.readiness import doctor, startup_preflight
 
@@ -38,17 +43,67 @@ class StartupPreflightTests(CommandFixture, unittest.TestCase):
                 self.assertEqual("blocked", result["status"])
                 self.assertIn("valid bounded result", result["checks"][0]["detail"])
 
-    def test_deadline_kills_probe_descendants_and_reaps_the_worker(self):
-        # The descendant inherits stdout. communicate() cannot finish until
-        # both it and the parent close that pipe, proving group cleanup.
-        with self.script("import subprocess,sys,time\n"
-                         "subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'])\n"
-                         "time.sleep(30)\n"):
+    def timeout_probe(self, *, detached):
+        pid_file = self.root / "probe.pid"
+        source = ("import subprocess,sys,time\nfrom pathlib import Path\n"
+                  "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)'],start_new_session="
+                  + repr(detached) + ")\n"
+                  "Path(" + repr(str(pid_file)) + ").write_text(str(child.pid))\n"
+                  "time.sleep(30)\n")
+        launch = subprocess.Popen
+        worker = pidfd = started = None
+
+        def synchronized_launch(*args, **kwargs):
+            nonlocal worker, pidfd, started
+            worker = launch(*args, **kwargs)
+            # Begin the short timeout only after the fixture owns its child.
+            # Slow CI scheduling must not turn this into a startup-speed test.
+            until(lambda: pid_file.is_file() and pid_file.read_text().isdigit())
+            pidfd = os.pidfd_open(int(pid_file.read_text()))
             started = time.monotonic()
-            result = startup_preflight(self.state, 0.2)
-            self.assertLess(time.monotonic() - started, 3)
-            self.assertEqual("blocked", result["status"])
-            self.assertIn("exceeded", result["checks"][0]["detail"])
+            return worker
+
+        try:
+            with self.script(source), patch("devtools.readiness.subprocess.Popen", side_effect=synchronized_launch):
+                result = startup_preflight(self.state, 0.2)
+            elapsed = time.monotonic() - started
+            child_dead = bool(select.select([pidfd], [], [], 0 if detached else 3)[0])
+            return result, elapsed, child_dead, worker.returncode
+        finally:
+            if worker is not None:
+                if worker.poll() is None:
+                    os.killpg(worker.pid, signal.SIGKILL)
+                worker.wait(timeout=3)
+            if pidfd is None and pid_file.is_file() and pid_file.read_text().isdigit():
+                try:
+                    pidfd = os.pidfd_open(int(pid_file.read_text()))
+                except ProcessLookupError:
+                    pass
+            if pidfd is not None:
+                try:
+                    try:
+                        signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    self.assertTrue(select.select([pidfd], [], [], 3)[0])
+                finally:
+                    os.close(pidfd)
+
+    def test_deadline_kills_probe_descendants_and_reaps_the_worker(self):
+        result, elapsed, child_dead, returncode = self.timeout_probe(detached=False)
+        self.assertLess(elapsed, 3)
+        self.assertTrue(child_dead)
+        self.assertEqual(-signal.SIGKILL, returncode)
+        self.assertEqual("blocked", result["status"])
+        self.assertIn("exceeded", result["checks"][0]["detail"])
+
+    def test_detached_probe_cannot_hold_timeout_cleanup_open(self):
+        result, elapsed, child_dead, returncode = self.timeout_probe(detached=True)
+        self.assertLess(elapsed, 3)
+        self.assertFalse(child_dead)
+        self.assertEqual(-signal.SIGKILL, returncode)
+        self.assertEqual("blocked", result["status"])
+        self.assertIn("worker was stopped", result["checks"][0]["detail"])
 
     def test_invalid_budget_does_not_start_a_process(self):
         with patch("devtools.readiness.subprocess.Popen") as launch:

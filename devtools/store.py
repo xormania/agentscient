@@ -15,7 +15,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 
 
 def stamp():
@@ -158,8 +158,10 @@ class Store(State):
                 member TEXT PRIMARY KEY REFERENCES members(name), role TEXT NOT NULL,
                 reports_to TEXT NOT NULL UNIQUE REFERENCES members(name), revision INTEGER NOT NULL,
                 launch_pending INTEGER NOT NULL DEFAULT 1, launch_error TEXT,
-                runtime TEXT NOT NULL, preflight TEXT NOT NULL DEFAULT '{}', deadline REAL NOT NULL,
+                preflight TEXT NOT NULL DEFAULT '{}', deadline REAL NOT NULL,
                 created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            if "runtime" in {row[1] for row in db.execute("PRAGMA table_info(standby_bindings)")}:
+                db.execute("ALTER TABLE standby_bindings DROP COLUMN runtime")
             db.execute("""CREATE TABLE IF NOT EXISTS duty_readiness (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
                 parent TEXT REFERENCES members(name), role TEXT NOT NULL, generation TEXT NOT NULL,
@@ -609,13 +611,9 @@ class Store(State):
                     return None
             clause, args = "1", ()
             if scoped:
-                from .control import binding, scope_sql
+                from .control import binding, message_sql
 
-                clause, args = scope_sql(binding(db, member))
-                from .duty import permitted_message_in
-
-                duty_clause, duty_args = permitted_message_in(db, member, self)
-                clause, args = "(" + clause + " AND category!='readiness') OR (" + duty_clause + ")", (*args, *duty_args)
+                clause, args = message_sql(self, db, member, binding(db, member))
             row = db.execute(
                 "SELECT * FROM messages WHERE recipient=? AND delivery='queued' AND acknowledged IS NULL AND "
                 + "(" + clause + ")"

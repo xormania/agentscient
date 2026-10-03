@@ -10,6 +10,7 @@ from unittest.mock import patch
 from fixtures.commands import GOAL
 from support import Client, adopt_plan, initialize, require_tmux, retain_native, terminal_team, until
 
+from devtools import processes
 from devtools.api import API
 from devtools.control import Control
 from devtools.store import Store
@@ -63,6 +64,7 @@ class ReadinessMCPTests(unittest.TestCase):
         with self.store.connect() as db:
             db.execute("UPDATE standby_bindings SET launch_pending=0")
         first = self.store.begin_session("chief", os.getpid())
+        processes.register(self.store, "chief", first, os.getpid())
         self.store.session("chief", generation=first, state="idle", native_id="fixture-first")
         co = self.client("owner")
         xo = self.client("chief", generation=first)
@@ -87,6 +89,7 @@ class ReadinessMCPTests(unittest.TestCase):
 
         self.store.session("chief", generation=first, state="stopped", desired="stopped", pid=None)
         second = self.store.begin_session("chief", os.getpid())
+        processes.register(self.store, "chief", second, os.getpid())
         self.store.session("chief", generation=second, state="idle", native_id="fixture-second")
         with self.assertRaisesRegex(ValueError, "replaced"):
             report(xo, onboard)
@@ -122,6 +125,7 @@ class ReadinessMCPTests(unittest.TestCase):
             with co.store.connect() as db:
                 db.execute("UPDATE member_bindings SET launch_pending=0")
             generation = co.store.begin_session("worker", os.getpid())
+            processes.register(co.store, "worker", generation, os.getpid())
             co.store.session("worker", generation=generation, state="idle", native_id="fixture-nco-specialist")
             parent, worker = Client(state, "coordinator"), Client(state, "worker", generation=generation)
             try:

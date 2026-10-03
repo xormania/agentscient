@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from fixtures.control import ControlFixture
 
-from devtools import duty
+from devtools import duty, processes
 from devtools.api import API
 from devtools.role_packages import catalog
 
@@ -18,6 +18,7 @@ class DutyTests(unittest.TestCase):
         with self.store.connect() as db:
             db.execute("UPDATE members SET harness='codex' WHERE name=?", (member,))
         generation = self.store.begin_session(member, os.getpid())
+        processes.register(self.store, member, generation, os.getpid())
         self.store.session(member, generation=generation, native_id="fixture-native" if native else None, state="idle")
         return API(self.state, member), generation
 
@@ -122,6 +123,20 @@ class DutyTests(unittest.TestCase):
         self.store.session("coder", generation=generation, state="starting")
         self.assertEqual("ready", self.report(api)["status"])
 
+    def test_missing_process_registration_cannot_establish_or_retain_ready(self):
+        api, _ = self.start()
+        onboard = api.call("onboard", {})
+        with patch("devtools.processes.registered_alive", return_value=None):
+            self.assertEqual("starting", duty.current(self.store, "coder")["status"])
+            result = self.report(api, onboard)
+            self.assertEqual("blocked", result["status"])
+            self.assertEqual(["native_session"], [item["name"] for item in result["checks"] if item["status"] == "failed"])
+        self.store.session("coder", state="stopped", desired="stopped", pid=None)
+        api, _ = self.start()
+        self.assertEqual("ready", self.report(api)["status"])
+        with patch("devtools.processes.registered_alive", return_value=None):
+            self.assertEqual("blocked", duty.current(self.store, "coder")["status"])
+
     def test_obsolete_queued_challenge_is_superseded_on_same_session_rebind(self):
         api, _ = self.start()
         with self.store.connect() as db:
@@ -212,6 +227,37 @@ class DutyTests(unittest.TestCase):
             self.assertEqual("blocked", duty.snapshot_in(self.store, db, "coder")["status"])
             self.assertEqual("ready", db.execute("SELECT status FROM duty_readiness WHERE member='coder'").fetchone()[0])
 
+    def test_live_snapshots_and_retained_updates_agree_on_lifecycle_changes(self):
+        def observed(expected):
+            with self.store.connect() as db:
+                self.assertEqual(expected, duty.snapshot_in(self.store, db, "coder")["status"])
+            duty.tick(self.store)
+            with self.store.connect() as db:
+                self.assertEqual(expected, duty.snapshot_in(self.store, db, "coder")["status"])
+                self.assertEqual(expected, db.execute(
+                    "SELECT status FROM duty_readiness WHERE member='coder' ORDER BY id DESC LIMIT 1"
+                ).fetchone()[0])
+
+        api, first = self.start()
+        observed("starting")
+        self.report(api)
+        observed("ready")
+        self.store.session("coder", generation=first, state="stopped", desired="stopped", pid=None)
+        observed("blocked")
+
+        api, second = self.start()
+        observed("starting")
+        with self.store.connect() as db:
+            db.execute("UPDATE duty_readiness SET deadline=0 WHERE member='coder' AND generation=?", (second,))
+        observed("timed_out")
+
+        self.store.session("coder", generation=second, state="stopped", desired="stopped", pid=None)
+        api, _ = self.start()
+        api.control.bind("coder", "research", self.order, self.job, "xo", "Changed assignment")
+        observed("superseded")
+        self.assertEqual("starting", duty.current(self.store, "coder")["status"])
+        observed("starting")
+
     def test_standby_rebind_during_onboarding_cannot_certify_stale_context(self):
         team_path = self.state / "team.json"
         team = json.loads(team_path.read_text())
@@ -221,8 +267,8 @@ class DutyTests(unittest.TestCase):
                 item["harness"] = "codex"
         team_path.write_text(json.dumps(team))
         with self.store.connect() as db:
-            db.execute("INSERT INTO standby_bindings(member,role,reports_to,revision,runtime,deadline,created,updated) "
-                       "VALUES ('idle','xo','owner',1,'{}',?,'now','now')", (time.time() + 30,))
+            db.execute("INSERT INTO standby_bindings(member,role,reports_to,revision,deadline,created,updated) "
+                       "VALUES ('idle','xo','owner',1,?,'now','now')", (time.time() + 30,))
         api, _ = self.start("idle")
         invoke = api.invoke
 

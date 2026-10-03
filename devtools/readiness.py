@@ -122,8 +122,14 @@ def startup_preflight(directory, timeout):
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
-        process.communicate()
-        return blocked("Startup preflight exceeded its time budget; its probe processes were stopped")
+        # A probe may have detached from this process group while retaining
+        # stdout. Do not wait for that detached pipe writer to close it.
+        process.stdout.close()
+        try:
+            process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            return blocked("Startup preflight exceeded its time budget; its worker did not exit within the cleanup budget")
+        return blocked("Startup preflight exceeded its time budget; its worker was stopped")
     if process.returncode not in {0, 2} or len(output) > 1024 * 1024:
         return blocked("Startup preflight did not return a valid bounded result")
     try:

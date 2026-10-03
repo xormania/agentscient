@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from devtools.store import State
+from devtools.store import SCHEMA_VERSION, State, Store
 
 
 class StateTests(unittest.TestCase):
@@ -60,6 +60,25 @@ class StateTests(unittest.TestCase):
         with State(self.root).connect() as db:
             self.assertEqual([1], [row[0] for row in db.execute("SELECT id FROM parent")])
             self.assertEqual([], list(db.execute("SELECT * FROM child")))
+
+    def test_upgrade_removes_unused_standby_runtime_without_losing_launch_intent(self):
+        from support import initialize
+
+        workspace, state = self.root / "workspace", self.root / "state"
+        workspace.mkdir()
+        initialize(state, workspace, ["owner:external", "worker:codex"], co="owner")
+        store = Store(state)
+        with store.connect() as db:
+            db.execute("ALTER TABLE standby_bindings ADD COLUMN runtime TEXT NOT NULL DEFAULT '{}'")
+            db.execute("INSERT INTO standby_bindings(member,role,reports_to,revision,deadline,created,updated) "
+                       "VALUES ('worker','xo','owner',1,9999999999,'created','updated')")
+            before = dict(db.execute("SELECT * FROM standby_bindings").fetchone())
+            del before["runtime"]
+            db.execute("PRAGMA user_version=16")
+        with Store(state).connect() as db:
+            self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(before, dict(db.execute("SELECT * FROM standby_bindings").fetchone()))
+            self.assertNotIn("runtime", {row[1] for row in db.execute("PRAGMA table_info(standby_bindings)")})
 
 
 if __name__ == "__main__":

@@ -133,6 +133,8 @@ current readiness. The default deadline is 30 seconds and uses the existing
 project/role/job configuration overlay. Parents see readiness in `monitor` and
 normal messages. Readiness is diagnostic; CO's native controls and existing work
 authority remain in force.
+Live context and message lists exclude obsolete readiness receipts. Explicit
+references retain work-scoped history and mark its `readiness_current` status.
 
 When `direct` supplies the real work, the service retires standby and starts XO
 in the actual workspace with the work-specific runtime and tools. This requires

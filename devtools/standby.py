@@ -115,16 +115,23 @@ def start(api):
 
 def _reserve(api, db, config):
     from .configuration import resolve
+    from .processes import registered_alive
 
     scope = _xo(api, db)
     if scope and not scope.get("standby"):
         return None
     if scope:
         session = db.execute("SELECT * FROM members WHERE name=?", (scope["member"],)).fetchone()
-        if scope["launch_pending"] or session["desired"] == "running" or (
+        dead = (session["desired"] == "running" and
+                registered_alive(api.store, scope["member"], session["generation"], session["pid"]) is False)
+        if not dead and (scope["launch_pending"] or session["desired"] == "running" or (
             not scope["launch_error"] and time.time() < scope["deadline"]
-        ):
+        )):
             return None
+        if dead:
+            # Launch's existing stop path reaps any registered descendants before
+            # replacing the dead supervisor; never signal an unverified raw PID.
+            db.execute("UPDATE members SET desired='stopped',updated=? WHERE name=?", (stamp(), scope["member"]))
         slot = api.commands._slot(db, config, existing=scope, role=scope["role"])
     else:
         available = config if config.get("runtime") else {
@@ -139,10 +146,10 @@ def _reserve(api, db, config):
         db.execute("UPDATE messages SET delivery='superseded' WHERE sender=? AND request_key=? AND delivery='queued'",
                    (scope["member"], "standby-failure:" + scope["member"] + ":" + str(scope["revision"])))
     db.execute(
-        "INSERT INTO standby_bindings(member,role,reports_to,revision,launch_pending,runtime,deadline,created,updated) "
-        "VALUES (?,?,?,?,0,?,?,?,?) ON CONFLICT(member) DO UPDATE SET revision=excluded.revision,"
-        "launch_pending=0,launch_error=NULL,runtime=excluded.runtime,preflight='{}',deadline=excluded.deadline,updated=excluded.updated",
-        (slot["name"], xo_role, api.member, revision, canonical(slot), deadline, stamp(), stamp()),
+        "INSERT INTO standby_bindings(member,role,reports_to,revision,launch_pending,deadline,created,updated) "
+        "VALUES (?,?,?,?,0,?,?,?) ON CONFLICT(member) DO UPDATE SET revision=excluded.revision,"
+        "launch_pending=0,launch_error=NULL,preflight='{}',deadline=excluded.deadline,updated=excluded.updated",
+        (slot["name"], xo_role, api.member, revision, deadline, stamp(), stamp()),
     )
     api.store._event(db, api.member, "readiness_requested", {"member": slot["name"], "role": xo_role,
                      "revision": revision, "deadline": deadline, "work_order": None, "job": None})
@@ -215,8 +222,12 @@ def tick(store):
             if failed or expired or revoked:
                 detail = ("The standby CO appointment was revoked." if revoked else
                           "XO startup readiness " + (receipt["status"] if receipt else "timed_out") + ".")
+                # The retained deadline already represents a pre-launch timeout.
+                # Keep launch_error for an actual failure, so status remains
+                # timed_out after this lifecycle tick as well as before it.
+                error = row["launch_error"] or (detail if failed or revoked else None)
                 db.execute("UPDATE standby_bindings SET launch_pending=0,launch_error=?,updated=? WHERE member=?",
-                           (row["launch_error"] or detail, stamp(), row["member"]))
+                           (error, stamp(), row["member"]))
                 db.execute("UPDATE members SET desired='stopped',updated=? WHERE name=?", (stamp(), row["member"]))
                 if not receipt:
                     failure_message_in(store, db, scope, detail)
