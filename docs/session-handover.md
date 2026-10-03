@@ -16,11 +16,11 @@ choose a configured CO profile and override model or reasoning for this launch:
 
 ```sh
 python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live" \
-  --profile claude_fable_xhigh --model YOUR_MODEL --reasoning YOUR_EFFORT
+  --profile codex_astra_xhigh --model YOUR_MODEL --reasoning YOUR_EFFORT
 ```
 
 Profile names come from `roles.json`; the maintained CO profiles are
-`claude_fable_xhigh`, `codex_sol_xhigh` and `grok_high`.
+`codex_astra_xhigh`, `codex_sol_xhigh` and `grok_high`.
 An explicit profile must belong to CO's preference list and have an available
 vendor and executable. A disabled explicit choice fails instead of silently
 launching a different vendor. Model and effort values must be supported by the

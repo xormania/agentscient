@@ -46,8 +46,8 @@ The maintained initial choices are:
 
 | Role | Preferred profile | Model | Effort |
 | --- | --- | --- | --- |
-| CO, XO | `claude_fable_xhigh` | `claude-fable-5-1` | `xhigh` |
-| NCO | `claude_fable_high` | `claude-fable-5-1` | `high` |
+| CO, XO | `codex_astra_xhigh` | `gpt-6-astra` | `xhigh` |
+| NCO | `codex_astra_high` | `gpt-6-astra` | `high` |
 | Planner, Test Writer | `codex_sol_xhigh` | `gpt-6.1-sol` | `xhigh` |
 | Architect, Coder | `claude_opus_xhigh` | `claude-opus-5-5` | `xhigh` |
 | Research | `codex_astra_max` | `gpt-6-astra` | `max` |
@@ -58,8 +58,8 @@ The maintained initial choices are:
 | Docs | `claude_sonnet_high` | `claude-sonnet-5-5` | `high` |
 
 CO keeps ordered alternatives `codex_sol_xhigh` and `grok_high` after its preferred
-Claude profile, so all three native interfaces remain selectable through the same
-launcher, for example `co --profile codex_sol_xhigh`. Specialists initially have
+Astra profile. All three profiles remain selectable through the same launcher,
+for example `co --profile codex_sol_xhigh`. Specialists initially have
 one selected profile each; add explicit alternatives to private policy when needed.
 With selection enabled, Jev selects among eligible alternatives for the actual
 assignment. XO receives the same selection before launch once its work order is
@@ -81,8 +81,7 @@ Codex receives `model` and `model_reasoning_effort` through its CLI or app-serve
 maintained Codex profiles also set `provider: "openai"` so an inherited alternate
 provider cannot redirect the selected OpenAI model. Claude Code and Grok Build
 receive `--model` and `--effort`. Use Claude Code
-v2.1.284 or newer for this lineup. Fable on Claude Pro consumes usage credits;
-check your plan's access and limits. Daybreak Blue is a moving alias requiring
+v2.1.284 or newer for this lineup. Daybreak Blue is a moving alias requiring
 approved access on the selected account/surface. Verify its available effort and
 resolved model locally. A successful policy load or `doctor` check is not proof of
 authenticated model access. CLI/protocol fixtures verify setting propagation;
