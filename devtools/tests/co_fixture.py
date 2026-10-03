@@ -10,6 +10,9 @@ import tomllib
 from pathlib import Path
 
 args = sys.argv[1:]
+if args == ["--version"]:
+    print("codex-cli 0.122.0")
+    raise SystemExit(0)
 if args[:1] == ["mcp"]:
     from grok_mcp_fixture import main
 

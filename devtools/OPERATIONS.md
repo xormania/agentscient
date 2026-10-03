@@ -918,6 +918,21 @@ and quit controls pass through the relay; closing its input terminates the child
 session and restores the terminal. This console behavior does not alter Claude,
 Codex or Grok profiles used by managed collaborators.
 
+The Codex CO connection sets
+`mcp_servers.agentscient_dev.default_tools_approval_mode = "approve"` for its
+role-bound tools. CO requires Codex CLI 0.122.0 or newer, which introduced this
+setting. Both doctor and CO profile preparation check the configured binary's
+`--version`; unsupported or unrecognized versions fail with an upgrade instruction
+before the setting is injected. Managed workers retain their existing protocol
+requirements. This avoids a native MCP approval deadlock when the operator's
+global `approval_policy` is `never`. It does not change the global approval or
+sandbox policy, unrelated MCP servers, or server-side authority. Explicit native
+`mcp_servers.agentscient_dev.tools.<tool>.approval_mode` settings still take
+precedence; choose an approval-capable mode through `/permissions` when using
+`prompt` for one of these tools. This launch default overrides a native
+server-wide default for `agentscient_dev`. See the
+[Codex configuration reference](https://developers.openai.com/codex/config-reference).
+
 `co --brief-file PATH` submits a UTF-8 file as initial user input while keeping
 the interactive session and native controls. The file must be nonblank, contain
 no NUL characters and be at most 64 KiB. Omit the option when reopening retained

@@ -244,6 +244,10 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
     package = role_package(scope["role"]) if scope else None
     if package and (adapter_name or harness) not in package["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
+    if operator and harness == "codex":
+        from .compat import require_codex_mcp_approval
+
+        require_codex_mcp_approval(config["binary"])
     generation = store.member(member)["generation"]
     private = directory / "profiles" / member
     if generation:
@@ -291,8 +295,12 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
         write_json(private / "mcp.json", {"mcpServers": servers})
     elif harness == "codex":
         if operator:
-            # Native home, settings layers, login storage and permission policy
-            # belong to the operator. Only add our MCP server and observers.
+            # Native home, settings layers, login storage and global permissions
+            # belong to the operator. Approve our role-bound MCP surface by
+            # default so native approval_policy=never does not deadlock writes.
+            # Native per-tool overrides still take precedence over this default;
+            # server-side role/work/generation checks remain authoritative.
+            server["default_tools_approval_mode"] = "approve"
             write_json(private / "observer-hooks.json", groups)
             return private, env, server
         original = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))

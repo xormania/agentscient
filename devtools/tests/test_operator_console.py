@@ -3,8 +3,10 @@
 import copy
 import json
 import os
+import sys
 import tomllib
 import unittest
+from itertools import product
 from unittest.mock import patch
 
 from fixtures.native_boundaries import NativeBoundaryFixture
@@ -23,10 +25,34 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         self.team = json.loads(self.team_file.read_text())
         self.team["co"] = "owner"
         self.team_file.write_text(json.dumps(self.team))
+        self.codex_binary = self.root / "codex-fixture"
+        self.codex_version("codex-cli 0.122.0")
+
+    def codex_version(self, output, exit_code=0):
+        self.codex_binary.write_text(
+            f"#!{sys.executable}\nimport sys\n"
+            "assert sys.argv[1:] == ['--version']\n"
+            f"print({output!r})\nraise SystemExit({exit_code})\n"
+        )
+        self.codex_binary.chmod(0o700)
 
     def config(self, harness):
-        return {"binary": "fixture", "workspace": str(self.workspace), "harness": harness,
+        return {"binary": str(self.codex_binary) if harness == "codex" else "fixture",
+                "workspace": str(self.workspace), "harness": harness,
                 "model": "initial-model", "reasoning": "high", "operator_console": True}
+
+    def test_unsupported_codex_is_rejected_before_operator_profile_is_written(self):
+        for output, code in (("codex-cli 0.121.0", 0), ("codex-cli 0.122.0-alpha.1", 0),
+                             ("unknown-client 9.9.9", 0), ("codex-cli 0.122.0", 1)):
+            with self.subTest(output=output, exit_code=code):
+                self.codex_version(output, code)
+                with self.assertRaisesRegex(ValueError, "Codex CLI 0.122.0 or newer"):
+                    prepare(self.directory, "owner", "codex", config=self.config("codex"))
+                self.assertFalse((self.directory / "profiles").exists())
+        # Workers keep their existing protocol checks; the CO version gate
+        # must not prevent creation of a managed profile on the same binary.
+        _, _, server = prepare(self.directory, "worker", "codex", config={"binary": str(self.codex_binary)})
+        self.assertNotIn("default_tools_approval_mode", server)
 
     def test_claude_owner_keeps_native_controls_and_observes_without_tool_denial(self):
         config = self.config("claude")
@@ -61,7 +87,8 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
                     'sandbox_mode = "workspace-write"\n'
                     'approval_policy = "never"\n'
                     'developer_instructions = "Owner instructions"\n'
-                    'mcp_servers = { personal = { command = "personal-server" } }\n')
+                    'mcp_servers.personal.command = "personal-server"\n'
+                    'mcp_servers.agentscient_dev.tools.direct.approval_mode = "prompt"\n')
         (original / "config.toml").write_text(settings)
         config = self.config("codex") | {"provider": "chosen-provider"}
         private, environment, server = prepare(self.directory, "owner", "codex", config=config)
@@ -75,6 +102,10 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         self.assertTrue(any(row.startswith("mcp_servers.agentscient_dev=") for row in overrides))
         self.assertFalse(any(row.startswith("mcp_servers=") for row in overrides))
         self.assertEqual(server, options["mcp_servers"]["agentscient_dev"])
+        self.assertEqual("approve", server["default_tools_approval_mode"])
+        # Leave explicit native per-tool policies available to Codex's config merge.
+        self.assertNotIn("tools", options["mcp_servers"]["agentscient_dev"])
+        self.assertEqual({"agentscient_dev"}, set(options["mcp_servers"]))
         self.assertEqual("initial-model", options["model"])
         self.assertEqual("high", options["model_reasoning_effort"])
         self.assertEqual("chosen-provider", options["model_provider"])
@@ -82,6 +113,20 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
             self.assertNotIn(key, options)
         self.assertEqual({"SessionStart", "PostToolUse", "Stop"}, set(options["hooks"]))
         self.assertNotIn("--operator", server["args"])
+
+    def test_codex_mcp_approval_default_is_only_for_operator_console(self):
+        # Managed Codex uses its existing dynamic-tool transport, not CO's TUI
+        # approval default. Nor should a Codex-only field reach Claude or Grok.
+        for harness in ("codex", "claude", "grok"):
+            with self.subTest(harness=harness):
+                worker_private, _, worker_server = prepare(self.directory, "worker", harness)
+                self.assertNotIn("default_tools_approval_mode", worker_server)
+                _, _, owner_server = prepare(self.directory, "owner", harness, config=self.config(harness))
+                if harness == "codex":
+                    self.assertEqual("approve", owner_server["default_tools_approval_mode"])
+                    self.assertEqual({}, tomllib.loads((worker_private / "config.toml").read_text())["mcp_servers"])
+                else:
+                    self.assertNotIn("default_tools_approval_mode", owner_server)
 
     def test_operator_mode_requires_appointed_external_co_before_creating_profiles(self):
         scenarios = (("unappointed", "owner"), ("other-member", "worker"),
@@ -160,19 +205,25 @@ class OperatorConsoleTests(NativeBoundaryFixture, unittest.TestCase):
         packages["roles"]["liaison"] = packages["roles"]["co"]
         packages["defaults"]["co"] = "liaison"
         with patch.object(role_packages, "_catalog", return_value=packages):
-            for bound in (True, False):
-                with self.subTest(bound=bound):
+            for bound, harness in product((True, False), ("claude", "codex", "grok")):
+                with self.subTest(bound=bound, harness=harness):
                     with self.store.connect() as db:
                         if bound:
                             db.execute("UPDATE member_bindings SET role='liaison' WHERE member='owner'")
                         else:
                             db.execute("DELETE FROM member_bindings WHERE member='owner'")
-                    config = self.config("claude") | {"initial_prompt": "Carry this operator brief to XO."}
-                    private, _, server = prepare(self.directory, "owner", "claude", config=config)
+                    config = self.config(harness) | {"initial_prompt": "Carry this operator brief to XO."}
+                    private, _, server = prepare(self.directory, "owner", harness, config=config)
                     argv, _ = command(self.directory, "owner", config, private, server)
                     self.assertNotIn("--disable-slash-commands", argv)
                     self.assertTrue(argv[-1].endswith(config["initial_prompt"]))
-                    self.assertNotIn("PreToolUse", json.loads((private / "settings.json").read_text())["hooks"])
+                    if harness == "claude":
+                        hooks = json.loads((private / "settings.json").read_text())["hooks"]
+                    else:
+                        hooks = json.loads((private / "observer-hooks.json").read_text())
+                    self.assertNotIn("PreToolUse", hooks)
+                    if harness == "codex":
+                        self.assertEqual("approve", server["default_tools_approval_mode"])
 
     def test_runtime_profiles_cannot_enable_internal_operator_mode(self):
         for key, value in (("operator_console", True), ("initial_prompt", "Run this brief.")):

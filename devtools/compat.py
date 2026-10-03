@@ -7,6 +7,28 @@ import tempfile
 from pathlib import Path
 
 
+def require_codex_mcp_approval(binary, probe=None):
+    """Server-level MCP approval defaults first shipped in Codex 0.122.0."""
+    if probe is None:
+        from .readiness import probe
+
+    message = (
+        "Codex CO requires Codex CLI 0.122.0 or newer for "
+        "mcp_servers.default_tools_approval_mode; update the configured Codex binary before launch."
+    )
+    try:
+        output = probe([binary, "--version"])
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise ValueError(message + " Could not verify the installed version.") from None
+    version = re.fullmatch(r"codex-cli (\d+)\.(\d+)\.(\d+)(-[A-Za-z0-9.-]+)?(?:\+[A-Za-z0-9.-]+)?", output.strip())
+    if version is None:
+        raise ValueError(message + " Unrecognized version output.")
+    release = tuple(int(version[index]) for index in (1, 2, 3))
+    if release < (0, 122, 0) or (release == (0, 122, 0) and version[4]):
+        raise ValueError(message)
+    return {"capability": "mcp_servers.default_tools_approval_mode", "version": output.strip().split()[1]}
+
+
 class ClaudeChannelLog:
     """Observe handler registration in this run's fresh native debug log.
 

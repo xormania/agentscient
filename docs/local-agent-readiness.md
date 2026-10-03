@@ -184,6 +184,17 @@ Automatic briefing requires a fixture and runtime that support it. `run` checks
 both before online preparation or branch publication. An older retained run still
 uses its frozen launcher; reopening it with plain `co` does not require briefing
 support or a brief file.
+
+If an older frozen Codex run reports `MCP tool call requires approval, but
+approval policy is never`, use its native `/permissions` command to choose a
+mode that can ask for approval, then ask CO to retry the original `direct` call.
+For a run with automatic briefing support, if CO has already exited and no work
+was created (`ready_to_direct`, `work: null`), reopen it with
+`bash devtools/scripts/acceptance.sh co --brief` to submit the retained brief
+again, then select that native permission mode before retrying.
+Do not modify the frozen runtime to repair a retained run. After work exists,
+use plain `co` to recover its context without resending the brief.
+
 If `stop` leaves uncertain queued or running operation records, the default guard
 still blocks replacement; inspect the diagnostics or deliberately choose a new
 `--run-dir` instead of deleting the old state.

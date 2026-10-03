@@ -77,10 +77,12 @@ class ReadinessTests(unittest.TestCase):
         self.assessment_configuration({})
         git(self.checkout, "remote", "set-url", "origin", "https://github.com/example/project.git")
 
-    def preflight(self, *, supported_host=True):
+    def preflight(self, *, supported_host=True, codex_version="codex-cli 0.122.0"):
         def probe(argv, **kwargs):
             if argv[1:3] == ["image", "inspect"]:
                 return json.dumps({"org.opencontainers.image.revision": "b79e2a55f9d4072084977dd35bd07d31146d88b9"})
+            if argv == ["/fixture/codex", "--version"]:
+                return codex_version
             return "Fixture 1.2.3"
 
         with (
@@ -201,6 +203,29 @@ class ReadinessTests(unittest.TestCase):
         self.assertIn("Native TUI", operator["detail"]["protocol"])
         self.assertEqual("failed", checks["codex binary"]["status"])
         self.assertIn("dedicated CODEX_HOME", checks["codex binary"]["detail"])
+
+    def test_codex_co_requires_mcp_approval_support_independently_of_managed_protocol(self):
+        policy = self.dynamic_team()
+        policy["roles"] = {role: ["codex"] for role in policy["roles"]}
+        (self.state / "roles.json").write_text(json.dumps(policy))
+        before = {name: (self.state / name).read_bytes()
+                  for name in ("team.json", "roles.json", "live.sqlite3")}
+        for version, expected in (("codex-cli 0.121.0", "failed"),
+                                  ("codex-cli 0.122.0", "passed"),
+                                  ("codex-cli 0.123.0", "passed"),
+                                  ("unreported", "failed")):
+            with self.subTest(version=version):
+                result = self.preflight(codex_version=version)
+                checks = {item["name"]: item for item in result["checks"]}
+                operator = checks["codex binary (CO operator)"]
+                self.assertEqual(expected, operator["status"], operator)
+                self.assertEqual("passed", checks["codex binary"]["status"])
+                self.assertEqual("blocked" if expected == "failed" else "preflight_passed", result["status"])
+                if expected == "failed":
+                    self.assertIn("0.122.0", operator["detail"])
+                    self.assertIn("default_tools_approval_mode", operator["detail"])
+        self.assertEqual(before, {name: (self.state / name).read_bytes() for name in before})
+        self.assertFalse(Store(self.state).events(kind="launch_requested")["events"])
 
     def test_fixed_team_still_requires_collaborator_slots(self):
         self.configured()
