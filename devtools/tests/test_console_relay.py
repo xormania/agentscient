@@ -22,17 +22,21 @@ MODULE = "devtools.tests.test_console_relay"
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def wait_for_file(path):
+    deadline = time.monotonic() + 5
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Fixture acknowledgment did not arrive: " + path.name)
+        time.sleep(0.01)
+
+
 def native_fixture(report, mode):
     # Raw mode prevents the PTY echo from masquerading as received commands.
     tty.setraw(sys.stdin.fileno())
     if mode == "stubborn-descendant":
         subprocess.Popen([sys.executable, "-m", MODULE, "--descendant-fixture", str(report)],
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        deadline = time.monotonic() + 5
-        while not report.with_suffix(".descendant").exists():
-            if time.monotonic() >= deadline:
-                raise TimeoutError("Descendant did not become ready")
-            time.sleep(0.01)
+        wait_for_file(report.with_suffix(".descendant"))
     if mode == "stubborn-native":
         signal.signal(signal.SIGTERM, lambda *_: report.with_suffix(".term").touch())
     print("NATIVE READY", flush=True)
@@ -49,8 +53,14 @@ def native_fixture(report, mode):
 
 
 def descendant_fixture(report):
+    # Session-leader exit can send SIGHUP before the relay requests shutdown.
+    # Survive it so this fixture always exercises TERM-to-KILL escalation.
+    signal.signal(signal.SIGHUP, lambda *_: report.with_suffix(".hup").touch())
     signal.signal(signal.SIGTERM, lambda *_: report.with_suffix(".term").touch())
-    report.with_suffix(".descendant").write_text(json.dumps(processes.identity(os.getpid())))
+    ready = report.with_suffix(".descendant")
+    temporary = ready.with_suffix(".tmp")
+    temporary.write_text(json.dumps(processes.identity(os.getpid())))
+    temporary.replace(ready)
     while True:
         signal.pause()
 
@@ -192,6 +202,9 @@ class ConsoleRelayTests(unittest.TestCase):
         self.read_until(process.stdout.fileno(), b"NATIVE READY")
         descendant = json.loads(self.report.with_suffix(".descendant").read_text())
         self.addCleanup(processes.signal_owned, [descendant], signal.SIGKILL)
+        processes.signal_owned([descendant], signal.SIGHUP)
+        wait_for_file(self.report.with_suffix(".hup"))
+        self.assertTrue(processes.alive([descendant]), "Fixture must survive native terminal hangup")
         process.stdin.write(b"/quit\n")
         process.stdin.flush()
         self.read_until(process.stdout.fileno(), b"NATIVE EXIT")
