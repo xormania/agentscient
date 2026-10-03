@@ -9,7 +9,7 @@ The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
-| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency and Ruff before selected dev-lane jobs can start. |
+| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency, Ruff and its security-rule detection before selected dev-lane jobs can start. |
 | `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with checked discovery, an execution/skip census and the ten slowest tests listed in the log. |
 | `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated kernel test through `work_check`, checking the test environment and test service container. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
@@ -61,6 +61,27 @@ with PHP's environment variables enabled (`variables_order=EGPCS`) so a forced
 application environment cannot be hidden by the interpreter's defaults;
 normal agents retain their default container, YAML and application test checks.
 The product workflow can also be invoked manually on its own.
+
+## Python security lint
+
+The existing pinned Ruff checks `devtools` and `.github` recursively, including
+nested action scripts. [ruff.toml](../ruff.toml) explicitly selects reviewed
+Bandit-derived rules for unsafe execution/deserialization, archive extraction,
+temporary files, permissions, weak hashes, TLS/SSH verification and shell
+injection. This is a bounded static check, not every `S` rule or a substitute for
+runtime authorization tests, dependency auditing or manual review. SQL/URL
+construction and other unselected rules still require review.
+
+Security findings fail the existing lint step and therefore the required `lane`
+gate. There is no blanket baseline or test-directory security exclusion. The
+trusted runner-script loader has one documented, rule-specific `S102` exception
+on its `exec` line; future exceptions should be equally narrow and explained.
+
+After lint, [lint_checks.py](lint_checks.py) uses the installed Ruff, the actual
+workflow lint arguments and repository configuration to check unsafe and safe
+temporary samples. It verifies the selected security rules and discovery of
+nested `.github` code. Missing Ruff, an undetected unsafe sample, or a failing
+safe sample fails the check. The earlier CI routing tests remain stdlib-only.
 
 ## Scheduling and caches
 
@@ -267,7 +288,8 @@ From the repository root, use the relevant checks:
 ```sh
 python3 -m unittest discover -s .github/tests -v
 python3 -m devtools.tests.run -v --durations 10
-uv tool run --from ruff==0.16.8 ruff check devtools .github/*.py .github/tests
+uv tool run --from ruff==0.16.8 ruff check devtools .github
+uv run --with ruff==0.16.8 --no-project python .github/lint_checks.py
 ```
 
 The Ruff command uses `uv`; an installed Ruff matching the workflow pin also works.
