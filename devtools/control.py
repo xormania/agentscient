@@ -693,6 +693,14 @@ class Control:
         return INSTRUCTIONS + "\n" + self._context_notice(brief)
 
     def render(self, message):
+        if message.get("category") == "readiness":
+            return (
+                f"Live message #{message['id']} from {message['sender']} (message:{message['id']}) — readiness:\n"
+                f"{message['body']}\n\nFor a readiness challenge, call onboard and return its challenge and "
+                "onboarding revision through readiness_report, including blockers. A duty receipt is diagnostic "
+                "status for its parent; it does not assign work or need an ordinary work_report response. "
+                "Use work_context for current context."
+            )
         brief = {k: v for k, v in self.work_context().items() if k not in {"recent_activity", "incoming"}}
         signature = canonical(brief)
         with self._brief_lock:

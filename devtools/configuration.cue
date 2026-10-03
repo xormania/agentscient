@@ -35,6 +35,7 @@ package configuration
 }
 #Settings: {
  version: 1
+ readiness: {timeout_seconds: int & >=1 & <=300}
  features: {advice: bool, filtering: bool, guidance: bool, completion: bool, selection: bool}
  decisions: {
   arbitrator_role: #Text
@@ -111,6 +112,7 @@ package configuration
 }
 
 settings: #Settings & {
+ readiness: {timeout_seconds: 30}
   "version": 1,
   "features": {
     "selection": true,

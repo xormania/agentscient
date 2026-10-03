@@ -210,15 +210,25 @@ class NativeProtocolTests(unittest.TestCase):
                     if harness == "codex":
                         self.assertFalse(marker.exists())
                     self.assertTrue(client.invoke("terminal_status", member="worker")["exists"])
-                    until(lambda: store.member("worker")["state"] == "idle")
+                    until(lambda: store.member("worker")["state"] == "idle"
+                          and store.events(actor="worker", kind="readiness_ready")["events"])
                     original_id = store.member("worker")["native_id"]
                     runtime = until(lambda: store.events(kind="runtime_observed", actor="worker")["events"])
                     self.assertEqual("fixture-model", runtime[-1]["data"]["settings"]["model"])
                     self.assertTrue(client.invoke("session_start", member="worker")["already_running"])
+
+                    def work_messages():
+                        return [row for row in store.inbox("worker")["messages"] if row["category"] != "readiness"]
+
+                    def work_submissions():
+                        identifiers = {row["id"] for row in work_messages()}
+                        return [row for row in store.events(kind="message_submitted", actor="worker")["events"]
+                                if row["data"]["message"] in identifiers]
+
                     first = client.invoke(
                         "message_send", to="worker", body="Keep working while a turn is held", key="first"
                     )
-                    until(lambda: store.inbox("worker")["messages"][0]["acknowledged"])
+                    until(lambda: work_messages()[0]["acknowledged"])
                     self.assertEqual("coder", store.events(kind="onboarding_delivered", actor="worker")["events"][-1]["data"]["role"])
                     self.assertFalse(store.events(kind="skill_loaded", actor="worker")["events"])
                     until(lambda: (gates / ("started-" + str(first["id"]))).exists())
@@ -226,15 +236,14 @@ class NativeProtocolTests(unittest.TestCase):
                     second = client.invoke(
                         "message_send", to="worker", body="New message during unfinished work", key="second"
                     )
-                    until(lambda: store.inbox("worker")["messages"][1]["acknowledged"], timeout=4)
-                    rows = store.inbox("worker")["messages"]
+                    until(lambda: work_messages()[1]["acknowledged"], timeout=4)
+                    rows = work_messages()
                     self.assertEqual([first["id"], second["id"]], [row["id"] for row in rows])
                     self.assertEqual(original_id, store.member("worker")["native_id"])
                     self.assertEqual("active", store.member("worker")["state"])
-                    submissions = store.events(kind="message_submitted", actor="worker")["events"]
-                    until(lambda: len(store.events(kind="message_submitted", actor="worker")["events"]) == 2)
+                    until(lambda: len(work_submissions()) == 2)
                     if harness == "grok":
-                        submissions = store.events(kind="message_submitted", actor="worker")["events"]
+                        submissions = work_submissions()
                         self.assertEqual("grok/_x.ai/interject", submissions[-1]["data"]["transport"])
                     else:
                         until(lambda: store.events(kind="native_usage")["events"])
@@ -244,9 +253,9 @@ class NativeProtocolTests(unittest.TestCase):
                     third = client.invoke("message_send", to="worker", body="Begin work after the previous turn completed", key="third")
                     until(lambda: (gates / ("completed-" + str(third["id"]))).exists())
                     until(lambda: store.member("worker")["state"] == "idle")
-                    self.assertTrue(store.inbox("worker")["messages"][2]["acknowledged"])
+                    self.assertTrue(work_messages()[2]["acknowledged"])
                     self.assertEqual(original_id, store.member("worker")["native_id"])
-                    submissions = until(lambda: rows if len(rows := store.events(kind="message_submitted", actor="worker")["events"]) == 3 else None)
+                    submissions = until(lambda: rows if len(rows := work_submissions()) == 3 else None)
                     if harness == "grok":
                         self.assertEqual(["grok/session/prompt", "grok/_x.ai/interject", "grok/session/prompt"],
                                          [row["data"]["transport"] for row in submissions])

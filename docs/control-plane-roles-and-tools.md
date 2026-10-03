@@ -48,7 +48,7 @@ The table describes the shipped behavior packages. Configured role names and the
 number come from the registry. Coordinators receive their available names and
 responsibilities in `onboard.assignable_roles`; use those names in tool calls.
 
-Every bound role gets **`onboard`, `skill_read`, `work_context`, `work_report`, `guidance_request`**.
+Every bound role gets **`onboard`, `skill_read`, `readiness_report`, `work_context`, `work_report`, `guidance_request`**.
 When a call fails, read its original diagnostic and structured `failure` category
 and reason. Enabled diagnostic guidance may include concrete `actions` with tool
 arguments, retained evidence references and a `when` condition. Follow that
@@ -80,7 +80,7 @@ The **editing tools** below are `work_save`, `work_refresh`, `work_recover`,
 
 | Role | Additional control-plane tools | Default Serena source access |
 | --- | --- | --- |
-| CO | `direct`, overview-only `monitor`; relays xor's context and system messages | None |
+| CO | `roll_call`, `direct`, overview-only `monitor`; relays xor's context and system messages | None |
 | XO | `plan_adopt`, `orchestrate`, `monitor`, `steer`, `conclude`; with a project: `work_inspect`, `work_refresh`, `work_submit`, `review_respond`; with development enabled: `work_check` | None |
 | NCO (`nco`) | `orchestrate`, `monitor`, `steer` within its one job; with a project: `work_inspect`; with development enabled: `work_check`. Completes specialist assignments and reports readiness to XO. Cannot commission planners/NCOs, accept jobs or submit the integrated result. | None |
 | Planner (`planner`) | Shared and specialist inspection/reporting tools at work-order scope; retained plan required for a result to XO | Read-only source |
@@ -99,10 +99,51 @@ Serena is a separate provider, enabled by `project.serena.image`. It exposes
 paths. The current research profile covers repository material, supplied sources
 and retained evidence; a general external web-search provider is not configured.
 
-An unbound member gets only `work_context`. The external member explicitly
-appointed as CO also gets `onboard`, `skill_read`, `direct` and `monitor` before its first work order.
+An unbound, unappointed member gets only `work_context`. The external member explicitly
+appointed as CO also gets `onboard`, `skill_read`, `readiness_report`, `roll_call`, `direct`
+and `monitor` before its first work order. Its cached catalogue advertises reporting tools,
+but ordinary work reports still require a work binding. An XO appointed in initial standby
+gets only onboarding, skills, context and `readiness_report`; it cannot coordinate work.
 Member names alone confer no role. Normal connections cannot invoke the operator
 catalog, even by guessing a backing capability's name.
+
+## Reporting for duty
+
+CO can initiate `roll_call()` before receiving a work order. It runs bounded,
+read-only preflight checks for configured dependencies, then starts the configured
+XO in standby. No work order, job or project worktree is created. Use
+`roll_call(action="status")` to inspect the retained result; CO relays readiness
+and blockers to the owner. The tool records diagnostic state and uses normal MCP
+approval. A native approval denial may prevent the request reaching the service;
+the CO must relay that denial, not claim a retained successful check.
+
+Every managed collaborator receives a fresh readiness challenge when its session
+starts. `onboard` supplies that challenge, its `onboarding_revision`, current role
+instructions and context. The agent calls
+`readiness_report(challenge, onboarding_revision, blockers)` to report for duty.
+The service verifies the current session, role/context, startup tool surface and
+workspace, retains measured checks, and sends a receipt to the commissioning
+parent: XO to CO, NCO/specialist to XO, or specialist to NCO. Callers cannot choose
+another recipient or submit their own passing check results.
+
+The current result is `starting`, `ready`, `blocked` or `timed_out`; replaced
+receipts remain historical as `superseded`. A missing reply, stale challenge,
+changed assignment, stopped session or failed required check cannot establish
+current readiness. The default deadline is 30 seconds and uses the existing
+project/role/job configuration overlay. Parents see readiness in `monitor` and
+normal messages. Readiness is diagnostic; CO's native controls and existing work
+authority remain in force.
+
+When `direct` supplies the real work, the service retires standby and starts XO
+in the actual workspace with the work-specific runtime and tools. This requires
+a fresh acknowledgement. It also avoids reusing a native cached tool catalogue
+or working directory from standby.
+
+“All required startup checks passed” describes those retained checks only.
+Preflight configuration, an image label, or a listed tool does not prove provider
+authentication or every tool's execution. The explicit agent reply proves a live
+MCP round trip; it does not prove model comprehension, per-tool native approval
+for `direct`, product correctness, CI or acceptance. Those retain their own gates.
 
 ## Shared context, reports and guidance
 

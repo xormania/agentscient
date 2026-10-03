@@ -53,6 +53,22 @@ class ConfigurationTests(unittest.TestCase):
         value["scope"]["questions"].clear()
         self.assertTrue(configuration.resolve(self.store)["scope"]["questions"])
 
+    def test_readiness_deadline_uses_existing_project_role_job_overlays(self):
+        self.assertEqual(30, configuration.defaults()["readiness"]["timeout_seconds"])
+        self.configure({"version": 1,
+                        "project": {"readiness": {"timeout_seconds": 45}},
+                        "roles": {"research": {"readiness": {"timeout_seconds": 60}}},
+                        "jobs": {"1": {"readiness": {"timeout_seconds": 90}}}})
+        self.assertEqual(45, configuration.resolve(self.store)["readiness"]["timeout_seconds"])
+        self.assertEqual(60, configuration.resolve(self.store, "research")["readiness"]["timeout_seconds"])
+        self.assertEqual(90, configuration.resolve(self.store, "research", 1)["readiness"]["timeout_seconds"])
+        for invalid in (0, 301, True, 1.5, "30"):
+            with self.subTest(timeout=invalid):
+                value = configuration.defaults()
+                value["readiness"]["timeout_seconds"] = invalid
+                with self.assertRaisesRegex(ValueError, "readiness.timeout_seconds"):
+                    configuration.validate(value)
+
     def test_fixture_configuration_state_resolves_without_writing_or_migrating(self):
         # The separately versioned fixture imports this public entry point in
         # both preparation and its frozen final verifier.

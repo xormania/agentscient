@@ -123,7 +123,13 @@ class Commands:
         return path.is_file() and launch.team_config(self.store.directory).get("co") == self.member
 
     def role(self, scope):
-        return scope["role"] if scope else default_role("co") if self.appointed_co() else None
+        if scope:
+            return scope["role"]
+        if self.appointed_co():
+            return default_role("co")
+        from .standby import role
+
+        return role(self.store, self.member)
 
     def _capability(self, capability):
         require_capability(self.role(self.control.current()), capability)
@@ -172,7 +178,8 @@ class Commands:
                         if not existing and (role is None or adapter(role) != "arbitrator") else {})
 
         def available(row, wanted=None):
-            if row["name"] in {config.get("co"), self.member} or binding(db, row["name"]):
+            if (row["name"] in {config.get("co"), self.member} or binding(db, row["name"])
+                    or db.execute("SELECT 1 FROM standby_bindings WHERE member=?", (row["name"],)).fetchone()):
                 return False
             session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
             if not session or session["state"] not in {"stopped", "failed"} or session["pid"]:
@@ -209,7 +216,9 @@ class Commands:
                     raise ValueError("An existing assignment must retain its configured collaborator")
             else:
                 session = db.execute("SELECT state,pid FROM members WHERE name=?", (row["name"],)).fetchone()
-                if binding(db, row["name"]) or session["state"] not in {"stopped", "failed"} or session["pid"]:
+                if (binding(db, row["name"])
+                        or db.execute("SELECT 1 FROM standby_bindings WHERE member=?", (row["name"],)).fetchone()
+                        or session["state"] not in {"stopped", "failed"} or session["pid"]):
                     raise ValueError("Selected configured collaborator is no longer available")
             if row["harness"] != "external":
                 if not shutil.which(row.get("binary", row["harness"])):
@@ -319,8 +328,11 @@ class Commands:
             candidates = [row for row in team if adapter(row["role"]) == "xo" and row["reports_to"] == self.member]
             if len(candidates) > 1:
                 raise ValueError("More than one XO is bound to CO; resolve the trusted setup before directing work.")
-            xo_role = candidates[0]["role"] if candidates else default_role("xo")
-            slot = self._slot(db, config, existing=candidates[0] if candidates else None, role=xo_role)
+            from .standby import consume_in
+
+            existing = candidates[0] if candidates else consume_in(self.store, db, self.member)
+            xo_role = existing["role"] if existing else default_role("xo")
+            slot = self._slot(db, config, existing=existing, role=xo_role)
             xo = self.control.bind_in(
                 db,
                 slot["name"],
@@ -524,6 +536,8 @@ class Commands:
         return {"work": results}
 
     def _participant(self, db, scope, config):
+        from .duty import snapshot_in
+
         current = binding(db, scope["member"])
         session = db.execute("SELECT * FROM members WHERE name=?", (scope["member"],)).fetchone()
         slot = next(
@@ -564,6 +578,7 @@ class Commands:
             },
             "latest_report": Control._update(update, preview=True) if update else None,
             "latest_usage": observed_usage,
+            "readiness": snapshot_in(self.store, db, scope["member"]),
         }
 
     @staticmethod
@@ -705,7 +720,8 @@ class Commands:
                            if row["job"] in job_ids or row["job"] is None and row["created_by"] == self.member] if scope else []
             available = 0
             for slot in config["members"]:
-                if slot["name"] in {self.member, config.get("co")} or binding(db, slot["name"]):
+                if (slot["name"] in {self.member, config.get("co")} or binding(db, slot["name"])
+                        or db.execute("SELECT 1 FROM standby_bindings WHERE member=?", (slot["name"],)).fetchone()):
                     continue
                 session = db.execute("SELECT state,pid FROM members WHERE name=?", (slot["name"],)).fetchone()
                 if session["state"] not in {"stopped", "failed"} or session["pid"]:
@@ -717,6 +733,7 @@ class Commands:
 
                 policy, _, _ = load(self.store.directory)
                 used = db.execute("SELECT count(*) FROM member_bindings WHERE role NOT IN (SELECT value FROM json_each(?))", (canonical(names_for_adapter("co")),)).fetchone()[0]
+                used += db.execute("SELECT count(*) FROM standby_bindings").fetchone()[0]
                 ready = []
                 for role in catalog()["roles"]:
                     if adapter(role) == "co":
@@ -761,12 +778,18 @@ class Commands:
 
     def tick(self):
         """Resume persisted launch intents after a server restart; never dispatch work."""
+        from .duty import tick as duty_tick
+
+        duty_tick(self.store)
         for row in self.store.members():
             if row["harness"] != "external" and row["desired"] == "stopped" and row["pid"]:
                 try:
                     launch.stop(self.store.directory, row["name"], expected_generation=row["generation"])
                 except BlockingIOError:
                     pass
+        from .standby import tick as standby_tick
+
+        standby_tick(self.store)
         from .decisions import Decisions
 
         Decisions(self.store, self.member).tick()

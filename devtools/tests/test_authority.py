@@ -83,7 +83,7 @@ class AuthorityTests(unittest.TestCase):
         with patch("devtools.api.project_config", return_value={"configured": True}), \
                 patch("devtools.api.development_configured", return_value=True), \
                 patch("devtools.api.advice_configured", return_value=True):
-            self.assertEqual({"work_context", "work_report", "guidance_request", "onboard", "skill_read", "direct", "monitor"},
+            self.assertEqual({"work_context", "work_report", "guidance_request", "onboard", "skill_read", "readiness_report", "direct", "monitor", "roll_call"},
                              {row["name"] for row in self.co.tools()})
 
     def test_xo_superior_steering_retains_real_sender_and_nco_ownership(self):

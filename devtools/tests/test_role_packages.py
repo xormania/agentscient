@@ -212,7 +212,7 @@ class PackageBoundaryTests(unittest.TestCase):
         with patch("devtools.api.advice_configured", return_value=True), patch("devtools.api.project_config", return_value={"root": str(self.state)}), \
                 patch("devtools.api.development_configured", return_value=True):
             names = {row["name"] for row in api.tools()}
-            self.assertEqual({"work_context", "work_report", "guidance_request", "onboard", "skill_read", "direct", "monitor"}, names)
+            self.assertEqual({"work_context", "work_report", "guidance_request", "onboard", "skill_read", "readiness_report", "direct", "monitor", "roll_call"}, names)
         team = json.loads((self.state / "team.json").read_text())
         team["co"] = "owner"
         (self.state / "team.json").write_text(json.dumps(team))
@@ -232,7 +232,7 @@ class PackageBoundaryTests(unittest.TestCase):
         packages["defaults"]["co"] = "liaison"
         packages["roles"]["liaison"]["mcp"]["bound"].remove("guidance_request")
         with patch("devtools.role_packages._catalog", return_value=packages):
-            self.assertEqual({"work_context", "work_report", "onboard", "skill_read", "direct", "monitor"},
+            self.assertEqual({"work_context", "work_report", "onboard", "skill_read", "readiness_report", "direct", "monitor", "roll_call"},
                              {row["name"] for row in api.tools()})
             with self.assertRaisesRegex(ValueError, "not available"):
                 api.call("work_report", {"text": "Unbound aliased CO"})

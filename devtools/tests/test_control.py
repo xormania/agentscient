@@ -19,7 +19,7 @@ class ControlTests(ControlFixture, unittest.TestCase):
     def test_default_surface_supplies_brief_and_rejects_bypasses(self):
         coder = self.client("coder")
         self.assertEqual(
-            ["work_context", "work_report", "guidance_request", "onboard", "skill_read"],
+            ["work_context", "work_report", "guidance_request", "readiness_report", "onboard", "skill_read"],
             [r["name"] for r in coder.call("tools/list")["tools"]]
         )
         self.assertNotIn("Implement contract", coder.initialization["instructions"])

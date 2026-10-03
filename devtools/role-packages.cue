@@ -24,7 +24,7 @@ import "list"
 }
 #Capabilities: {
 	bound: *["work_context", "work_report", "guidance_request"] | #Strings
-	session: ["onboard", "skill_read"]
+	session: ["onboard", "skill_read", "readiness_report"]
 	command: *[] | #Strings
 	advice: *[] | #Strings
 	job: *[] | #Strings
@@ -87,6 +87,7 @@ packages: #Catalog & {
 				"command": [
 					"direct",
 					"monitor",
+					"roll_call",
 				]
 			}
 		}

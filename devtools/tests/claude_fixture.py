@@ -45,6 +45,13 @@ async def main():
     tasks = set()
     active = set()
 
+    async def tool(name, arguments):
+        hook("PreToolUse", tool_name="mcp__agentscient_dev__" + name, tool_input=arguments)
+        result = await rpc.request("tools/call", {"name": name, "arguments": arguments})
+        assert not result.get("isError"), result
+        hook("PostToolUse", tool_name="mcp__agentscient_dev__" + name, tool_response=result)
+        return json.loads(result["content"][0]["text"])
+
     async def receive(params):
         text = params["content"]
         ident = int(re.search(r"Live message #(\d+)", text)[1])
@@ -65,13 +72,18 @@ async def main():
                 )
                 + "\n"
             )
-        arguments = {"text": f"Received message {ident}", "responding_to": f"message:{ident}"}
-        hook("PreToolUse", tool_name="mcp__agentscient_dev__work_report", tool_input=arguments)
-        result = await rpc.request("tools/call", {"name": "work_report", "arguments": arguments})
-        assert not result.get("isError"), result
-        hook("PostToolUse", tool_name="mcp__agentscient_dev__work_report", tool_response=result)
+        current = await tool("onboard", {})
+        readiness = current.get("readiness")
+        if readiness and readiness["status"] == "starting":
+            await tool("readiness_report", {"challenge": readiness["challenge"],
+                                            "onboarding_revision": current["revision"]})
+        diagnostic = current["context"].get("state") == "standby" or any(marker in text for marker in (
+            "Readiness challenge.", "reporting for duty —", "unable to report ready —",
+        ))
+        if not diagnostic:
+            await tool("work_report", {"text": f"Received message {ident}", "responding_to": f"message:{ident}"})
         gates = Path.cwd() / "fixture-turns"
-        if gates.is_dir():
+        if not diagnostic and gates.is_dir():
             (gates / ("started-" + str(ident))).touch()
             async with asyncio.timeout(20):
                 while not (gates / "release").exists():
@@ -79,7 +91,7 @@ async def main():
         active.discard(ident)
         if not active:
             hook("Stop")
-        if gates.is_dir():
+        if not diagnostic and gates.is_dir():
             (gates / ("completed-" + str(ident))).touch()
 
     async def notification(method, params):

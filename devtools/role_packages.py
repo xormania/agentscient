@@ -102,7 +102,7 @@ def validate(value, source_sha256):
             _strings(names, name + ".mcp." + group)
             if any(not re.fullmatch(r"[a-z][a-z_]{0,63}", tool) for tool in names):
                 raise ValueError("Invalid role MCP tool reference")
-        if semantics.interface and (mcp["command"] != ["direct", "monitor"] or
+        if semantics.interface and (mcp["command"] != ["direct", "monitor", "roll_call"] or
                              any(mcp[group] for group in GROUPS - {"bound", "session", "command"})):
             raise ValueError("CO package must remain an interface")
         workspace = _object(package["workspace"], {"editor", "paths", "serena"}, name + ".workspace")

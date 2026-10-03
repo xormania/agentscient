@@ -35,7 +35,7 @@ ConfigurationState = State
 SOURCE = Path(__file__).with_name("configuration.cue")
 GENERATED = SOURCE.with_suffix(".json")
 FIELDS = {"version", "features", "connection", "model", "transport", "scope", "assessment",
-          "assignment", "filtering", "guidance", "completion", "decisions"}
+          "assignment", "filtering", "guidance", "completion", "decisions", "readiness"}
 DECISION_FIELDS = {"noul": {"reject_below", "accept_at"},
                    "choice": {"minimum_probability", "minimum_margin"},
                    "score": {"minimum_confidence", "minimum_margin"}}
@@ -158,6 +158,8 @@ def _validate(value, *, references=True):
     _object(value, FIELDS, "configuration")
     if type(value["version"]) is not int or value["version"] != 1:
         raise ValueError("Unsupported configuration version")
+    readiness = _object(value["readiness"], {"timeout_seconds"}, "readiness")
+    _number(readiness["timeout_seconds"], "readiness.timeout_seconds", 1, 300, True)
     roles = catalog()["roles"] if references else {}
     role_adapters = behavior_ids() if references else None
     skills = {skill for package in roles.values()

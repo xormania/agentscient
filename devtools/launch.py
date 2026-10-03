@@ -90,15 +90,29 @@ def configuration(directory, member):
     from .control import Control
 
     scope = Control(store, member).snapshot()
+    standby_scope = None
     if not scope:
-        raise ValueError(
-            "Bind this member's role and work through the operator member_bind capability before starting it."
-        )
+        from .standby import authorized
+        from .standby import binding as standby_binding
+
+        with store.connect() as db:
+            standby_scope = standby_binding(db, member)
+            if standby_scope and not authorized(store, standby_scope, db=db):
+                raise ValueError("The standby CO appointment is no longer current.")
+        if not standby_scope:
+            raise ValueError(
+                "Bind this member's role and work through the operator member_bind capability before starting it."
+            )
+        scope = standby_scope
     if team.get("runtime"):
         from .role_packages import adapter as role_adapter
         from .runtime import selected as selected_runtime
 
-        if role_adapter(scope["role"]) == "xo":
+        if standby_scope:
+            from .runtime import resolve
+
+            choice = resolve(store.directory, scope["role"])
+        elif role_adapter(scope["role"]) == "xo":
             from .assignment_decisions import select_bound_runtime
 
             choice = select_bound_runtime(store, scope)
@@ -111,7 +125,7 @@ def configuration(directory, member):
     selected = runtime_profile(scope["role"], selected)
     from .workspaces import Workspaces, project_config
 
-    if project_config(store):
+    if project_config(store) and not standby_scope:
         selected["workspace"] = Workspaces(store, member).ensure()["root"]
     binary = shutil.which(selected.get("binary", selected["harness"]))
     if not binary:
@@ -120,12 +134,25 @@ def configuration(directory, member):
     return selected
 
 
-def start(directory, member, *, binding_revision=None):
+def start(directory, member, *, binding_revision=None, standby_revision=None):
     store = Store(directory)
     locks = store.directory / "launch-locks"
     locks.mkdir(exist_ok=True, mode=0o700)
     with (locks / (identifier(member) + ".lock")).open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if binding_revision is not None and standby_revision is not None:
+            raise ValueError("Choose a work launch or a standby launch.")
+        if standby_revision is not None:
+            from .standby import authorized
+            from .standby import binding as standby_binding
+
+            with store.connect() as db:
+                scope = standby_binding(db, member)
+                work_bound = db.execute("SELECT 1 FROM member_bindings WHERE member=?", (member,)).fetchone()
+                current_appointment = authorized(store, scope, db=db)
+            if (not scope or work_bound or not current_appointment or scope["revision"] != standby_revision or not scope["launch_pending"]
+                    or time.time() >= scope["deadline"]):
+                return {"superseded": True}
         if binding_revision is not None:
             from .control import Control
 
@@ -135,17 +162,21 @@ def start(directory, member, *, binding_revision=None):
         current = store.member(member)
         if current["generation"] and current["desired"] == "stopped":
             _stop(store, member)
-        result = _start(directory, member, binding_revision)
+        result = _start(directory, member, binding_revision, standby_revision)
         if binding_revision is not None and result.get("already_running"):
             with store.connect() as db:
                 db.execute(
                     "UPDATE member_bindings SET launch_pending=0 WHERE member=? AND revision=?",
                     (member, binding_revision),
                 )
+        if standby_revision is not None and result.get("already_running"):
+            with store.connect() as db:
+                db.execute("UPDATE standby_bindings SET launch_pending=0 WHERE member=? AND revision=?",
+                           (member, standby_revision))
         return result
 
 
-def _start(directory, member, binding_revision):
+def _start(directory, member, binding_revision, standby_revision=None):
     from .bootstrap import receive, send
     from .profiles import ENTRY
     from .terminals import start as start_terminal
@@ -167,6 +198,8 @@ def _start(directory, member, binding_revision):
     argv = [sys.executable, str(ENTRY), "agent", "--state", str(store.directory), "--member", member]
     if binding_revision is not None:
         argv += ["--binding-revision", str(binding_revision)]
+    if standby_revision is not None:
+        argv += ["--standby-revision", str(standby_revision)]
     argv = [sys.executable, "-I", "-S", str(ENTRY.with_name("bootstrap.py")), launch_id, *argv]
     with socket.socket(socket.AF_UNIX) as listener:
         listener.bind("\0" + launch_id)
@@ -264,7 +297,7 @@ def _stop(store, member, *, grace=STOP_GRACE):
     return {"member": member, "requested": "stopped", "stopped": True, "forced": forced}
 
 
-def agent(directory, member, binding_revision=None, launch_fd=None):
+def agent(directory, member, binding_revision=None, launch_fd=None, standby_revision=None):
     from .bootstrap import receive, send
     from .control import REQUEST_BINDING, Control
     from .processes import register
@@ -281,7 +314,7 @@ def agent(directory, member, binding_revision=None, launch_fd=None):
         else:
             config = configuration(directory, member)
         generation = store.begin_session(
-            member, os.getpid(), binding_revision=binding_revision,
+            member, os.getpid(), binding_revision=binding_revision, standby_revision=standby_revision,
             settings={key: config.get(key) for key in ("harness", "vendor", "model", "reasoning", "provider", "role_package")},
         )
         register(store, member, generation, os.getpid())

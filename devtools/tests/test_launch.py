@@ -60,9 +60,17 @@ class LaunchTests(unittest.TestCase):
                 self.assertNotIn(b'launch-secret-sentinel', path.read_bytes(), str(path))
         self.assertFalse((self.state / 'launches').exists())
         owner = API(self.state, 'owner', operator=True)
-        (self.workspace / 'fixture-turns').mkdir()
-        owner.store.send('owner', 'worker', 'Hold the prompt', key='held')
-        until(lambda: self.store.member('worker')['state'] == 'active')
+        until(lambda: self.store.member('worker')['state'] == 'idle'
+              and self.store.events(actor='worker', kind='readiness_ready')['events'])
+        gates = self.workspace / 'fixture-turns'
+        gates.mkdir()
+        held = owner.store.send('owner', 'worker', 'Hold the prompt', key='held')
+        # Readiness has its own startup turn. Cancel this specific unfinished
+        # work prompt, rather than accidentally stopping the readiness exchange
+        # and leaving the work queued for the replacement session.
+        until(lambda: (gates / ('started-' + str(held['id']))).exists())
+        self.assertFalse((gates / ('completed-' + str(held['id']))).exists())
+        self.assertEqual('active', self.store.member('worker')['state'])
         began = time.monotonic()
         stopped = owner.call('capability_invoke', {'capability': 'session_stop', 'arguments': {'member': 'worker'}})
         self.assertTrue(stopped['stopped'])

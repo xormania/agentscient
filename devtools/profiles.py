@@ -212,7 +212,8 @@ def prepare(directory, member, harness, config=None):
 
     api = API(directory, member)
     scope = api.control.snapshot()
-    if scope and harness not in role_package(scope["role"])["runtime"]["harnesses"]:
+    role = api.commands.role(scope)
+    if role and harness not in role_package(role)["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
     if (config or {}).get("operator_console"):
         operator_console(directory, member)
@@ -241,7 +242,8 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
         operator_console(directory, member)
     api = API(directory, member)
     scope = api.control.snapshot()
-    package = role_package(scope["role"]) if scope else None
+    role = api.commands.role(scope)
+    package = role_package(role) if role else None
     if package and (adapter_name or harness) not in package["runtime"]["harnesses"]:
         raise ValueError("This role package does not permit the selected harness")
     if operator and harness == "codex":
@@ -254,7 +256,12 @@ def _prepare_builtin(directory, member, harness, *, adapter_name=None, config=No
         private /= generation
     private.mkdir(parents=True, exist_ok=True, mode=0o700)
     if package:
-        write_json(private / "role-package.json", {**descriptor(scope["role"]), "binding_revision": scope["revision"]})
+        if scope is None:
+            from .standby import binding as standby_binding
+
+            with store.connect() as db:
+                scope = standby_binding(db, member)
+        write_json(private / "role-package.json", {**descriptor(role), "binding_revision": scope["revision"] if scope else None})
     env = os.environ.copy()
     # Grok gets a private HOME below; the server still uses the operator's GitHub OAuth session.
     env.setdefault("GH_CONFIG_DIR", str(Path(env.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "gh"))
