@@ -113,7 +113,8 @@ def message_sql(store, db, member, scope):
     clause, args = scope_sql(scope)
     readiness, values = permitted_message_in(db, member, store)
     if scope:
-        return "(" + clause + " AND (category!='readiness' OR (" + readiness + ")))", (*args, *values)
+        return ("((" + clause + " OR (work_order IS NULL AND category='readiness')) "
+                "AND (category!='readiness' OR (" + readiness + ")))", (*args, *values))
     return "(" + readiness + ")", values
 
 
@@ -270,6 +271,11 @@ class Control:
         elif row:
             allowed = includes(scope, row["work_order"], row["job"])
             if kind == "message":
+                if not allowed and row["category"] == "readiness":
+                    sql, args = message_sql(self.store, db, self.member, scope)
+                    allowed = bool(db.execute(
+                        "SELECT 1 FROM messages WHERE id=? AND " + sql, (row["id"], *args),
+                    ).fetchone())
                 allowed = allowed and self.member in (row["sender"], row["recipient"])
         else:
             allowed = False
