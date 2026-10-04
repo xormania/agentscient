@@ -275,6 +275,43 @@ reports and evidence stay with the relevant participants. Scope checks apply to
 references, listings and live delivery. In-flight reports retain the binding under
 which they started; subsequent calls use the current binding.
 
+### Reporting capability gaps
+
+When the available tools cannot express a needed operation, attach a
+`capability_gap` to an ordinary `work_report` or `guidance_request`. Report it
+even when a permitted workaround succeeds. Describe the needed capability in
+stable terms so later encounters can be recognized; describe the encounter and
+its effect on the work in the report text.
+
+```json
+{"name":"guidance_request","arguments":{"text":"I need to inspect the configured check names before choosing validation, but cannot find that information in my available tools.","capability_gap":{"capability":"Discover configured validation checks","category":"discovery","occurrence_key":"validation-check-discovery-1","attempted_tool":"work_check"}}}
+```
+
+The required fields are `capability` (1–160 characters), `category`, and
+`occurrence_key` (1–80 characters). Reuse the occurrence key when retrying the
+same report; use a new key for a new encounter, even if its description is the
+same. The category records the agent's assessment:
+
+| Category | Observed problem |
+| --- | --- |
+| `missing_tool` | No available tool appears to provide the needed operation. |
+| `discovery` | The capability may exist, but its tool or use could not be found. |
+| `permission` | The operation appears unavailable to the current role or scope. |
+| `tool_failure` | An available tool failed while attempting the operation. |
+| `unknown` | The cause is not established. |
+
+Optional fields are `attempted_tool` (up to 160 characters), `reference` (an
+accessible `update:`, `message:`, `artifact:` or `operation:` reference), and
+`workaround` (up to 1,000 characters describing what was done and its outcome).
+Keep credentials and other secrets out of all report fields. References undergo
+the same work-scope checks as ordinary evidence reads.
+
+Reporting a gap preserves the normal reporting relationship and does not grant
+permission, create an assignment, or authorize a workaround. A permission denial
+may be intentional; a failed call alone does not prove that a capability is
+missing. The operator reviews recurring reports through the
+[capability-gap backlog](../devtools/OPERATIONS.md#capability-gap-review).
+
 ## CO and XO tools
 
 | Role / tool | Outcome |

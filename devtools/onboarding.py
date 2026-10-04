@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 
+from .control import GAP_REPORTING
 from .role_packages import assignable_roles, catalog, descriptor
 from .role_packages import role as role_package
 
@@ -97,6 +98,7 @@ class Onboarding:
             "shared": skills[0]["content"],
             "role_instructions": skills[1]["content"],
             "context": self.api.invoke("work_context", {}),
+            "capability_gap_reporting": GAP_REPORTING,
             "tools": tools,
             "skills": [
                 {"name": row["name"], "description": row["description"], "loaded": index < 2}
@@ -110,7 +112,7 @@ class Onboarding:
             ]
         revision = hashlib.sha256(json.dumps(
             [package, [(row["name"], row["guidance_sha256"]) for row in skills],
-             tools, value.get("assignable_roles", [])], sort_keys=True, separators=(",", ":")
+             tools, value.get("assignable_roles", []), GAP_REPORTING], sort_keys=True, separators=(",", ":")
         ).encode()).hexdigest()
         value["revision"] = revision
         self.api.store.event(

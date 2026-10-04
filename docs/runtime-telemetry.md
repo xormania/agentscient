@@ -87,6 +87,27 @@ it does not establish that guidance caused a recovery. Old context/configuration
 suggestions are not correlated with replacement work, and telemetry faults cannot
 replace the tool outcome.
 
+Structured `capability_gap` fields on `work_report` and `guidance_request` retain
+agent-reported capability problems alongside the originating update and normal
+routed message. Reports distinguish missing tools, discovery problems, permission
+restrictions, tool failures and unknown causes. These are agent assessments;
+failure telemetry remains candidate evidence rather than an automatic confirmed
+gap. A successful workaround can still be reported as a gap.
+
+The operator's capability-gap backlog groups exact normalized capability names
+within a repository; work without a configured repository stays grouped within
+its work order. Occurrence keys distinguish fresh encounters from retries.
+Operator reviews retain their classification, status, note and optional owner.
+Resolving a gap requires evidence supplied by the operator; this is a recorded
+judgment, not automated verification. A fresh occurrence reopens a resolved gap,
+while duplicate delivery does not. History remains available through bounded,
+paginated reads. See [operator review](../devtools/OPERATIONS.md#capability-gap-review).
+
+Coverage starts with structured reports: old prose is not retrospectively parsed,
+and silent workarounds are not inferred. An empty backlog does not establish that
+the tools cover every need. Unresolved entries describe outstanding reports;
+they are not a complete inventory of every current capability limitation.
+
 Inspect operator `telemetry_events` / `telemetry_usage`, the JSONL traces, or run:
 
 ```sh

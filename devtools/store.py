@@ -15,7 +15,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 
 
 def stamp():
@@ -181,7 +181,7 @@ class Store(State):
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
                 "members": {"binding_revision": "INTEGER NOT NULL DEFAULT 0"},
-                "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT"},
+                "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT", "capability_gap": "TEXT"},
                 "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'", "dependencies": "TEXT NOT NULL DEFAULT '[]'"},
                 "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
@@ -204,6 +204,28 @@ class Store(State):
                 for name, definition in fields.items():
                     if name not in present:
                         db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gaps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, repository TEXT NOT NULL, identity TEXT NOT NULL UNIQUE,
+                capability TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open'
+                    CHECK(status IN ('open','reviewing','deferred','resolved')),
+                classification TEXT NOT NULL DEFAULT 'unknown'
+                    CHECK(classification IN ('missing_tool','discovery','permission','tool_failure','unknown')),
+                owner TEXT NOT NULL DEFAULT '', revision INTEGER NOT NULL DEFAULT 1,
+                occurrence_count INTEGER NOT NULL DEFAULT 1, capture TEXT NOT NULL,
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gap_occurrences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, gap INTEGER NOT NULL REFERENCES capability_gaps(id),
+                update_id INTEGER NOT NULL UNIQUE REFERENCES work_updates(id),
+                actor TEXT NOT NULL REFERENCES members(name), binding_key TEXT NOT NULL,
+                occurrence_key TEXT NOT NULL, UNIQUE(actor,binding_key,occurrence_key))""")
+            db.execute("CREATE INDEX IF NOT EXISTS capability_gap_occurrences_gap ON capability_gap_occurrences(gap,id)")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gap_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, gap INTEGER NOT NULL REFERENCES capability_gaps(id),
+                revision INTEGER NOT NULL, actor TEXT NOT NULL CHECK(actor='operator'),
+                prior_status TEXT NOT NULL, status TEXT NOT NULL, classification TEXT NOT NULL,
+                owner TEXT NOT NULL, note TEXT NOT NULL, evidence TEXT, capture TEXT NOT NULL,
+                created TEXT NOT NULL, UNIQUE(gap,revision))""")
+            db.execute("CREATE INDEX IF NOT EXISTS capability_gap_reviews_gap ON capability_gap_reviews(gap,id)")
             db.execute(
                 "CREATE TABLE IF NOT EXISTS job_workspaces (job INTEGER PRIMARY KEY REFERENCES jobs(id), "
                 "root TEXT NOT NULL UNIQUE,branch TEXT NOT NULL,target TEXT NOT NULL,base_revision TEXT NOT NULL)"
