@@ -97,3 +97,69 @@ The evidence summary includes runtime records and trace paths alongside work,
 delivery and validation observations. Protocol fixture tests exercise capture and
 redaction, not authenticated model acceptance. Local acceptance still requires the
 installed, logged-in harnesses and retained evidence from that run.
+
+## Serena process observations
+
+The Serena image installs a CPython audit hook in the interpreter executing the
+REPL. The hook observes supported process-launch attempts, including subprocesses
+started directly or through a shell. The gateway captures bounded records in the
+existing `telemetry/<member>.jsonl` files with component `serena-mcp` and kinds
+`process_audit` and `process_audit_status`. Records use the normal credential
+filter and retain the provider, member, work binding and call context when known.
+`gateway_connection` and `gateway_request_id` link a correlated observation to
+the original MCP call; `request_id` identifies the separate backend request.
+They do not include a child process's environment or output.
+
+This is observe-only: recording an attempt neither blocks it nor changes the
+agent's permitted MCP tools. Makers, checks and Git still use the existing
+control-plane operations. A process audit event means that Python attempted the
+operation; it does not prove successful execution, a completed command, policy
+violation or host privilege escalation. Submitted REPL code remains separate
+evidence from runtime observations.
+
+Attribution distinguishes recognized backend activity, activity associated with
+REPL execution, and unknown origins. Executable names alone cannot establish
+authorization: a PHPactor-looking command launched by agent code is not evidence
+that Serena's backend authorized it. Unknown activity requires inspection and is
+not silently treated as expected. The operator report hides recognized expected
+activity by default; `--include-expected` includes it for comparison.
+
+Run the local report from the repository root, using the state directory supplied
+to your CO/runtime launch:
+
+```sh
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state --include-expected
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state --json
+```
+
+Use `--actor MEMBER`, `--job ID` and `--since 2026-10-04T18:00:00-04:00` to narrow
+the report. `--since` requires an ISO timestamp with a timezone. The report only
+reads retained telemetry; it does not launch a test command, contact a harness or
+change a running provider. Exit status is `0` for a completed report, `1` for
+findings only when `--fail-on-findings` is supplied, and `2` when the selected
+telemetry is missing, unreadable or incomplete. Inspect coverage diagnostics
+alongside findings before interpreting an empty result. `--limit` bounds displayed
+event details (default 100); totals still include the scanned records. If the scan
+itself reaches its input limit, the report marks that gap and returns `2`.
+
+Existing images must be rebuilt and providers restarted to install the hook; see
+the [operator procedure](../devtools/OPERATIONS.md#review-serena-process-activity).
+Startup status establishes that the hook reported installation for that provider,
+not that every later operation was observed. Per-call completion records carry
+the gateway's observer status, so filtering to a recent period does not require
+the original startup record to fall inside that period. The report labels coverage
+`best_effort`, `unavailable` or `incomplete`; none is a claim of exhaustive capture.
+Missing monitor health, malformed or partial records, unfinished calls and
+reported capture failures produce coverage gaps. Bounded command/stack details
+are counted separately as `truncated_details`; this does not itself mean an event
+was lost. Dropped events are reported only with the next delivered observer
+record, so a final drop can remain undetected if no later record arrives.
+Historical traces are not retroactively audited.
+
+The hook is not a sandbox, an independent OS process observer or a tamper-proof
+audit trail. Unrestricted Python can bypass Python-level observation, and child
+processes do not automatically inherit this hook. Attribution and runtime metadata
+come from the container and are not independent proof of origin. No findings
+means no findings in the available records, not proof that process execution was
+impossible or never occurred.

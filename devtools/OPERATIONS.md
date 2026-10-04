@@ -989,6 +989,51 @@ Queued, submitted, and acknowledged are distinct. A crash during delivery become
 `uncertain` on restart, not an automatic duplicate. Only the sender can explicitly
 retry that message; the ID stays the same. Traces and message history stay local.
 
+### Review Serena process activity
+
+Serena process monitoring observes supported Python process-launch attempts from
+the REPL interpreter and records them in the existing private telemetry. It does
+not block execution or add an approval step. The report identifies activity for
+review and coverage gaps; an attempt is not proof of execution or privilege
+escalation. See the [observation limits](../docs/runtime-telemetry.md#serena-process-observations).
+
+After updating this checkout, install the monitor in the local image:
+
+```sh
+devtools/scripts/dependencies.sh update --build-serena
+```
+
+Stop/restart the relevant provider or start a new specialist session using the
+rebuilt image. Rebuilding does not change already-running containers. Restarting
+the provider loses its Python variables, so first finish the current operation
+and retain any needed source changes through the normal work tools. Existing
+readiness checks validate Serena's source revision label; that label alone does
+not distinguish an older image without the monitor.
+
+From the repository root, supply the same private state directory used to launch
+your CO/runtime:
+
+```sh
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state --include-expected
+python3 devtools/scripts/serena-audit.py --state /absolute/path/to/state --actor worker --job 1 --json
+```
+
+Recognized backend activity is omitted from findings by default. REPL-associated
+and unknown activity remain visible for review; a familiar executable name alone
+does not make an action expected. `--include-expected` exposes backend records as
+well. Use `--since` with a timezone-qualified ISO timestamp to select a period.
+The script reads local traces without starting any agent or command in Serena.
+
+The default exit status is `0` even when the report contains findings. Add
+`--fail-on-findings` to return `1` when findings are present. Missing, unreadable
+or incomplete telemetry returns `2`; inspect the report's coverage diagnostics
+before drawing conclusions from an empty list. A provider without installation
+status may be running an older image. Rebuild and restart it before collecting
+new observations; old sessions cannot be audited retroactively. Python audit
+hooks are best-effort observation, so a covered provider with no findings still
+does not certify that no process execution occurred.
+
 
 ## Source attribution
 
