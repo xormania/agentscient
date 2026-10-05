@@ -27,6 +27,11 @@ def repl(client, code):
     return "\n".join(row["text"] for row in value["content"] if row["type"] == "text")
 
 
+def audit_rows(state):
+    return [json.loads(line) for line in (state / "telemetry/coder.jsonl").read_text().splitlines(keepends=True)
+            if line.endswith("\n")]
+
+
 def main(curated=False):
     image = os.environ.get("AGENTSCIENT_SERENA_IMAGE", "agentscient-serena:v2-beta")
     with tempfile.TemporaryDirectory(prefix="agentscient-serena-") as temporary:
@@ -102,6 +107,25 @@ def main(curated=False):
             assert "get_symbols_overview" in documentation, documentation
             symbols = repl(client, "s.lsp.get_symbols_overview('src/Example.php', depth=1)")
             assert "Example" in symbols and "greeting" in symbols, symbols
+            # Maintainer-authorized, harmless canary: observation must neither
+            # block the launch nor confuse it with ordinary PHPactor startup.
+            canary = repl(client, "import subprocess\nsubprocess.run(['/bin/true'], check=True).returncode")
+            assert "0" in canary, canary
+
+            def process_evidence():
+                rows = audit_rows(state)
+                attempts = [row["data"] for row in rows if row["kind"] == "process_audit"]
+                return any(row.get("executable") == "/bin/true" and row["origin"] == "repl"
+                           and row["evidence"] == "attempt" and row.get("request_id") for row in attempts)
+
+            until(process_evidence, timeout=5)
+            rows = audit_rows(state)
+            assert any(row["kind"] == "process_audit_status" and row["data"].get("status") == "ready" for row in rows)
+            assert any(row["kind"] == "process_audit" and row["data"]["origin"] == "backend" for row in rows), rows
+            report = subprocess.run([sys.executable, str(REPO / "devtools/scripts/serena-audit.py"),
+                                     "--state", str(state), "--json", "--fail-on-findings"],
+                                    capture_output=True, text=True, timeout=10)
+            assert report.returncode == 1, report.stdout + report.stderr
             edited = repl(client, "s.edit.replace_content('src/Example.php', 'hello', 'welcome', 'literal')")
             assert "Error" not in edited, edited
             assert "welcome" in (workspace / "src/Example.php").read_text(), edited
@@ -174,6 +198,8 @@ def main(curated=False):
                             "Serena v2 REPL",
                             "persistent variables",
                             "PHPactor symbol navigation",
+                            "observe-only process canary and backend classification",
+                            "operator process audit report",
                             "Serena edit facade",
                             "protected source mount",
                             "maintainer-owned Maker protection",

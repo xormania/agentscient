@@ -11,6 +11,15 @@ command or `devtools/scripts/dependencies.sh update --build-serena`. The existin
 readiness check verifies Serena's source revision label; it does not distinguish
 an older image built from the same source with the previous dependency recipe.
 
+The image also installs Agentscient's observe-only process audit hook in the
+interpreter running Serena's REPL. Rebuild and start a new provider to adopt hook
+changes; an already-running container keeps its existing code. The hook reports
+supported process-launch attempts and startup coverage over stderr for the host
+gateway to capture in private telemetry. It neither blocks launches nor turns
+unrestricted Python into a sandbox. Child process activity and deliberate bypasses
+are not comprehensively observed. Review records and missing coverage with the
+[operator script](../OPERATIONS.md#review-serena-process-activity).
+
 The provider remains a separately installed external service. Build inputs are
 locked at each dependency boundary:
 

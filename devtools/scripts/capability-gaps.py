@@ -50,7 +50,11 @@ def parser():
     actions = result.add_subparsers(dest="action", required=True)
     listing = actions.add_parser("list", help="List reported capability gaps")
     listing.add_argument("--status", choices=("active", "all", *STATUSES), default="active")
-    showing = actions.add_parser("show", help="Show one gap and its occurrence/review history")
+    showing = actions.add_parser(
+        "show", help="Show one gap and its occurrence/review history",
+        epilog="Resume both histories with the --after and --review-after positions in JSON next_page. "
+               "A null next_page means both histories are exhausted in this view.",
+    )
     showing.add_argument("gap_id", type=positive)
     showing.add_argument("--review-after", type=nonnegative, default=0)
     for action in (listing, showing):
@@ -100,10 +104,11 @@ def human(result, action):
             print("  None on this page.")
     elif action == "review":
         print("Recorded review: " + quoted(result["review"]))
-    if result.get("next_after") is not None:
+    if action == "show" and result.get("next_page") is not None:
+        cursor = result["next_page"]
+        print(f"Continue with --after {cursor['after']} --review-after {cursor['review_after']}.")
+    elif action == "list" and result.get("next_after") is not None:
         print(f"Continue with --after {result['next_after']}.")
-    if result.get("next_review_after") is not None:
-        print(f"Continue reviews with --review-after {result['next_review_after']}.")
 
 
 def main(argv=None):

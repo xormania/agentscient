@@ -560,6 +560,13 @@ the visible project. Protected Maker directories stay read-only beneath broader
 editing paths. Provider configuration/cache/memories have a separate
 private mount. Writable aliases/symlinks are rejected.
 
+The image records supported Python process-launch attempts for operator review.
+This monitoring does not prevent the REPL from starting a process and does not
+grant permission to replace named control-plane operations with shell commands.
+Records distinguish attempts from successful execution; missing findings are not
+proof that no process ran. See [process observations](runtime-telemetry.md#serena-process-observations)
+for coverage limits and the local operator report.
+
 Each call holds the job lock. The container pauses before releasing it and resumes
 on the next call, preserving REPL state while preventing background Python from
 racing Git, Makers or checks. Work pause rejects new REPL calls. Role, job,

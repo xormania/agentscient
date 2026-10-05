@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import shlex
 import sqlite3
 import subprocess
 import sys
@@ -93,6 +94,76 @@ class CapabilityGapCliTests(unittest.TestCase):
         self.assertNotEqual(first["reviews"][0]["id"], second["reviews"][0]["id"])
         self.assertIsNone(second["next_after"])
         self.assertIsNone(second["next_review_after"])
+
+    def test_show_resumes_both_streams_without_replaying_exhausted_history(self):
+        for occurrence_count, review_count in ((1, 3), (3, 1), (3, 0), (1, 0)):
+            with self.subTest(occurrences=occurrence_count, reviews=review_count):
+                gap = self.report(f"History {occurrence_count}/{review_count}")
+                for _ in range(occurrence_count - 1):
+                    self.report(f"History {occurrence_count}/{review_count}")
+                for revision in range(occurrence_count, occurrence_count + review_count):
+                    review_gap(self.store, gap, revision, "reviewing", "discovery", "Investigating")
+                expected = show_gap(State(self.directory), gap)
+                occurrences, reviews = [], []
+                cursor = {"after": 0, "review_after": 0}
+                for _ in range(4):
+                    code, page, _ = self.run_cli(
+                        "show", str(gap), "--limit", "1", "--after", str(cursor["after"]),
+                        "--review-after", str(cursor["review_after"]),
+                    )
+                    self.assertEqual(0, code)
+                    occurrences.extend(row["id"] for row in page["occurrences"])
+                    reviews.extend(row["id"] for row in page["reviews"])
+                    # The combined cursor carries the consumed position of both
+                    # streams, even if only one has further pages.
+                    cursor = page["next_page"]
+                    if cursor is None:
+                        break
+                else:
+                    self.fail("History pagination did not terminate")
+                self.assertEqual([row["id"] for row in expected["occurrences"]], occurrences)
+                self.assertEqual([row["id"] for row in expected["reviews"]], reviews)
+
+    def test_show_preserves_empty_stream_positions_and_terminates_empty_pages(self):
+        gap = self.report()
+        for revision in (1, 2, 3):
+            review_gap(self.store, gap, revision, "reviewing", "discovery", "Investigating")
+        # An occurrence position beyond the existing history must not rewind
+        # while the independent review stream continues.
+        position = show_gap(State(self.directory), gap)["occurrences"][-1]["id"] + 10
+        reviews = []
+        cursor = {"after": position, "review_after": 0}
+        for _ in range(3):
+            page = show_gap(State(self.directory), gap, limit=1, **cursor)
+            self.assertEqual([], page["occurrences"])
+            reviews.extend(row["id"] for row in page["reviews"])
+            cursor = page["next_page"]
+            if cursor is not None:
+                self.assertEqual(position, cursor["after"])
+        self.assertIsNone(cursor)
+        self.assertEqual(3, len(set(reviews)))
+        empty = show_gap(State(self.directory), gap, after=position, review_after=reviews[-1], limit=1)
+        self.assertEqual([], empty["occurrences"])
+        self.assertEqual([], empty["reviews"])
+        self.assertIsNone(empty["next_page"])
+
+    def test_human_show_continuation_carries_both_positions(self):
+        gap = self.report()
+        review_gap(self.store, gap, 1, "reviewing", "discovery", "Investigating")
+        review_gap(self.store, gap, 2, "deferred", "discovery", "Follow up")
+        occurrence = show_gap(State(self.directory), gap)["occurrences"][0]["id"]
+        review = show_gap(State(self.directory), gap)["reviews"][0]["id"]
+        code, output, _ = self.run_cli("show", str(gap), "--limit", "1", structured=False)
+        self.assertEqual(0, code)
+        continuation = next(line for line in output.splitlines() if line.startswith("Continue"))
+        options = shlex.split(continuation.split("with ", 1)[1].removesuffix("."))
+        code, resumed, _ = self.run_cli("show", str(gap), "--limit", "1", *options)
+        self.assertEqual(0, code)
+        self.assertEqual([], resumed["occurrences"])
+        self.assertEqual(1, len(resumed["reviews"]))
+        self.assertIsNone(resumed["next_page"])
+        self.assertIn(f"Continue with --after {occurrence} --review-after {review}.", output)
+        self.assertNotIn("Continue reviews with", output)
 
     def test_review_persists_owner_evidence_and_rejects_stale_revision(self):
         gap = self.report()

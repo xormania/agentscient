@@ -77,8 +77,20 @@ def record_report(store, db, member, scope, update_id, gap):
         raise ValueError("This capability-gap occurrence has already been reported.")
     source = db.execute("SELECT * FROM work_updates WHERE id=?", (update_id,)).fetchone()
     repository = db.execute("SELECT repository FROM work_orders WHERE id=?", (source["work_order"],)).fetchone()[0]
-    identity = digest([repository.strip().casefold() if repository.strip() else ["work_order", source["work_order"]],
-                       gap["capability"].strip().casefold()])
+    if not repository.strip():
+        # Orders fills its repository when preparing the workspace, but the
+        # operator's configured project may already establish the same scope.
+        from .workspaces import project_config
+
+        try:
+            configured = project_config(store)
+        except (OSError, ValueError, AttributeError):
+            configured = {}
+        if isinstance(configured, dict) and isinstance(configured.get("repository"), str):
+            repository = configured["repository"]
+    capability = gap["capability"].strip().casefold()
+    fallback_identity = digest([["work_order", source["work_order"]], capability])
+    identity = digest([repository.strip().casefold(), capability]) if repository.strip() else fallback_identity
     metadata = json.loads(source["capability_gap"])
     capture = {"capture": "redacted" if metadata != gap else "recorded"}
     if metadata.get("capture") == "suppressed":
@@ -86,10 +98,24 @@ def record_report(store, db, member, scope, update_id, gap):
     safe_repository = clean_for_state(store.directory, {"repository": repository})
     if safe_repository.get("capture") == "suppressed":
         capture = safe_repository
+    elif safe_repository.get("repository") != repository and capture.get("capture") != "suppressed":
+        capture = {"capture": "redacted"}
     safe_repository = safe_repository.get("repository", "[capture suppressed]")
     label = metadata.get("capability", "[capture suppressed]")
     now = stamp()
-    previous = db.execute("SELECT * FROM capability_gaps WHERE identity=?", (identity,)).fetchone()
+    previous = db.execute("SELECT * FROM capability_gaps WHERE identity=?", (fallback_identity,)).fetchone()
+    canonical_gap = db.execute("SELECT * FROM capability_gaps WHERE identity=?", (identity,)).fetchone()
+    if previous and identity != fallback_identity and canonical_gap is None:
+        # Promote in place without replacing its ID or immutable reviews. A
+        # collision retains the order's existing history: independently reviewed
+        # gaps must not have their assessments silently combined or overwritten.
+        retained_capture = json.loads(previous["capture"])
+        if retained_capture.get("capture") != "suppressed" and capture.get("capture") != "recorded":
+            retained_capture = capture
+        db.execute("UPDATE capability_gaps SET identity=?,repository=?,capture=? WHERE id=?",
+                   (identity, safe_repository, canonical(retained_capture), previous["id"]))
+    if previous is None:
+        previous = canonical_gap
     if previous:
         gap_id = previous["id"]
         db.execute("UPDATE capability_gaps SET revision=revision+1,occurrence_count=occurrence_count+1,updated=?,"
@@ -160,6 +186,12 @@ def _identifier(gap_id):
 
 
 def show_gap(state, gap_id, after=0, limit=50, review_after=0):
+    """Page both histories; pass both positions in next_page to resume safely.
+
+    Individual next_* fields indicate more rows in that stream. The combined
+    next_page cursor retains consumed positions for exhausted streams and is
+    None only when neither history has another page in this view.
+    """
     _identifier(gap_id)
     _page(after, limit)
     _page(review_after, limit)
@@ -177,6 +209,10 @@ def show_gap(state, gap_id, after=0, limit=50, review_after=0):
                                   (gap_id, review_after, limit + 1)))
     occurrences, cursor = _rows(occurrences, limit)
     reviews, review_cursor = _rows(reviews, limit)
+    next_page = None
+    if cursor is not None or review_cursor is not None:
+        next_page = {"after": occurrences[-1]["id"] if occurrences else after,
+                     "review_after": reviews[-1]["id"] if reviews else review_after}
     records = []
     for occurrence in occurrences:
         record = dict(occurrence)
@@ -185,7 +221,7 @@ def show_gap(state, gap_id, after=0, limit=50, review_after=0):
         records.append(record)
     result = clean_for_state(state.directory, {"gap": _gap(row), "occurrences": records, "next_after": cursor,
                                                "reviews": [_review(review) for review in reviews],
-                                               "next_review_after": review_cursor})
+                                               "next_review_after": review_cursor, "next_page": next_page})
     # Redact complete strings before bounding display: cutting a credential in
     # half first could prevent the shared exact-value filter from recognizing it.
     for record in result.get("occurrences", []):

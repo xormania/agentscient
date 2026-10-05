@@ -1,5 +1,6 @@
 """Durable gap identity, review concurrency, migration and safe inspection."""
 
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -76,6 +77,106 @@ class CapabilityGapStorageTests(unittest.TestCase):
         gaps = list_gaps(self.view)["gaps"]
         self.assertEqual(4, len(gaps))
         self.assertEqual([2, 1, 1, 1], [row["occurrence_count"] for row in gaps])
+
+    def test_configured_repository_groups_reports_before_workspace_initialization(self):
+        team_path = self.directory / "team.json"
+        team = json.loads(team_path.read_text())
+        team["project"] = {"repository": " ORG/Project "}
+        team_path.write_text(canonical(team))
+        scope = {**self.scope, "work_order": self.order_for("")}
+        self.report(scope=scope)
+        gap = list_gaps(self.view)["gaps"][0]
+        self.assertEqual(" ORG/Project ", gap["repository"])
+        review_gap(self.store, gap["id"], 1, "reviewing", "discovery", "Investigating", owner="xor")
+        before = show_gap(self.view, gap["id"])["reviews"]
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET repository='org/project' WHERE id=?", (scope["work_order"],))
+        self.report("after-workspace", " RUN CHECKS ", scope=scope)
+        detail = show_gap(self.view, gap["id"])
+        self.assertEqual(1, len(list_gaps(self.view)["gaps"]))
+        self.assertEqual((2, 3, "reviewing", "xor"),
+                         (detail["gap"]["occurrence_count"], detail["gap"]["revision"],
+                          detail["gap"]["status"], detail["gap"]["owner"]))
+        self.assertEqual(before, detail["reviews"])
+
+    def test_late_repository_promotes_fallback_without_losing_history_or_id(self):
+        scope = {**self.scope, "work_order": self.order_for("")}
+        first_update = self.report(scope=scope)
+        gap = list_gaps(self.view)["gaps"][0]
+        review_gap(self.store, gap["id"], 1, "resolved", "discovery", "Found", evidence="Verified", owner="xor")
+        before = show_gap(self.view, gap["id"])["reviews"]
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET repository='org/project' WHERE id=?", (scope["work_order"],))
+        self.report("after-repository", " RUN CHECKS ", scope=scope)
+        self.assertEqual(first_update, self.report(scope=scope))
+        self.report("other-order", scope={**scope, "work_order": self.order})
+        detail = show_gap(self.view, gap["id"])
+        self.assertEqual(1, len(list_gaps(self.view)["gaps"]))
+        self.assertEqual((gap["id"], 3, 4, "open", "xor", "org/project"),
+                         (detail["gap"]["id"], detail["gap"]["occurrence_count"], detail["gap"]["revision"],
+                          detail["gap"]["status"], detail["gap"]["owner"], detail["gap"]["repository"]))
+        self.assertEqual(before, detail["reviews"])
+        self.assertEqual(3, len(detail["occurrences"]))
+        with self.assertRaisesRegex(ValueError, "changed"):
+            review_gap(self.store, gap["id"], 2, "resolved", "discovery", "Stale", evidence="Old")
+
+    def test_late_repository_collision_preserves_independent_reviewed_gap_ids(self):
+        self.report()
+        canonical_gap = list_gaps(self.view)["gaps"][0]
+        review_gap(self.store, canonical_gap["id"], 1, "reviewing", "permission", "Keep boundary", owner="canonical")
+        before = show_gap(self.view, canonical_gap["id"])
+        scope = {**self.scope, "work_order": self.order_for("")}
+        self.report(scope=scope)
+        fallback = list_gaps(self.view)["gaps"][1]
+        review_gap(self.store, fallback["id"], 1, "resolved", "discovery", "Found", evidence="Verified", owner="fallback")
+        fallback_reviews = show_gap(self.view, fallback["id"])["reviews"]
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET repository='org/project' WHERE id=?", (scope["work_order"],))
+        self.report("later", scope=scope)
+        self.report("later-again", scope={**scope, "revision": 2})
+        self.assertEqual(before, show_gap(self.view, canonical_gap["id"]))
+        detail = show_gap(self.view, fallback["id"])
+        self.assertEqual(2, len(list_gaps(self.view)["gaps"]))
+        self.assertEqual((3, 4, "open", "fallback"),
+                         (detail["gap"]["occurrence_count"], detail["gap"]["revision"],
+                          detail["gap"]["status"], detail["gap"]["owner"]))
+        self.assertEqual(fallback_reviews, detail["reviews"])
+
+    def test_two_fallback_work_orders_converging_keep_their_original_histories(self):
+        scopes = [{**self.scope, "work_order": self.order_for("")} for _ in range(2)]
+        for scope in scopes:
+            self.report(scope=scope)
+        gaps = list_gaps(self.view)["gaps"]
+        for gap in gaps:
+            review_gap(self.store, gap["id"], 1, "reviewing", "unknown", "Separate investigation")
+        reviews = [show_gap(self.view, gap["id"])["reviews"] for gap in gaps]
+        with self.store.connect() as db:
+            for scope in scopes:
+                db.execute("UPDATE work_orders SET repository='org/project' WHERE id=?", (scope["work_order"],))
+        for scope in scopes:
+            self.report("known", scope=scope)
+            self.report("known-again", scope=scope)
+        current = list_gaps(self.view)["gaps"]
+        self.assertEqual([gap["id"] for gap in gaps], [gap["id"] for gap in current])
+        self.assertEqual([3, 3], [gap["occurrence_count"] for gap in current])
+        self.assertEqual(reviews, [show_gap(self.view, gap["id"])["reviews"] for gap in current])
+
+    def test_invalid_project_metadata_preserves_suppressed_work_order_reports(self):
+        team_path = self.directory / "team.json"
+        original = team_path.read_bytes()
+        for value in ([], None, "invalid team shape"):
+            with self.subTest(value=value):
+                scope = {**self.scope, "work_order": self.order_for("")}
+                try:
+                    team_path.write_text(canonical(value))
+                    update = self.report(scope=scope)
+                finally:
+                    team_path.write_bytes(original)
+                with self.store.connect() as db:
+                    ident = db.execute("SELECT gap FROM capability_gap_occurrences WHERE update_id=?", (update,)).fetchone()[0]
+                gap = show_gap(self.view, ident)["gap"]
+                self.assertEqual(1, gap["occurrence_count"])
+                self.assertEqual("suppressed", gap["capture"]["capture"])
 
     def test_new_binding_can_report_same_key_again(self):
         self.report()
