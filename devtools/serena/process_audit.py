@@ -8,6 +8,7 @@ events are diagnostic evidence, not a complete or tamper-proof security audit.
 
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -15,6 +16,10 @@ PREFIX = b"AGENTSCIENT_PROCESS_AUDIT "
 MAX_RECORD_BYTES = 4096
 EVENTS = frozenset({"subprocess.Popen", "os.system", "os.exec", "os.posix_spawn", "os.spawn", "os.fork", "os.forkpty"})
 PROBE = "agentscient.process_observer.probe"
+# Capture stdlib code identities before guest code runs. Matching only the
+# immediate launcher frames keeps unrelated direct spawn calls observable.
+_POSIX_SPAWN_CODE = getattr(getattr(subprocess.Popen, "_posix_spawn", None), "__code__", None)
+_EXECUTE_CHILD_CODE = subprocess.Popen._execute_child.__code__
 
 
 class ProcessObserver:
@@ -95,6 +100,13 @@ class ProcessObserver:
         if event not in EVENTS:
             return
         try:
+            if event == "os.posix_spawn":
+                frame = sys._getframe(1)
+                if (frame.f_code is _POSIX_SPAWN_CODE and frame.f_back is not None
+                        and frame.f_back.f_code is _EXECUTE_CHILD_CODE):
+                    # Popen already emitted this launch attempt. Direct calls
+                    # to os.posix_spawn must still produce their own record.
+                    return
             executable, arguments, cwd = None, (), None
             if event == "subprocess.Popen":
                 executable, arguments, cwd = values[:3]

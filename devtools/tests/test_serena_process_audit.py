@@ -52,6 +52,70 @@ class SerenaProcessAuditTests(unittest.TestCase):
         self.assertNotIn("never-capture-this-environment", result.stderr)
         self.assertTrue(all("request_id" not in row for row in attempts))
 
+    def test_subprocess_fast_path_counts_success_and_failure_once_each(self):
+        result = self.probe("""
+            import subprocess
+            import sys
+            from devtools.serena.process_audit import install
+            assert subprocess._USE_POSIX_SPAWN
+            seen = []
+            sys.addaudithook(lambda event, values: seen.append(event) if event == 'os.posix_spawn' else None)
+            assert install() is not None
+            subprocess.run(['/bin/true'], close_fds=False, check=True)
+            try:
+                subprocess.run(['/definitely-not-an-installed-executable'], close_fds=False, check=True)
+            except FileNotFoundError:
+                pass
+            else:
+                raise AssertionError('Expected missing executable')
+            assert len(seen) == 2, seen
+            print('unblocked')
+        """)
+        attempts = [row for row in self.records(result.stderr) if row["kind"] == "process_attempt"]
+        self.assertEqual(["subprocess.Popen", "subprocess.Popen"], [row["event"] for row in attempts])
+        self.assertEqual(["/bin/true", "/definitely-not-an-installed-executable"],
+                         [row["executable"] for row in attempts])
+        self.assertEqual("unblocked\n", result.stdout)
+
+    def test_direct_posix_spawn_success_and_failure_remain_observed_after_subprocess(self):
+        result = self.probe("""
+            import os
+            import subprocess
+            from devtools.serena.process_audit import install
+            assert install() is not None
+            subprocess.run(['/bin/true'], close_fds=False, check=True)
+            pid = os.posix_spawn('/bin/true', ['/bin/true'], {})
+            assert os.waitpid(pid, 0)[1] == 0
+            try:
+                os.posix_spawn('/definitely-not-an-installed-executable', ['missing'], {})
+            except FileNotFoundError:
+                pass
+            else:
+                raise AssertionError('Expected missing executable')
+        """)
+        attempts = [row for row in self.records(result.stderr) if row["kind"] == "process_attempt"]
+        self.assertEqual(["subprocess.Popen", "os.posix_spawn", "os.posix_spawn"],
+                         [row["event"] for row in attempts])
+        self.assertEqual(["/bin/true", "/bin/true", "/definitely-not-an-installed-executable"],
+                         [row["executable"] for row in attempts])
+
+    def test_direct_spawn_during_subprocess_audit_dispatch_is_not_suppressed(self):
+        result = self.probe("""
+            import os
+            import subprocess
+            import sys
+            from devtools.serena.process_audit import install
+            def extra_launch(event, values):
+                if event == 'subprocess.Popen':
+                    pid = os.posix_spawn('/bin/true', ['/bin/true'], {})
+                    assert os.waitpid(pid, 0)[1] == 0
+            sys.addaudithook(extra_launch)
+            assert install() is not None
+            subprocess.run(['/bin/true'], close_fds=False, check=True)
+        """)
+        attempts = [row for row in self.records(result.stderr) if row["kind"] == "process_attempt"]
+        self.assertEqual(["os.posix_spawn", "subprocess.Popen"], [row["event"] for row in attempts])
+
     def test_full_pipe_drops_observations_without_blocking_process_execution(self):
         result = self.probe("""
             import fcntl
