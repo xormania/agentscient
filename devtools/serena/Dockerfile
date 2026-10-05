@@ -35,6 +35,7 @@ RUN curl --fail --location --silent --show-error \
     --output /opt/phpactor.phar \
     && echo '53bbe9625cd9b5e9b394bc2f595fbad13dbbe6dfc96950c56dea3b5d9a246cc3  /opt/phpactor.phar' | sha256sum --check
 COPY entry.py /opt/serena-entry.py
+COPY process_audit.py /opt/process_audit.py
 ENV PATH="/opt/serena-env/bin:$PATH" HOME=/tmp/home SERENA_HOME=/tmp/serena PYTHONDONTWRITEBYTECODE=1
 WORKDIR /workspace
 ENTRYPOINT ["/opt/serena-env/bin/python", "/opt/serena-entry.py"]
