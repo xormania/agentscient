@@ -1034,6 +1034,82 @@ new observations; old sessions cannot be audited retroactively. Python audit
 hooks are best-effort observation, so a covered provider with no findings still
 does not certify that no process execution occurred.
 
+## Capability-gap review
+
+Agents attach structured capability problems to existing `work_report` and
+`guidance_request` calls. No additional managed-agent tool or cross-work backlog
+access is introduced. The operator inspects and reviews the retained backlog:
+
+```sh
+python3 devtools/scripts/capability-gaps.py --state /private/team list
+python3 devtools/scripts/capability-gaps.py --state /private/team --json list --status all --limit 50
+python3 devtools/scripts/capability-gaps.py --state /private/team show 1
+python3 devtools/scripts/capability-gaps.py --state /private/team review 1 \
+  --expected-revision 1 --status reviewing --classification discovery \
+  --note "Checking whether the existing tool exposes configured check names." --owner xor
+```
+
+Use the actual gap ID and current revision from `list` or `show`. Reviews reject
+stale revisions, preventing one operator from silently overwriting another
+review or a newly reported occurrence. Supported states are `open`, `reviewing`,
+`deferred` and `resolved`. The default list includes the first three; use
+`--status all` or a specific state for other views. Operator classifications are
+`missing_tool`, `discovery`, `permission`, `tool_failure` and `unknown`, separate
+from the category each agent originally reported. A permission restriction may
+be working as intended. Use the review note to record that judgment.
+
+Every review requires a note and expected revision; `--owner` can record who
+will follow up. To resolve an item, supply `--evidence` describing or linking the
+observed repair, verification, or decision that settles it:
+
+```sh
+python3 devtools/scripts/capability-gaps.py --state /private/team review 1 \
+  --expected-revision 2 --status resolved --classification discovery \
+  --note "The capability is discoverable through the updated tool description." \
+  --evidence "Validated in the subsequent work run; retained operation:42."
+```
+
+Evidence is the operator's recorded judgment; the script does not verify a URL,
+test result or resolution claim. Reports and reviews do not grant permission or
+change assignments. A new occurrence reopens a resolved item. Repeated delivery
+of the same encounter does not increase its count or reopen it. Capability names
+are grouped by exact normalized name and repository, without semantic merging.
+The configured project repository is available before workspace preparation;
+work without either a recorded or configured repository is grouped within its
+work order. When a repository becomes known, an existing work-order gap keeps
+its ID and review history and joins repository grouping if that identity is free.
+If another repository gap already exists, the historical work-order gap stays
+separate and keeps receiving that order's recurrences; independently reviewed
+assessments are retained. Keep the capability name stable when reporting
+recurrences, and use a new `occurrence_key` for each new encounter. See
+[agent reporting](../docs/control-plane-roles-and-tools.md#reporting-capability-gaps).
+
+Lists and histories are bounded to 50 records by default (maximum 100). Continue
+a list with `--after` using the returned `next_after`. A `show` returns `next_page`
+with both `after` and `review_after`; pass both as `--after` and `--review-after`
+on the next call, retaining an exhausted history's position while paging the
+other. `next_page` is null when both histories are exhausted. Human output prints
+the combined continuation flags. `--json` includes the complete structured
+output and individual `next_after`/`next_review_after` exhaustion indicators. `list` and
+`show` open state read-only and never initialize or upgrade it; a schema without
+gap tracking reports that it is unavailable. `review` uses the runtime's normal
+schema migration after validating its arguments. Exit status is 0 for a completed
+operation and 2 for invalid arguments, unavailable state or a rejected review.
+If credential filtering is unavailable, reads report suppressed capture with
+exit status 2. A committed review still exits 0, explicitly reporting suppressed
+output. Text suppressed during storage cannot be recovered by restoring the
+filter: history retains the suppression marker. Inspect the current revision
+after restoring filtering and record another explicit review to supply any
+replacement note or evidence.
+
+The backlog starts with structured reports and retains the original work context.
+Failed or denied calls are candidate evidence, not automatically confirmed gaps.
+Old prose is not retroactively parsed, and unreported successful workarounds are
+not detected by this feature. An empty backlog cannot establish the absence of
+capability gaps; review it alongside [runtime telemetry](../docs/runtime-telemetry.md)
+and agent reports. Keep state and exported reports private: they contain task
+content and operator notes.
+
 
 ## Source attribution
 

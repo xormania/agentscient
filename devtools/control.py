@@ -7,6 +7,8 @@ import threading
 from contextvars import ContextVar
 
 from .artifacts import Artifacts
+from .capability_gaps import SCHEMA as GAP_SCHEMA
+from .capability_gaps import existing_report, record_report, validate_gap
 from .role_packages import adapter, catalog, names_for_adapter
 from .role_views import RoleSet
 from .store import canonical, digest, stamp
@@ -15,6 +17,13 @@ from .work import Work, record
 ROLES = RoleSet()
 REQUEST_BINDING = ContextVar("control_binding", default=None)
 BRIEF_FIELDS = ("title", "objective", "done_when", "constraints", "status", "next_action", "blocker")
+GAP_REPORTING = (
+    "When a needed capability is missing, hard to discover, restricted, or failing, attach capability_gap "
+    "to work_report or guidance_request. Describe the intended outcome and why the available tools did not suffice. "
+    "Include successful workarounds as well as blockers. Use a stable occurrence_key for retries of one encounter "
+    "and a new key for a later encounter. Category is your assessment; use unknown when uncertain. "
+    "Reporting a gap grants no additional permission and does not change your assignment."
+)
 INSTRUCTIONS = (
     "Use work_context for your brief, current activity, and evidence. Your role and work are supplied by the service. "
     "Use work_report for findings, progress, or responses; use guidance_request when you need a decision or help. "
@@ -30,6 +39,7 @@ def capabilities(spec):
     reference = {"type": "string", "pattern": "^(message|update|artifact):[1-9][0-9]*$", "maxLength": 80}
     report = {
         "text": text,
+        "capability_gap": GAP_SCHEMA,
         "responding_to": {**reference, "description": "Optional reference from context or a live message to answer."},
         "evaluation": {
             "type": "object", "additionalProperties": False, "required": ["reference", "stage"],
@@ -330,6 +340,8 @@ class Control:
             result["evidence"] = f"artifact:{row['artifact']}"
         if row["evaluation"]:
             result["evaluation"] = json.loads(row["evaluation"])
+        if "capability_gap" in row.keys() and row["capability_gap"]:
+            result["capability_gap"] = json.loads(row["capability_gap"])
         if preview:
             result["truncated"] = len(row["text"]) > 600
         return result
@@ -603,13 +615,16 @@ class Control:
             # provenance cannot satisfy a gate requiring current code evidence.
             return None
 
-    def report(self, text, kind="progress", responding_to=None, evidence=None, evaluation=None):
+    def report(self, text, kind="progress", responding_to=None, evidence=None, evaluation=None, capability_gap=None):
         scope = self.current()
         if not scope:
             raise ValueError("No active role and work binding")
         if adapter(scope["role"]) == "planner" and kind == "result" and not evidence:
             raise ValueError("A planner result needs retained plan evidence.")
         payload = [scope, kind, text, responding_to, evidence]
+        if capability_gap is not None:
+            capability_gap = validate_gap(capability_gap)
+            payload.append({"capability_gap": capability_gap})
         captured = self._proof_capture(scope) if kind == "result" and evidence and adapter(scope["role"]) != "audit" else None
         if captured:
             payload.append(captured)
@@ -624,6 +639,12 @@ class Control:
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            if capability_gap is not None:
+                if capability_gap.get("reference"):
+                    self._reference(db, scope, capability_gap["reference"])
+                old = existing_report(db, self.member, scope, capability_gap, fingerprint)
+                if old:
+                    return self._receipt(db, old, reused=True)
             self._evaluation(db, scope, evaluation)
             destination = self._destination(db, scope, responding_to)
         recipient, order, job, reply = destination
@@ -634,6 +655,9 @@ class Control:
             saved = self.artifacts.save(**evidence, work_order=None, job=None)["artifact"]["id"]
             if captured and self._proof_capture(scope) != captured:
                 raise ValueError("The source changed while retaining proof; report the current result again.")
+        from .telemetry import clean_for_state
+
+        retained_gap = clean_for_state(self.store.directory, capability_gap) if capability_gap is not None else None
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             if binding(db, self.member) != scope:
@@ -643,6 +667,12 @@ class Control:
             ).fetchone()
             if old:
                 return self._receipt(db, old, reused=True)
+            if capability_gap is not None:
+                if capability_gap.get("reference"):
+                    self._reference(db, scope, capability_gap["reference"])
+                old = existing_report(db, self.member, scope, capability_gap, fingerprint)
+                if old:
+                    return self._receipt(db, old, reused=True)
             self._evaluation(db, scope, evaluation)
             # Recheck the recipient inside the transaction; sending and recording are atomic.
             recipient, order, job, reply = self._destination(db, scope, responding_to)
@@ -653,11 +683,14 @@ class Control:
             if parent and adapter(parent["role"]) == "nco":
                 mission["delegation"] = {"member": parent["member"], "brief": parent["brief"]}
             ident = db.execute(
-                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation,binding,mission) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO work_updates(actor,kind,text,work_order,job,binding_revision,request_key,artifact,created,evaluation,binding,mission,capability_gap) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (self.member, kind, text, order, job, scope["revision"], fingerprint, saved, stamp(),
-                 canonical(evaluation) if evaluation else None, canonical(snapshot(scope)), canonical(mission)),
+                 canonical(evaluation) if evaluation else None, canonical(snapshot(scope)), canonical(mission),
+                 canonical(retained_gap) if retained_gap is not None else None),
             ).lastrowid
+            if capability_gap is not None:
+                record_report(self.store, db, self.member, scope, ident, capability_gap)
             if saved:
                 Work(self.store, self.member).attach(db, order, job, "artifact", str(saved))
                 if captured:
@@ -666,6 +699,8 @@ class Control:
                                (saved, provenance["provider"], provenance["reference"], canonical(provenance)))
             if recipient:
                 body = f"{kind}: {text}\nReference: update:{ident}"
+                if capability_gap is not None:
+                    body += "\nCapability gap reported; inspect the referenced update."
                 if responding_to and adapter(scope["role"]) in {"co", "planner"}:
                     body += "\nContext: " + responding_to
                 if saved:
@@ -698,6 +733,8 @@ class Control:
         result["delivery"] = message["delivery"] if message else "recorded_for_user"
         if row["artifact"]:
             result["evidence"] = f"artifact:{row['artifact']}"
+        if "capability_gap" in row.keys() and row["capability_gap"]:
+            result["capability_gap_recorded"] = True
         return result
 
     @staticmethod
