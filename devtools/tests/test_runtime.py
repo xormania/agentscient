@@ -1,49 +1,20 @@
 import json
 import os
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
-from test_commands import GOAL, responsibility
+from fixtures.commands import GOAL, responsibility
+from fixtures.runtime import RuntimeFixture
+from support import adopt_plan, initialize
 
 from devtools.api import API
 from devtools.control import ROLES
-from devtools.launch import agent, configuration, initialize, start
+from devtools.launch import agent, configuration, start
 from devtools.runtime import load, resolve
-from devtools.store import Store
 
 
-class RuntimeTests(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.workspace = self.root / "workspace"
-        self.workspace.mkdir()
-        self.state = self.root / "state"
-        initialize(self.state, self.workspace, ["owner:external"], co="owner", runtime=True)
-        self.store = Store(self.state)
-        self.co = API(self.state, "owner")
-        policy = json.loads((self.state / "roles.json").read_text())
-        for row in policy["profiles"].values():
-            row.update(binary="/bin/true", model="configured-model", reasoning="high")
-        self.write("roles", policy)
-        self.vendor("openai", True)
+class RuntimeTests(RuntimeFixture, unittest.TestCase):
 
-    def write(self, name, value):
-        (self.state / (name + ".json")).write_text(json.dumps(value))
-
-    def vendor(self, name, available):
-        value = json.loads((self.state / "vendors.json").read_text())
-        value["vendors"][name] = {"available": available, "reason": "Quota unavailable" if not available else "Enabled"}
-        self.write("vendors", value)
-
-    def xo(self):
-        self.co.call("direct", GOAL)
-        with self.store.connect() as db:
-            name = db.execute("SELECT member FROM member_bindings WHERE role='xo'").fetchone()[0]
-        return API(self.state, name)
 
     def test_fallback_all_roles_config_revision_and_fail_closed(self):
         first = resolve(self.state, "coder")
@@ -62,11 +33,33 @@ class RuntimeTests(unittest.TestCase):
         policy = json.loads((self.state / "roles.json").read_text())
         del policy["roles"]["architect"]
         self.write("roles", policy)
-        with self.assertRaisesRegex(ValueError, "all eight roles"):
+        load(self.state)
+        with self.assertRaisesRegex(ValueError, "Configure architect preferences"):
+            resolve(self.state, "architect")
+
+    def test_runtime_subset_missing_requested_role_and_unknown_identity(self):
+        original = json.loads((self.state / "roles.json").read_text())
+        self.assertEqual(set(ROLES), set(original["roles"]))
+        policy = json.loads(json.dumps(original))
+        policy["roles"]["test-writer"] = policy["roles"]["test_writer"]
+        self.write("roles", policy)
+        with self.assertRaisesRegex(ValueError, "unknown catalog roles: test-writer"):
             load(self.state)
+        self.write("roles", original)
+        xo = self.xo()
+        before = xo.control.snapshot()
+        original["roles"] = {"xo": original["roles"]["xo"]}
+        self.write("roles", original)
+        load(self.state)
+        self.assertEqual("xo", resolve(self.state, "xo")["selection"]["role"])
+        with self.assertRaisesRegex(ValueError, "Configure planner preferences"):
+            resolve(self.state, "planner")
+        self.assertEqual(before, xo.control.snapshot())
 
     def test_dynamic_multiple_instances_normal_tools_hide_runtime_and_capacity_is_atomic(self):
         xo = self.xo()
+        for name in ("One", "Two", "Three", "Four"):
+            xo.work.job_create(title=name, objective="Runtime fixture", done_when="Bound", work_order=xo.control.snapshot()["work_order"])
         xo.call("orchestrate", {"work": [responsibility("One"), responsibility("Two")]})
         report = xo.call("monitor", {})
         self.assertEqual(["coder", "coder"], [row["role"] for row in report["collaborators"]])
@@ -83,7 +76,7 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "capacity"):
             xo.call("orchestrate", {"work": [responsibility("Three"), responsibility("Four")]})
         with self.store.connect() as db:
-            self.assertEqual(2, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+            self.assertEqual(4, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(4, db.execute("SELECT count(*) FROM members").fetchone()[0])
 
     def test_running_session_retains_snapshot_after_vendor_disabled(self):
@@ -114,8 +107,13 @@ class RuntimeTests(unittest.TestCase):
     def test_migrated_fixed_members_keep_their_work_after_a_harness_change(self):
         state = self.root / "fixed-state"
         initialize(state, self.workspace, ["owner:external", "chief:codex", "worker:claude"], co="owner")
+        team = json.loads((state / "team.json").read_text())
+        for member in team["members"][1:]:
+            member["binary"] = "/bin/true"
+        (state / "team.json").write_text(json.dumps(team))
         co, xo = API(state, "owner"), API(state, "chief")
         co.call("direct", GOAL)
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
         xo.call("orchestrate", {"work": [responsibility()]})
         before = API(state, "worker").control.snapshot()
         co.store.begin_session("worker", os.getpid())

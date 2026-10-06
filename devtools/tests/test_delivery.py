@@ -1,109 +1,18 @@
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import test_workspaces
+from fixtures.delivery import DeliveryFixture
+from support import fixture_work
 
 from devtools.api import API
-from devtools.github import GitHub, short_pr
 from devtools.github_http import GitHubError
 from devtools.workspaces import git
 
 
-class DeliveryTests(unittest.TestCase):
-    setUp_base = test_workspaces.WorkspaceTests.setUp
-    prepared = test_workspaces.WorkspaceTests.prepared
+class DeliveryTests(DeliveryFixture, unittest.TestCase):
 
-    def setUp(self):
-        self.setUp_base()
-        self.workspace = self.prepared()
-        (self.workspace / "src/Example.php").write_text("Delivered implementation\n")
-        self.api.call("work_save", {"note": "Implementation"})
-        self.managed = self.api.workspaces.ensure()
-        self.job = self.api.control.snapshot()["job"]
-        self.order = self.api.control.snapshot()["work_order"]
-        self.head = git(self.workspace, "rev-parse", "HEAD").stdout.decode().strip()
-        git(self.workspace, "push", "origin", self.managed["branch"])
-        self.api.work.job_update(job=self.job, pull_request="https://github.com/example/project/pull/1")
-        test = self
-        context_provider = GitHub(self.store, "coder")
-
-        class Provider:
-            ci = "passed"
-            uncertain = False
-            reviews = []
-            merges = []
-            pr = {
-                "number": 1,
-                "html_url": "https://github.com/example/project/pull/1",
-                "title": "Feature",
-                "state": "open",
-                "merged": False,
-                "draft": False,
-                "head": {"sha": test.head, "ref": test.managed["branch"]},
-                "base": {"sha": test.managed["base_revision"], "ref": test.managed["target"]},
-                "mergeable": True,
-                "mergeable_state": "clean",
-            }
-            _revision = staticmethod(GitHub._revision)
-
-            def _context(self, **kwargs):
-                return context_provider._context(**kwargs)
-
-            def _pr(self, context):
-                return self.pr
-
-            def pr_get(self, context):
-                return {"pr": short_pr(self.pr), "ci": {"state": self.ci}, "reviews": [], "observed_blockers": []}
-
-            def pr_diff(self, context, revision=None, **kwargs):
-                self._revision(self.pr, revision)
-                return {"revision": revision, "files": [{"filename": "src/Example.php"}]}
-
-            def _all(self, endpoint):
-                return self.reviews
-
-            def pr_review(self, context, revision, decision, body):
-                self._revision(self.pr, revision)
-                test.assertEqual("comment", decision)
-                self.reviews.append(
-                    {"body": body, "html_url": self.pr["html_url"] + "#review-" + str(len(self.reviews) + 1)}
-                )
-                if self.uncertain:
-                    self.uncertain = False
-                    raise ConnectionError("Provider reply lost after publication")
-                return {"url": self.reviews[-1]["html_url"]}
-
-            def pr_merge(self, context, revision):
-                self._revision(self.pr, revision)
-                self.merges.append(revision)
-                git(test.remote, "update-ref", "refs/heads/" + self.pr["base"]["ref"], revision)
-                self.pr.update(merged=True, state="closed", merge_commit_sha=revision)
-                return {"merged": True, "commit": revision}
-
-        self.provider = Provider()
-        mock = patch("devtools.delivery.GitHub", lambda store, member: self.provider)
-        mock.start()
-        self.addCleanup(mock.stop)
-        self.api = API(self.state, "coder")
-        self.xo = API(self.state, "xo")
-
-    def auditor(self):
-        item = {
-            "name": "Feature",
-            "role": "audit",
-            "objective": "Review the implementation",
-            "done_when": "Findings are supported",
-            "constraints": "Read-only source",
-        }
-        first = self.xo.call("orchestrate", {"work": [item]})
-        second = self.xo.call("orchestrate", {"work": [item]})
-        self.assertEqual(first, second)
-        with self.store.connect() as db:
-            member = db.execute(
-                "SELECT member FROM member_bindings WHERE job=? AND role='audit'", (self.job,)
-            ).fetchone()["member"]
-        return API(self.state, member)
 
     def test_auditor_shares_job_context_but_has_an_immutable_source_view(self):
         audit = self.auditor()
@@ -117,6 +26,46 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual("Delivered implementation\n", (view / "src/Example.php").read_text())
         self.assertNotIn("work_save", {row["name"] for row in audit.tools()})
         self.assertIn("review_record", {row["name"] for row in audit.tools()})
+
+    def test_specialized_auditors_load_and_review_alongside_default_auditor(self):
+        from devtools.role_packages import default_role
+
+        specializations = {
+            "security_auditor": ("agentscient-security-auditor", "attacker prerequisites"),
+            "adversarial_review": ("agentscient-adversarial-review", "counterexamples"),
+        }
+        config_path = self.state / "team.json"
+        config = json.loads(config_path.read_text())
+        for role in specializations:
+            config["members"].append({**config["members"][-1], "name": role})
+        config_path.write_text(json.dumps(config))
+        general = self.auditor()
+        self.assertEqual("audit", default_role("audit"))
+        members = {general.member}
+        for role, (skill, focus) in specializations.items():
+            with self.subTest(role=role):
+                reviewer = self.auditor(role)
+                self.assertNotIn(reviewer.member, members)
+                members.add(reviewer.member)
+                onboarding = reviewer.call("onboard", {})
+                self.assertEqual(role, onboarding["package"]["role"])
+                self.assertEqual("audit", onboarding["package"]["behavior"])
+                self.assertIn(focus, onboarding["role_instructions"])
+                self.assertIn(skill, {row["name"] for row in onboarding["skills"] if row["loaded"]})
+                self.assertIn(role, {row["name"] for row in self.xo.call("onboard", {})["assignable_roles"]})
+
+                inspected = reviewer.call("work_inspect", {"section": "review"})
+                self.assertEqual(self.head, inspected["pr"]["revision"])
+                view = Path(reviewer.workspaces.ensure()["root"])
+                (self.workspace / "src/Example.php").write_text("Unsubmitted changes\n")
+                self.assertEqual("Delivered implementation\n", (view / "src/Example.php").read_text())
+                with patch.object(reviewer.workspaces, "save") as save:
+                    with self.assertRaisesRegex(ValueError, "not available"):
+                        reviewer.call("work_save", {"note": "Cannot edit producer source"})
+                    save.assert_not_called()
+                recorded = reviewer.call("review_record", {"conclusion": "comment", "summary": role + " evidence for the submitted revision."})
+                self.assertEqual("published", recorded["state"])
+        self.assertEqual(len(specializations), len(self.provider.reviews))
 
     def test_review_retry_reconciles_remote_success_and_routes_findings_and_response(self):
         audit = self.auditor()
@@ -209,38 +158,28 @@ class DeliveryTests(unittest.TestCase):
             ],
         )
         self.assertEqual(1, len(self.provider.merges))
-        self.xo.call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Follow-up",
-                        "role": "coder",
-                        "objective": "Continue",
-                        "done_when": "Result",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
+        fixture_work(self.xo, [{"name": "Follow-up", "role": "coder", "objective": "Continue", "done_when": "Done", "constraints": "Product only"}])
         new_root = Path(self.api.workspaces.ensure()["root"])
         self.assertNotEqual(self.workspace, new_root)
         self.assertEqual("Delivered implementation\n", (new_root / "src/Example.php").read_text())
         self.assertEqual(self.head, git(new_root, "rev-parse", "HEAD").stdout.decode().strip())
         self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_usage"])
 
-    def test_co_concludes_only_finished_work_and_next_direct_creates_new_order(self):
+    def test_xo_concludes_finished_work_and_co_stays_available_for_next_order(self):
         co = API(self.state, "co")
         with self.assertRaisesRegex(ValueError, "unfinished"):
-            co.call("conclude", {"assessment": "Not yet"})
+            self.xo.call("conclude", {"assessment": "Not yet"})
         self.xo.call(
             "steer", {"action": "cancel", "work": "Feature", "direction": "This approach is no longer required"}
         )
         self.assertTrue((self.workspace / "src/Example.php").exists())
-        co.call(
+        self.xo.call(
             "conclude", {"assessment": "The investigation is complete; the implementation was intentionally cancelled"}
         )
-        self.assertIsNone(co.control.snapshot())
+        self.assertEqual(self.order, co.control.snapshot()["work_order"])
+        self.assertEqual("done", co.call("work_context", {})["work"]["status"])
+        self.assertIn("The investigation is complete", json.dumps(co.call("work_context", {"section": "messages"})))
+        self.assertIsNone(self.xo.control.snapshot())
         co.call(
             "direct",
             {"title": "Next effort", "objective": "New goal", "done_when": "Outcome", "constraints": "Keep history"},

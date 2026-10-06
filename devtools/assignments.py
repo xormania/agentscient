@@ -3,6 +3,8 @@
 import json
 from pathlib import Path, PurePosixPath
 
+from .role_packages import adapter
+from .role_packages import role as role_package
 from .store import canonical
 from .work import record
 
@@ -39,15 +41,44 @@ def policy(store, project):
     return value
 
 
+def bounded(details, job):
+    """A job revision can narrow an existing assignment without widening it."""
+    if "editable_paths" in job:
+        paths = details.get("editable_paths", job["editable_paths"])
+        details["editable_paths"] = list(dict.fromkeys(
+            path if covers(boundary, path) else boundary
+            for path in paths for boundary in job["editable_paths"]
+            if covers(boundary, path) or covers(path, boundary)))
+    return details
+
+
 def current(store, scope):
-    if not scope or not scope["job"]:
+    if not scope:
         return {}
     with store.connect() as db:
+        if scope.get("assignment_id"):
+            details = json.loads(record(db, "role_assignments", scope["assignment_id"])["details"])
+            return bounded(details, json.loads(record(db, "jobs", scope["job"])["assignment"])) if scope["job"] else details
+        if not scope["job"]:
+            return {}
         return json.loads(record(db, "jobs", scope["job"])["assignment"])
 
 
 def snapshot(scope):
-    return {key: scope[key] for key in ("member", "role", "work_order", "job", "reports_to", "revision", "updated")}
+    result = {key: scope[key] for key in ("member", "role", "work_order", "job", "reports_to", "revision", "updated")}
+    if scope.get("assignment_id"):
+        result["assignment_id"] = scope["assignment_id"]
+    return result
+
+
+def current_update(db, scope, *, kind=None):
+    """Latest retained report for this exact role and work binding."""
+    for row in db.execute("SELECT * FROM work_updates WHERE actor=? AND work_order=? AND job IS ? "
+                          "AND (? IS NULL OR kind=?) ORDER BY id DESC",
+                          (scope["member"], scope["work_order"], scope["job"], kind, kind)):
+        if row["binding"] and json.loads(row["binding"]) == snapshot(scope):
+            return dict(row)
+    return None
 
 
 def prepare(db, control, scope, item, existing=None):
@@ -71,26 +102,33 @@ def prepare(db, control, scope, item, existing=None):
     if reference:
         kind, update = control._reference(db, scope, reference)
         plan_scope = json.loads(update.get("binding") or "{}") if kind == "update" else {}
-        if kind != "update" or update["kind"] != "result" or plan_scope.get("role") != "planner" or not update["artifact"]:
+        if kind != "update" or update["kind"] != "result" or (not plan_scope.get("role") or adapter(plan_scope["role"]) != "planner") or not update["artifact"]:
             raise ValueError("Use a planner's retained result update with plan evidence.")
-        job = record(db, "jobs", update["job"])
-        delivered = db.execute("SELECT * FROM deliveries WHERE job=? AND outcome='done'", (job["id"],)).fetchone()
-        if job["status"] != "done" or not delivered or delivered["result_update"] != update["id"]:
-            raise ValueError("Inspect and accept the planner's result before using it for implementation.")
+        if update["job"] is None:
+            from .planning import current_plan
+
+            accepted = current_plan(db, scope["work_order"])
+            if accepted["result_update"] != update["id"]:
+                raise ValueError("Use the current adopted planner result.")
+        else:
+            job = record(db, "jobs", update["job"])
+            delivered = db.execute("SELECT * FROM deliveries WHERE job=? AND outcome='done'", (job["id"],)).fetchone()
+            if job["status"] != "done" or not delivered or delivered["result_update"] != update["id"]:
+                raise ValueError("Inspect and accept the planner's result before using it for implementation.")
         order = record(db, "work_orders", scope["work_order"])
         original = json.loads(update["mission"] or "{}")
-        if any(original.get(key) != order[key] for key in ("objective", "done_when", "constraints")):
+        if any(original.get(key, "[]" if key == "context" else None) != order[key] for key in ("objective", "done_when", "constraints", "context")):
             raise ValueError("The mission changed after planning; request a current plan.")
         delegation = original.get("delegation")
         if delegation:
             from .control import binding
 
             parent = binding(db, delegation["member"])
-            if not parent or parent["role"] != "nco" or parent["work_order"] != scope["work_order"] or parent["brief"] != delegation["brief"]:
+            if not parent or adapter(parent["role"]) != "nco" or parent["work_order"] != scope["work_order"] or parent["brief"] != delegation["brief"]:
                 raise ValueError("The delegated mission changed after planning; request a current plan.")
         value["plan"] = {"reference": reference, "evidence": f"artifact:{update['artifact']}",
                          "author": update["actor"], "binding": plan_scope}
-    if "plan" in value and "editable_paths" not in value and item["role"] in {"coder", "docs", "test_writer", "architect"}:
+    if "plan" in value and value["plan"].get("binding", {}).get("job") is not None and "editable_paths" not in value and role_package(item["role"])["workspace"]["editor"]:
         raise ValueError("A planned implementation needs explicit editable_paths.")
     if "editable_paths" in value and "context_paths" not in value:
         value["context_paths"] = list(rules["context_paths"])

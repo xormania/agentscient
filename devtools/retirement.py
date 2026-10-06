@@ -10,6 +10,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+from .role_packages import names_for_adapter
 from .store import canonical, stamp
 from .workspaces import Workspaces, git
 
@@ -45,12 +46,14 @@ def register(db, workspace, work_order):
 
 
 def queue(db, work_order, job, revision):
+    # CO stays connected through its stable interface checkout after delivery;
+    # only execution conversations can hold this managed worktree open.
     sessions = {
         row["name"]: row["generation"]
         for row in db.execute(
             "SELECT m.name,m.generation FROM members m JOIN member_bindings b ON b.member=m.name "
-            "WHERE b.work_order=? AND b.job IS ?",
-            (work_order, job),
+            "WHERE b.work_order=? AND b.job IS ? AND b.role NOT IN (SELECT value FROM json_each(?))",
+            (work_order, job, canonical(names_for_adapter("co"))),
         )
     }
     db.execute(
@@ -122,7 +125,8 @@ class Retirement:
             if not delivery or not delivery["merge_commit"]:
                 raise ValueError("No retained merge result; workspace preserved.")
             if db.execute(
-                "SELECT 1 FROM member_bindings WHERE work_order=? AND job IS ?", (row["work_order"], row["job"])
+                "SELECT 1 FROM member_bindings WHERE work_order=? AND job IS ? AND role NOT IN (SELECT value FROM json_each(?))",
+                (row["work_order"], row["job"], canonical(names_for_adapter("co")))
             ).fetchone():
                 raise ValueError("Collaborators are still bound to this work.")
             if db.execute(

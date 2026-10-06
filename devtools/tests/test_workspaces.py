@@ -1,71 +1,31 @@
 import json
 import os
-import subprocess
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
+from fixtures.workspaces import WorkspaceFixture
 from support import Client
 
 from devtools.api import API
-from devtools.launch import initialize
-from devtools.store import Store
 from devtools.workspaces import git
 
 
-class WorkspaceTests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.checkout = self.root / "checkout"
-        self.checkout.mkdir()
-        subprocess.run(["git", "init", "-b", "dev", str(self.checkout)], capture_output=True, check=True)
-        git(self.checkout, "config", "user.name", "Fixture")
-        git(self.checkout, "config", "user.email", "fixture@example.invalid")
-        (self.checkout / "src").mkdir()
-        (self.checkout / "src/Example.php").write_text("original\n")
-        (self.checkout / "README.md").write_text("Example\n")
-        (self.checkout / "devtools").mkdir()
-        (self.checkout / "devtools/protected.py").write_text("protected\n")
-        git(self.checkout, "add", ".")
-        git(self.checkout, "commit", "-m", "Initial")
-        self.remote = self.root / "remote.git"
-        subprocess.run(["git", "init", "--bare", str(self.remote)], capture_output=True, check=True)
-        git(self.checkout, "remote", "add", "origin", str(self.remote))
-        git(self.checkout, "push", "origin", "dev")
-        self.state = self.root / "state"
-        initialize(
-            self.state, self.checkout, ["co:external", "xo:external", "coder:external", "docs:external"], co="co"
-        )
-        config = json.loads((self.state / "team.json").read_text())
-        config["project"] = {"checkout": str(self.checkout), "repository": "example/project", "target": "dev"}
-        (self.state / "team.json").write_text(json.dumps(config))
-        API(self.state, "co").call(
-            "direct",
-            {"title": "Local work", "objective": "Implement", "done_when": "Delivered", "constraints": "Product only"},
-        )
-        API(self.state, "xo").call(
-            "orchestrate",
-            {
-                "work": [
-                    {
-                        "name": "Feature",
-                        "role": "coder",
-                        "objective": "Feature",
-                        "done_when": "Works",
-                        "constraints": "Product only",
-                    }
-                ]
-            },
-        )
-        self.api = API(self.state, "coder")
-        self.store = Store(self.state)
+class WorkspaceTests(WorkspaceFixture, unittest.TestCase):
 
-    def prepared(self):
-        self.api.call("work_inspect", {})
-        return Path(self.api.workspaces.ensure()["root"])
+
+    def test_co_conversation_uses_the_stable_checkout_without_creating_an_order_worktree(self):
+        co = API(self.state, "co")
+        workspace = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), workspace["root"])
+        with self.store.connect() as db:
+            self.assertIsNone(db.execute("SELECT 1 FROM order_workspaces").fetchone())
+        with self.store.connect() as db:
+            db.execute("UPDATE work_orders SET status='done' WHERE id=?", (co.control.snapshot()["work_order"],))
+        self.assertEqual(str(self.checkout), co.workspaces.ensure()["root"])
+        git(self.checkout, "checkout", "--detach", "HEAD")
+        detached = co.workspaces.ensure()
+        self.assertEqual(str(self.checkout), detached["root"])
+        self.assertIsNone(detached["branch"])
 
     def test_job_prepares_owned_worktree_and_normal_mcp_checkpoint(self):
         client = Client(self.state, "coder")

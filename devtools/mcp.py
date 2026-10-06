@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import VERSION
 from .api import API, SERVER, render
+from .failures import failure_info
 from .sessions import Lease
 from .telemetry import Trace, context
 
@@ -146,7 +147,13 @@ def serve(directory, member, channel=False, operator=False, generation=None):
                     value = api.call(params["name"], params.get("arguments", {}), on_context=capture_context)
                     result = {"content": [{"type": "text", "text": json.dumps(value, ensure_ascii=False)}]}
                 except Exception as error:
-                    result = {"isError": True, "content": [{"type": "text", "text": str(error)[:2000]}]}
+                    metadata = {"failure": getattr(error, "diagnostic_failure", None) or failure_info(error)}
+                    if getattr(error, "diagnostic_guidance", None):
+                        metadata["diagnostic_guidance"] = error.diagnostic_guidance
+                    result = {"isError": True, "content": [
+                        {"type": "text", "text": str(error)[:2000]},
+                        {"type": "text", "text": json.dumps(metadata, ensure_ascii=False)},
+                    ], "structuredContent": metadata}
             else:
                 reply({"id": ident, "error": {"code": -32601, "message": "Unknown MCP method"}})
                 return

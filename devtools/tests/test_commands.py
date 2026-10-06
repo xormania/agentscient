@@ -1,78 +1,48 @@
 import json
 import os
-import tempfile
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, until
+from fixtures.commands import GOAL, CommandFixture, responsibility
+from support import adopt_plan, until
 
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize, start
-from devtools.store import SCHEMA_VERSION, Store
+from devtools.launch import start
+from devtools.store import SCHEMA_VERSION
 from devtools.work import Work
 
-GOAL = dict(
-    title="Prepare local development",
-    objective="Ready the Symfony starting point",
-    done_when="Local workflow demonstrated",
-    constraints="Keep product implementation out of scope",
-)
 
+class CommandTests(CommandFixture, unittest.TestCase):
 
-def responsibility(name="Implementation", role="coder"):
-    return dict(
-        name=name,
-        role=role,
-        objective="Use the existing service",
-        done_when="Evidence retained",
-        constraints="Preserve unrelated changes",
-    )
-
-
-class CommandTests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
-        self.workspace = self.root / "workspace"
-        self.workspace.mkdir()
-        self.state = self.root / "state"
-        initialize(
-            self.state,
-            self.workspace,
-            [name + ":external" for name in ("owner", "xo", "coder", "audit", "spare")],
-            co="owner",
-        )
-        self.store = Store(self.state)
-        self.co = API(self.state, "owner")
-
-    def client(self, member, **kwargs):
-        client = Client(self.state, member, **kwargs)
-        self.addCleanup(client.close)
-        return client
-
-    def team(self, work=None):
-        self.co.call("direct", GOAL)
-        self.xo = API(self.state, "xo")
-        self.xo.call("orchestrate", {"work": work or [responsibility()]})
-        return API(self.state, "coder")
 
     def test_root_appointment_and_role_surface_use_normal_mcp(self):
         co = self.client("owner")
         self.assertIn("ready_to_direct", co.initialization["instructions"])
-        self.assertEqual({"work_context", "direct", "monitor", "onboard", "skill_read"},
-                         {r["name"] for r in co.call("tools/list")["tools"]})
+        # Native clients may retain only the first catalogue and ignore list_changed.
+        cached = {row["name"]: row for row in co.call("tools/list")["tools"]}
+        self.assertEqual({"work_context", "work_report", "guidance_request", "direct", "monitor", "roll_call", "onboard", "skill_read", "readiness_report"},
+                         set(cached))
+        onboarding = co.tool("onboard", {})
+        self.assertEqual("ready_to_direct", onboarding["context"]["state"])
+        self.assertIn("establish the work order with `direct` before `work_report`", onboarding["role_instructions"])
+        for name in ("work_report", "guidance_request"):
+            with self.subTest(tool=name), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool(name, {"text": "No work has been authorized"})
         idle = self.client("xo")
+        self.assertEqual(["work_context"], [row["name"] for row in idle.call("tools/list")["tools"]])
         with self.assertRaisesRegex(ValueError, "not available"):
             idle.tool("direct", GOAL)
         co.tool("direct", GOAL)
         self.assertEqual("co", co.tool("work_context", {})["role"])
+        for name in ("work_report", "guidance_request"):
+            report = co.tool(cached[name]["name"], {"text": "Owner direction after binding"})
+            self.assertTrue(report["reference"].startswith("update:"))
+        self.assertEqual(cached, {row["name"]: row for row in co.call("tools/list")["tools"]})
         self.assertEqual(
-            {"work_context", "work_report", "guidance_request", "orchestrate", "monitor", "steer", "onboard", "skill_read"},
+            {"work_context", "work_report", "guidance_request", "plan_adopt", "orchestrate", "monitor", "steer", "conclude", "onboard", "skill_read", "readiness_report"},
             {r["name"] for r in idle.call("tools/list")["tools"]},
         )
         until(lambda: any(row["method"] == "notifications/tools/list_changed" for row in idle.notifications))
@@ -84,13 +54,19 @@ class CommandTests(unittest.TestCase):
         del config["co"]
         (self.state / "team.json").write_text(json.dumps(config))
         self.co.control.unbind("owner")
-        with self.assertRaisesRegex(ValueError, "not available"):
-            co.tool("direct", GOAL)
+        self.assertEqual(["work_context"], [row["name"] for row in co.call("tools/list")["tools"]])
+        for name, arguments in (("direct", GOAL), ("work_report", {"text": "Stale catalogue"}),
+                                ("guidance_request", {"text": "Stale catalogue"})):
+            with self.subTest(tool=name), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool(cached[name]["name"], arguments)
 
     def test_retries_and_concurrent_allocation_keep_one_job_and_member(self):
         first = self.co.call("direct", GOAL)
         self.assertEqual(first, API(self.state, "owner").call("direct", GOAL))
         xo = API(self.state, "xo")
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda _: xo.call("orchestrate", {"work": [responsibility()]}), range(2)))
         self.assertEqual(results[0], results[1])
@@ -98,25 +74,150 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(1, db.execute("SELECT count(*) FROM work_orders").fetchone()[0])
             self.assertEqual(1, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(3, db.execute("SELECT count(*) FROM member_bindings").fetchone()[0])
-            self.assertEqual(2, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(messages + 1, db.execute("SELECT count(*) FROM messages").fetchone()[0])
         self.assertIsNone(xo.control.snapshot()["job"])
         self.assertIsNone(self.store.member("xo")["selected_job"])
         self.assertIsNone(xo.call("monitor", {})["collaborators"][0]["latest_usage"])
         changed = responsibility() | {"done_when": "Updated completion condition"}
         xo.call("orchestrate", {"work": [changed]})
         coder = API(self.state, "coder")
-        self.assertEqual(changed["done_when"], coder.call("work_context", {})["job"]["done_when"])
+        self.assertEqual(changed["done_when"], coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(1, len(Work(self.store, "xo").job_list()["jobs"]))
+
+    def test_monitor_usage_does_not_reuse_previous_session_observations(self):
+        self.team()
+        first = self.store.begin_session("coder", os.getpid())
+        self.store.session("coder", generation=first, state="idle", native_id="first-session")
+        self.store.event("coder", "native_usage", observation={"inputTokens": 123})
+        self.assertEqual(123, self.xo.call("monitor", {})["collaborators"][0]["latest_usage"]["observation"]["inputTokens"])
+        self.store.session("coder", generation=first, state="stopped", desired="stopped", pid=None)
+        second = self.store.begin_session("coder", os.getpid())
+        self.store.session("coder", generation=second, state="idle", native_id="second-session")
+        self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_usage"])
+        self.store.event("coder", "native_usage", observation={"inputTokens": 7})
+        latest = self.xo.call("monitor", {})["collaborators"][0]["latest_usage"]
+        self.assertEqual(7, latest["observation"]["inputTokens"])
+        self.assertEqual(second, latest["generation"])
+        self.assertEqual("second-session", latest["native_id"])
+
+    def test_monitor_only_projects_reports_from_current_binding(self):
+        coder = self.team()
+        report = coder.call("work_report", {"text": "Prior assignment progress"})
+        self.assertEqual(report["reference"], self.xo.call("monitor", {})["collaborators"][0]["latest_report"]["reference"])
+        previous = coder.control.snapshot()
+        self.co.control.unbind("coder")
+        self.co.control.bind("coder", "coder", previous["work_order"], job=previous["job"], reports_to="xo")
+        self.assertIsNone(self.xo.call("monitor", {})["collaborators"][0]["latest_report"])
+        current = coder.call("work_report", {"text": "Current assignment progress"})
+        self.assertEqual(current["reference"], self.xo.call("monitor", {})["collaborators"][0]["latest_report"]["reference"])
+
+    def test_co_records_final_receipt_through_mcp_after_xo_is_released(self):
+        co, xo = self.client("owner"), self.client("xo")
+        co.tool("direct", GOAL)
+        order = self.co.control.snapshot()["work_order"]
+        report = xo.tool("work_report", {"kind": "result", "text": "Investigation complete"})
+        xo.tool("conclude", {"assessment": "No implementation change was needed"})
+        self.assertIsNone(Control(self.store, "xo").snapshot())
+        context = co.tool("work_context", {})
+        self.assertEqual("done", context["work"]["status"])
+        outcome = next(row for row in context["incoming"] if row["text"].startswith("Work-order outcome: done"))
+        self.assertNotIn("message_ack", {row["name"] for row in co.call("tools/list")["tools"]})
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+        for reference in (outcome["reference"], report["reference"]):
+            arguments = {"text": "Relayed the retained outcome to the owner", "responding_to": reference}
+            receipt = co.tool("work_report", arguments)
+            self.assertEqual("recorded_for_user", receipt["delivery"])
+            again = co.tool("work_report", arguments)
+            self.assertTrue(again["reused"])
+            self.assertEqual(receipt["reference"], again["reference"])
+            retained = co.tool("work_context", {"reference": receipt["reference"]})
+            self.assertEqual(arguments["text"], retained["text"])
+        plain = co.tool("work_report", {"text": "The owner can start another work order"})
+        self.assertEqual("recorded_for_user", plain["delivery"])
+        with self.store.connect() as db:
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            incoming = list(db.execute("SELECT * FROM messages WHERE recipient='owner' AND work_order=?", (order,)))
+            self.assertEqual(2, len(incoming))
+            self.assertTrue(all(row["acknowledged"] for row in incoming))
+            updates = list(db.execute("SELECT * FROM work_updates WHERE actor='owner' AND work_order=?", (order,)))
+            self.assertEqual(3, len(updates))
+            self.assertTrue(all(row["message"] is None for row in updates))
+        acknowledgements = self.store.events(actor="owner", kind="message_acknowledged", work_order=order)["events"]
+        self.assertEqual({row["id"] for row in incoming}, {row["data"]["message"] for row in acknowledgements})
+        self.assertEqual(2, len(acknowledgements))
+
+    def test_terminal_co_receipts_cannot_ack_other_recipients_or_reply_across_orders(self):
+        co, xo = self.client("owner"), self.client("xo")
+        co.tool("direct", GOAL)
+        order = self.co.control.snapshot()["work_order"]
+        prior = xo.tool("work_report", {"text": "Earlier result"})
+        sent = co.tool("work_report", {"text": "Earlier owner context"})
+        other = self.store.send("xo", "coder", "Not addressed to CO", key="other-recipient", work_order=order)
+        xo.tool("conclude", {"assessment": "Investigation complete"})
+        final = next(row for row in co.tool("work_context", {})["incoming"]
+                     if row["text"].startswith("Work-order outcome: done"))
+        with self.assertRaisesRegex(ValueError, "not available"):
+            co.tool("work_report", {"text": "Cannot acknowledge another recipient", "responding_to": f"message:{other['id']}"})
+        with self.store.connect() as db:
+            outgoing = db.execute("SELECT message FROM work_updates WHERE id=?", (int(sent["reference"].split(":")[1]),)).fetchone()[0]
+        for reference in (sent["reference"], f"message:{outgoing}"):
+            receipt = co.tool("work_report", {"text": "Retain earlier owner context", "responding_to": reference})
+            self.assertEqual("recorded_for_user", receipt["delivery"])
+        with self.store.connect() as db:
+            self.assertIsNone(db.execute("SELECT acknowledged FROM messages WHERE id=?", (outgoing,)).fetchone()[0])
+            self.assertIsNone(db.execute("SELECT acknowledged FROM messages WHERE id=?", (other["id"],)).fetchone()[0])
+        co.tool("direct", GOAL | {"title": "Next investigation", "objective": "Continue with a new objective"})
+        next_order = self.co.control.snapshot()["work_order"]
+        self.assertGreater(next_order, order)
+        with self.store.connect() as db:
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+            updates = db.execute("SELECT count(*) FROM work_updates").fetchone()[0]
+        for reference in (final["reference"], prior["reference"]):
+            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, "not available"):
+                co.tool("work_report", {"text": "Do not reroute the old outcome", "responding_to": reference})
+        with self.store.connect() as db:
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(updates, db.execute("SELECT count(*) FROM work_updates").fetchone()[0])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM messages WHERE recipient='owner' AND work_order=? AND acknowledged IS NOT NULL", (order,)).fetchone()[0])
+        self.assertEqual("queued", co.tool("work_report", {"text": "Current owner context"})["delivery"])
+        current = self.store.inbox("xo", work_order=next_order)["messages"][-1]
+        self.assertIn("Current owner context", current["body"])
+        self.assertIsNone(current["reply_to"])
+
+    def test_co_report_rechecks_released_xo_before_recording_receipt(self):
+        self.co.call("direct", GOAL)
+        xo = API(self.state, "xo")
+        report = xo.call("work_report", {"text": "Result before conclusion"})
+        save = self.co.control.artifacts.save
+
+        def conclude_during_save(**arguments):
+            saved = save(**arguments)
+            xo.call("conclude", {"assessment": "Concluded while CO retained its response"})
+            return saved
+
+        with patch.object(self.co.control.artifacts, "save", side_effect=conclude_during_save):
+            result = self.co.call("work_report", {"text": "Receipt retained for owner", "responding_to": report["reference"],
+                                                 "evidence": {"name": "receipt.txt", "content": "Owner received the result"}})
+        self.assertEqual("recorded_for_user", result["delivery"])
+        with self.store.connect() as db:
+            original = db.execute("SELECT m.* FROM messages m JOIN work_updates u ON u.message=m.id WHERE u.id=?",
+                                  (int(report["reference"].split(":")[1]),)).fetchone()
+            self.assertIsNotNone(original["acknowledged"])
+            self.assertEqual(0, db.execute("SELECT count(*) FROM messages WHERE body LIKE 'progress: Receipt retained%'").fetchone()[0])
 
     def test_failed_batch_rolls_back_work_and_claims_and_inputs_are_bounded(self):
         self.co.call("direct", GOAL)
         xo = API(self.state, "xo")
-        with self.assertRaisesRegex(ValueError, "No available"):
-            xo.call("orchestrate", {"work": [responsibility(str(i)) for i in range(4)]})
+        adopt_plan(xo, [{"name": "Implementation", **{key: responsibility()[key] for key in ("objective", "done_when", "constraints")}}])
         with self.store.connect() as db:
-            self.assertEqual(0, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
+            messages = db.execute("SELECT count(*) FROM messages").fetchone()[0]
+        with self.assertRaisesRegex(ValueError, "No available"):
+            xo.call("orchestrate", {"work": [responsibility(str(i), "research") | {"job": "Implementation"} for i in range(4)]})
+        with self.store.connect() as db:
+            self.assertEqual(1, db.execute("SELECT count(*) FROM jobs").fetchone()[0])
             self.assertEqual(2, db.execute("SELECT count(*) FROM member_bindings").fetchone()[0])
-            self.assertEqual(1, db.execute("SELECT count(*) FROM messages").fetchone()[0])
+            self.assertEqual(messages, db.execute("SELECT count(*) FROM messages").fetchone()[0])
         for payload in (
             {"work": []},
             {"work": [responsibility(), responsibility()]},
@@ -128,8 +229,8 @@ class CommandTests(unittest.TestCase):
             xo.call("orchestrate", {"work": [responsibility() | {"selection": {"model": "unconfigured"}}]})
         # Worst-case Unicode input stays within the real stdio frame limit.
         client = self.client("xo")
-        unicode_job = responsibility() | {key: "🦁" * 800 for key in ("objective", "done_when", "constraints")}
-        client.tool("orchestrate", {"work": [unicode_job | {"name": str(i)} for i in range(3)]})
+        unicode_job = responsibility(role="research") | {key: "🦁" * 800 for key in ("objective", "done_when", "constraints")}
+        client.tool("orchestrate", {"work": [unicode_job | {"name": str(i), "job": "Implementation"} for i in range(3)]})
 
     def test_large_brief_is_loaded_on_demand_and_not_repeated_in_direction(self):
         coder = self.team([responsibility() | {"objective": "J" * 800}])
@@ -160,6 +261,7 @@ class CommandTests(unittest.TestCase):
         args = dict(
             action="guide",
             work="Implementation",
+            assignment="Implementation",
             direction="Prioritize the existing adapter",
             done_when="Adapter behavior verified",
         )
@@ -167,7 +269,7 @@ class CommandTests(unittest.TestCase):
         with self.store.connect() as db:
             old_direction = dict(db.execute("SELECT * FROM messages ORDER BY id DESC LIMIT 1").fetchone())
         self.assertEqual(first, self.xo.call("steer", args))
-        self.assertEqual("Adapter behavior verified", coder.call("work_context", {})["job"]["done_when"])
+        self.assertEqual("Adapter behavior verified", coder.call("work_context", {})["role_assignment"]["done_when"])
         self.assertEqual(prior, audit.call("work_context", {}))
         self.xo.call("steer", {"action": "pause", "work": "Implementation"})
         self.assertEqual("paused", coder.call("work_context", {})["work_state"])
@@ -212,6 +314,12 @@ class CommandTests(unittest.TestCase):
         self.assertIn("Sibling secret", json.dumps(self.co.call("monitor", {})))
         with self.assertRaises(ValueError):
             self.xo.call("steer", {"action": "pause", "work": "Sibling secret"})
+        with self.store.connect() as db:
+            source = db.execute("SELECT result_update FROM work_plans WHERE work_order=?", (order,)).fetchone()[0]
+        definitions = [{key: value for key, value in responsibility(name).items() if key != "role"}
+                       for name in ("Implementation", "Sibling secret")]
+        with self.assertRaisesRegex(ValueError, "another command team"):
+            self.xo.call("plan_adopt", {"plan": f"update:{source}", "jobs": definitions})
         for name, args in (
             ("direct", GOAL),
             ("monitor", {}),
@@ -250,7 +358,7 @@ class CommandTests(unittest.TestCase):
                 "name": "managed",
                 "harness": "codex",
                 "workspace": str(self.workspace),
-                "binary": "not-installed-fixture",
+                "binary": "/bin/true",
                 "model": "configured-model",
                 "reasoning": "high",
             }
@@ -259,6 +367,10 @@ class CommandTests(unittest.TestCase):
         (self.state / "team.json").write_text(json.dumps(config))
         result = self.co.call("direct", GOAL)
         self.assertTrue(result["xo"]["session"]["launch_pending"])
+        # Availability can change after allocation but before its persisted
+        # launch intent is resumed by another MCP server.
+        config["members"][-1]["binary"] = "not-installed-fixture"
+        (self.state / "team.json").write_text(json.dumps(config))
         restarted = API(self.state, "owner")
         restarted.commands.tick()
         observed = restarted.call("monitor", {})["collaborators"][0]
@@ -292,4 +404,3 @@ class CommandTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

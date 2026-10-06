@@ -1,17 +1,19 @@
+import copy
 import json
 import unittest
 from unittest.mock import patch
 
-import test_workspaces
+from fixtures.workspaces import WorkspaceFixture
 
+from devtools import role_packages
 from devtools.api import API
 from devtools.profiles import permitted, prepare
 from devtools.serena_provider import Serena, enabled
 
 
 class SerenaTests(unittest.TestCase):
-    setUp = test_workspaces.WorkspaceTests.setUp
-    prepared = test_workspaces.WorkspaceTests.prepared
+    setUp = WorkspaceFixture.setUp
+    prepared = WorkspaceFixture.prepared
 
     def configure(self):
         config = json.loads((self.state / "team.json").read_text())
@@ -66,6 +68,18 @@ class SerenaTests(unittest.TestCase):
         self.api.control.bind("coder", "audit", scope["work_order"], scope["job"], "xo")
         with self.assertRaisesRegex(ValueError, "Reconnect"):
             provider.call({"code": "1"})
+
+    def test_role_package_write_revocation_reconnects_even_when_binding_is_unchanged(self):
+        provider = self.configure()
+        before = self.api.control.snapshot()
+        provider.signature = provider.scope()[1]
+        changed = copy.deepcopy(role_packages.catalog())
+        changed["roles"]["coder"]["workspace"]["paths"] = ["tests/"]
+        with patch("devtools.role_packages._catalog", return_value=changed):
+            self.assertFalse(self.api.workspaces.permitted_path("src/Example.php", "coder"))
+            self.assertEqual(before, self.api.control.snapshot())
+            with self.assertRaisesRegex(ValueError, "Reconnect"):
+                provider.scope()
 
     def test_native_profiles_keep_serena_separate_and_reject_other_provider_tools(self):
         self.configure()

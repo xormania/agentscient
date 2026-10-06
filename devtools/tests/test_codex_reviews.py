@@ -2,8 +2,9 @@ import hashlib
 import unittest
 from unittest.mock import patch
 
-import test_feedback
-import test_github
+from fixtures import github as test_github
+from fixtures.feedback import FeedbackFixture
+from fixtures.github import GitHubFixture
 
 from devtools.codex_reviews import BOT, BOT_ID, KINDS, SUMMARY, CodexReviews
 from devtools.github import GitHub
@@ -12,11 +13,11 @@ from devtools.store import canonical
 
 
 class CodexReviewTests(unittest.TestCase):
-    base_setup = test_github.GitHubTests.setUp
-    client = test_feedback.FeedbackTests.client
+    base_setup = GitHubFixture.setUp
+    client = FeedbackFixture.client
 
     def setUp(self):
-        test_feedback.FeedbackTests.setUp(self)
+        FeedbackFixture.setUp(self)
         with self.store.connect() as db:
             db.execute("UPDATE work_orders SET pull_request=?,branch='feature' WHERE id=?",
                        (self.provider.pr["html_url"], self.order))

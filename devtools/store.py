@@ -1,7 +1,8 @@
-"""Durable live-session messages and measured events. No task gates."""
+"""SQLite state access, schema and durable session records."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -14,7 +15,7 @@ from pathlib import Path
 
 REQUEST_WORK = ContextVar("request_work", default=None)
 UNSET = object()
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 18
 
 
 def stamp():
@@ -23,6 +24,11 @@ def stamp():
 
 def canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def digest(value):
+    """Fingerprint canonical state with the same bytes across service boundaries."""
+    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 def identifier(value):
@@ -77,15 +83,39 @@ WORK_SCHEMA = (
 )
 
 
-class Store:
-    def __init__(self, directory):
+class State:
+    """State location and SQLite lifetime, read-only unless explicitly writable.
+
+    Opening a view never creates or upgrades a team's schema. Runtime services
+    use Store, which owns initialization and migration in addition to this access.
+    """
+
+    def __init__(self, directory, *, read_only=True):
         self.directory = Path(directory).expanduser().resolve()
         self.path = self.directory / "live.sqlite3"
+        self.read_only = read_only
+
+    @contextmanager
+    def connect(self):
+        target = self.path.as_uri() + "?mode=ro" if self.read_only else self.path
+        connection = sqlite3.connect(target, timeout=10, uri=self.read_only)
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
+
+class Store(State):
+    def __init__(self, directory):
+        super().__init__(directory, read_only=False)
         if self.path.is_file():
             self.upgrade()
 
     def upgrade(self):
-        """Add work tracking to existing teams without rebuilding their state."""
+        """Upgrade retained state atomically without rebuilding its records."""
         with self.connect() as db:
             if db.execute("PRAGMA user_version").fetchone()[0] >= SCHEMA_VERSION:
                 return
@@ -124,6 +154,24 @@ class Store:
                 work_order INTEGER NOT NULL REFERENCES work_orders(id), job INTEGER REFERENCES jobs(id),
                 reports_to TEXT REFERENCES members(name), brief TEXT NOT NULL DEFAULT '',
                 revision INTEGER NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS standby_bindings (
+                member TEXT PRIMARY KEY REFERENCES members(name), role TEXT NOT NULL,
+                reports_to TEXT NOT NULL UNIQUE REFERENCES members(name), revision INTEGER NOT NULL,
+                launch_pending INTEGER NOT NULL DEFAULT 1, launch_error TEXT,
+                preflight TEXT NOT NULL DEFAULT '{}', deadline REAL NOT NULL,
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            if "runtime" in {row[1] for row in db.execute("PRAGMA table_info(standby_bindings)")}:
+                db.execute("ALTER TABLE standby_bindings DROP COLUMN runtime")
+            db.execute("""CREATE TABLE IF NOT EXISTS duty_readiness (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, member TEXT NOT NULL REFERENCES members(name),
+                parent TEXT REFERENCES members(name), role TEXT NOT NULL, generation TEXT NOT NULL,
+                binding TEXT NOT NULL, challenge TEXT NOT NULL UNIQUE, deadline REAL NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('starting','ready','blocked','timed_out','superseded')),
+                checks TEXT NOT NULL DEFAULT '[]', onboarding_revision TEXT,
+                challenge_message INTEGER REFERENCES messages(id), receipt_message INTEGER REFERENCES messages(id),
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE INDEX IF NOT EXISTS duty_readiness_member ON duty_readiness(member,id)")
+            db.execute("CREATE INDEX IF NOT EXISTS duty_readiness_parent ON duty_readiness(parent,id)")
             db.execute("""CREATE TABLE IF NOT EXISTS work_updates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, actor TEXT NOT NULL REFERENCES members(name),
                 kind TEXT NOT NULL, text TEXT NOT NULL, work_order INTEGER NOT NULL REFERENCES work_orders(id),
@@ -132,19 +180,23 @@ class Store:
                 UNIQUE(actor,request_key))""")
             db.execute("CREATE INDEX IF NOT EXISTS work_updates_scope ON work_updates(work_order,job,id)")
             additions = {
-                "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT"},
-                "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'"},
+                "members": {"binding_revision": "INTEGER NOT NULL DEFAULT 0"},
+                "work_updates": {"evaluation": "TEXT", "binding": "TEXT", "mission": "TEXT", "capability_gap": "TEXT"},
+                "jobs": {"assignment": "TEXT NOT NULL DEFAULT '{}'", "dependencies": "TEXT NOT NULL DEFAULT '[]'"},
                 "github_watches": {"reviews": "INTEGER NOT NULL DEFAULT 0", "sequence": "INTEGER NOT NULL DEFAULT 0"},
                 "member_bindings": {
                     "paused": "INTEGER NOT NULL DEFAULT 0",
                     "launch_pending": "INTEGER NOT NULL DEFAULT 0",
                     "launch_error": "TEXT",
+                    "assignment_id": "INTEGER",
                 },
                 "messages": {"category": "TEXT NOT NULL DEFAULT 'peer'"},
                 "work_orders": {
                     "repository": "TEXT NOT NULL DEFAULT ''",
                     "branch": "TEXT NOT NULL DEFAULT ''",
                     "pull_request": "TEXT NOT NULL DEFAULT ''",
+                    "context": "TEXT NOT NULL DEFAULT '[]'",
+                    "plan_revision": "INTEGER NOT NULL DEFAULT 0",
                 },
             }
             for table, fields in additions.items():
@@ -152,6 +204,28 @@ class Store:
                 for name, definition in fields.items():
                     if name not in present:
                         db.execute(f"ALTER TABLE {table} ADD COLUMN {name} {definition}")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gaps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, repository TEXT NOT NULL, identity TEXT NOT NULL UNIQUE,
+                capability TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open'
+                    CHECK(status IN ('open','reviewing','deferred','resolved')),
+                classification TEXT NOT NULL DEFAULT 'unknown'
+                    CHECK(classification IN ('missing_tool','discovery','permission','tool_failure','unknown')),
+                owner TEXT NOT NULL DEFAULT '', revision INTEGER NOT NULL DEFAULT 1,
+                occurrence_count INTEGER NOT NULL DEFAULT 1, capture TEXT NOT NULL,
+                created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gap_occurrences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, gap INTEGER NOT NULL REFERENCES capability_gaps(id),
+                update_id INTEGER NOT NULL UNIQUE REFERENCES work_updates(id),
+                actor TEXT NOT NULL REFERENCES members(name), binding_key TEXT NOT NULL,
+                occurrence_key TEXT NOT NULL, UNIQUE(actor,binding_key,occurrence_key))""")
+            db.execute("CREATE INDEX IF NOT EXISTS capability_gap_occurrences_gap ON capability_gap_occurrences(gap,id)")
+            db.execute("""CREATE TABLE IF NOT EXISTS capability_gap_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, gap INTEGER NOT NULL REFERENCES capability_gaps(id),
+                revision INTEGER NOT NULL, actor TEXT NOT NULL CHECK(actor='operator'),
+                prior_status TEXT NOT NULL, status TEXT NOT NULL, classification TEXT NOT NULL,
+                owner TEXT NOT NULL, note TEXT NOT NULL, evidence TEXT, capture TEXT NOT NULL,
+                created TEXT NOT NULL, UNIQUE(gap,revision))""")
+            db.execute("CREATE INDEX IF NOT EXISTS capability_gap_reviews_gap ON capability_gap_reviews(gap,id)")
             db.execute(
                 "CREATE TABLE IF NOT EXISTS job_workspaces (job INTEGER PRIMARY KEY REFERENCES jobs(id), "
                 "root TEXT NOT NULL UNIQUE,branch TEXT NOT NULL,target TEXT NOT NULL,base_revision TEXT NOT NULL)"
@@ -233,18 +307,64 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS codex_requests (
                 repository TEXT NOT NULL, pr INTEGER NOT NULL, revision TEXT NOT NULL, kind TEXT NOT NULL,
                 state TEXT NOT NULL, url TEXT, PRIMARY KEY(repository,pr,revision,kind))""")
-            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+            db.execute("""CREATE TABLE IF NOT EXISTS role_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), name TEXT NOT NULL, role TEXT NOT NULL,
+                brief TEXT NOT NULL, details TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'active',
+                revision INTEGER NOT NULL DEFAULT 1, result_update INTEGER REFERENCES work_updates(id),
+                created_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS assignment_identity "
+                       "ON role_assignments(work_order,coalesce(job,0),name COLLATE NOCASE,role)")
+            db.execute("""CREATE TABLE IF NOT EXISTS runtime_selections (
+                member TEXT PRIMARY KEY REFERENCES members(name), binding TEXT NOT NULL,
+                profile TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS decisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL,
+                member TEXT NOT NULL REFERENCES members(name), work_order INTEGER NOT NULL REFERENCES work_orders(id),
+                job INTEGER REFERENCES jobs(id), purpose TEXT NOT NULL, binding TEXT NOT NULL,
+                context TEXT NOT NULL, identity TEXT, policy TEXT NOT NULL, request TEXT NOT NULL,
+                answers TEXT NOT NULL DEFAULT '{}', result TEXT NOT NULL DEFAULT '{}',
+                unresolved TEXT NOT NULL DEFAULT '[]', evidence TEXT, failure TEXT,
+                state TEXT NOT NULL, assignment INTEGER REFERENCES role_assignments(id),
+                arbitrator TEXT REFERENCES members(name), resolution TEXT, continuation TEXT,
+                resumed TEXT, created TEXT NOT NULL, updated TEXT NOT NULL)""")
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS current_decision ON decisions(fingerprint) WHERE state!='stale'")
+            from .role_packages import names_for_adapter
 
-    @contextmanager
-    def connect(self):
-        connection = sqlite3.connect(self.path, timeout=10)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        try:
-            with connection:
-                yield connection
-        finally:
-            connection.close()
+            invalid = db.execute(
+                "SELECT member FROM member_bindings WHERE job IS NULL AND role IN "
+                "(SELECT value FROM json_each(?)) LIMIT 1", (canonical(names_for_adapter("nco")),),
+            ).fetchone()
+            if invalid:
+                raise ValueError("Rebind or retire the job coordinator without a job before upgrading this team: " + invalid["member"])
+            duplicate = db.execute(
+                "SELECT job FROM member_bindings WHERE job IS NOT NULL AND role IN "
+                "(SELECT value FROM json_each(?)) GROUP BY job HAVING count(*)>1 LIMIT 1",
+                (canonical(names_for_adapter("nco")),),
+            ).fetchone()
+            if duplicate:
+                raise ValueError("Resolve multiple coordinator bindings for job " + str(duplicate["job"]) + " before upgrading this team.")
+            # Coordinator membership comes from the role registry. Bindings are
+            # checked in the same immediate transaction as their insertion.
+            db.execute("DROP INDEX IF EXISTS job_nco")
+            db.execute("""CREATE TABLE IF NOT EXISTS work_plans (
+                work_order INTEGER NOT NULL REFERENCES work_orders(id), revision INTEGER NOT NULL,
+                result_update INTEGER NOT NULL REFERENCES work_updates(id), jobs TEXT NOT NULL,
+                mission TEXT NOT NULL, adopted_by TEXT NOT NULL REFERENCES members(name), created TEXT NOT NULL,
+                PRIMARY KEY(work_order,revision))""")
+            # Retire every retained incarnation, including unbound members, but
+            # preserve live snapshots and the validity of their current proof.
+            for table, owner, revision in (
+                ("member_bindings", "member", "revision"),
+                ("work_updates", "actor", "binding_revision"),
+                ("operations", "member", "json_extract(binding,'$.revision')"),
+                ("decisions", "member", "json_extract(binding,'$.revision')"),
+            ):
+                db.execute(
+                    "UPDATE members SET binding_revision=max(binding_revision,coalesce((SELECT max(" + revision + ") "
+                    "FROM " + table + " WHERE " + owner + "=members.name),0))"
+                )
+            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     def initialize(self, members, *, runtime=False):
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -266,6 +386,18 @@ class Store:
                 )
         self.path.chmod(0o600)
         self.upgrade()
+
+    @staticmethod
+    def next_binding_revision(db, member):
+        """Allocate an incarnation inside the binding change's transaction."""
+        changed = db.execute(
+            "UPDATE members SET binding_revision=max(binding_revision,coalesce((SELECT revision "
+            "FROM member_bindings WHERE member=members.name),0))+1 WHERE name=?",
+            (member,),
+        ).rowcount
+        if not changed:
+            raise ValueError("Unknown member")
+        return db.execute("SELECT binding_revision FROM members WHERE name=?", (member,)).fetchone()[0]
 
     @staticmethod
     def current_work(db, actor, work_order=UNSET, job=UNSET):
@@ -301,9 +433,8 @@ class Store:
         finally:
             REQUEST_WORK.reset(token)
 
-    @staticmethod
-    def _event(db, actor, kind, data):
-        from .telemetry import clean
+    def _event(self, db, actor, kind, data):
+        from .telemetry import clean_for_state
 
         data = dict(data)
         work_order, job = Store.current_work(db, actor, data.pop("work_order", UNSET), data.pop("job", UNSET))
@@ -314,7 +445,7 @@ class Store:
                     data.setdefault(field, member[field])
         return db.execute(
             "INSERT INTO events(at,actor,kind,data,work_order,job) VALUES (?,?,?,?,?,?)",
-            (stamp(), actor, kind, canonical(clean(data)), work_order, job),
+            (stamp(), actor, kind, canonical(clean_for_state(self.directory, data)), work_order, job),
         ).lastrowid
 
     def event(self, actor, kind, **data):
@@ -356,7 +487,7 @@ class Store:
             )
             self._event(db, name, "session", {k: v for k, v in fields.items() if k != "updated"})
 
-    def begin_session(self, name, pid, *, binding_revision=None, settings=None):
+    def begin_session(self, name, pid, *, binding_revision=None, standby_revision=None, expected_binding=UNSET, settings=None):
         from .sessions import lock
 
         generation = uuid.uuid4().hex
@@ -374,11 +505,27 @@ class Store:
                     pass
                 else:
                     raise ValueError("This member already has a running session.")
+            if expected_binding is not UNSET:
+                scope = db.execute("SELECT * FROM member_bindings WHERE member=?", (name,)).fetchone()
+                current_binding = dict(scope) if scope else None
+                if current_binding != expected_binding:
+                    raise ValueError("Work binding changed before the session started.")
             if binding_revision is not None:
                 scope = db.execute("SELECT * FROM member_bindings WHERE member=?", (name,)).fetchone()
                 if not scope or scope["revision"] != binding_revision or scope["paused"] or not scope["launch_pending"]:
                     raise ValueError("Launch direction was superseded before the session started.")
                 db.execute("UPDATE member_bindings SET launch_pending=0,launch_error=NULL WHERE member=?", (name,))
+            if standby_revision is not None:
+                from .standby import authorized
+                from .standby import binding as standby_binding
+
+                scope = standby_binding(db, name)
+                if (binding_revision is not None or not scope or scope["revision"] != standby_revision
+                        or not scope["launch_pending"] or time.time() >= scope["deadline"]
+                        or not authorized(self, scope, db=db)
+                        or db.execute("SELECT 1 FROM member_bindings WHERE member=?", (name,)).fetchone()):
+                    raise ValueError("Standby launch was superseded before the session started.")
+                db.execute("UPDATE standby_bindings SET launch_pending=0,launch_error=NULL WHERE member=?", (name,))
             db.execute(
                 "UPDATE members SET generation=?,native_id=NULL,pid=?,state='starting',desired='running',updated=? WHERE name=?",
                 (generation, pid, stamp(), name),
@@ -390,6 +537,10 @@ class Store:
                 (name,),
             )
             self._event(db, name, "session_starting", {"generation": generation, "pid": pid, "settings": settings})
+            if row["harness"] != "external":
+                from .duty import begin_in
+
+                begin_in(self, db, name, generation)
         return generation
 
     def send(self, sender, recipient, body, *, key, reply_to=None, work_order=UNSET, job=UNSET):
@@ -482,12 +633,12 @@ class Store:
                     return None
             clause, args = "1", ()
             if scoped:
-                from .control import binding, scope_sql
+                from .control import binding, message_sql
 
-                clause, args = scope_sql(binding(db, member))
+                clause, args = message_sql(self, db, member, binding(db, member))
             row = db.execute(
                 "SELECT * FROM messages WHERE recipient=? AND delivery='queued' AND acknowledged IS NULL AND "
-                + clause
+                + "(" + clause + ")"
                 + " ORDER BY id LIMIT 1",
                 (member, *args),
             ).fetchone()

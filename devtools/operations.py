@@ -9,6 +9,8 @@ import time
 from pathlib import Path
 
 from .control import REQUEST_BINDING, Control, binding
+from .failures import Failure, failure_info
+from .role_packages import adapter, require_capability
 from .store import Store, canonical, stamp
 
 ACTIONS = {"framework_inspect", "framework_generate", "work_check", "work_submit"}
@@ -21,28 +23,38 @@ class Operations:
 
     def start(self, action, arguments):
         scope = self.control.current()
+        if scope and scope["paused"]:
+            raise Failure("This operation requires active work in the corresponding role.",
+                          category="not_ready", reason="work_paused")
         if (
             action not in ACTIONS
             or not scope
-            or scope["paused"]
-            or (not scope["job"] and (scope["role"] not in {"xo", "nco"} or action not in {"work_check", "work_submit"}))
-            or (not scope["job"] and action == "work_submit" and scope["role"] != "xo")
+            or adapter(scope["role"]) == "co"
+            or (not scope["job"] and not (
+                adapter(scope["role"]) == "xo" and action in {"work_check", "work_submit"}
+                or adapter(scope["role"]) == "planner" and action in {"framework_inspect", "work_check"}))
+            or (adapter(scope["role"]) in {"nco", "planner", "research", "audit"} and action in {"framework_generate", "work_submit"})
         ):
-            raise ValueError("This operation requires active work in the corresponding role.")
+            raise Failure("This operation requires active work in the corresponding role.",
+                          category="not_permitted", reason="operation_not_permitted")
+        require_capability(scope["role"], action)
         payload = canonical(arguments)
         with self.store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             current = binding(db, self.member)
             if current != scope:
-                raise ValueError("Work context changed; inspect before retrying.")
+                raise Failure("Work context changed; inspect before retrying.",
+                              category="not_ready", reason="binding_changed")
             old = db.execute(
                 "SELECT * FROM operations WHERE work_order=? AND job IS ? AND state IN ('queued','running')",
                 (scope["work_order"], scope["job"]),
             ).fetchone()
             if old:
                 if old["member"] != self.member or old["action"] != action or old["arguments"] != payload:
-                    raise ValueError(
-                        "An operation is already using this job. work_inspect with section operations shows progress."
+                    raise Failure(
+                        "An operation is already using this job. work_inspect with section operations shows progress.",
+                        category="not_ready", reason="operation_in_progress",
+                        details={"references": ["operation:" + str(old["id"])]},
                     )
                 ident = old["id"]
             else:
@@ -96,14 +108,18 @@ class Operations:
 
     @staticmethod
     def public(row):
-        return {
+        result = json.loads(row["result"]) if row["result"] else None
+        value = {
             "reference": "operation:" + str(row["id"]),
             "action": row["action"],
             "state": row["state"],
-            "result": json.loads(row["result"]) if row["result"] else None,
+            "result": result,
             "error": row["error"],
             "updated": row["updated"],
         }
+        if isinstance(result, dict) and result.get("failure"):
+            value["failure"] = result["failure"]
+        return value
 
     @classmethod
     def summary(cls, row):
@@ -144,7 +160,8 @@ class Operations:
                 (ident, scope["work_order"], scope["job"]),
             ).fetchone()
             if not row:
-                raise ValueError("Operation is not in your current work.")
+                raise Failure("Operation is not in your current work.",
+                              category="not_permitted", reason="operation_out_of_scope")
             return self.public(row)
 
     def inspect(self, offset=0):
@@ -188,6 +205,7 @@ class Operations:
 
 def execute(directory, member, ident):
     from .development import Development
+    from .recovery import capture_recovery, record_recovery
     from .workspaces import Workspaces
 
     store = Store(directory)
@@ -206,14 +224,18 @@ def execute(directory, member, ident):
             token = REQUEST_BINDING.set((member, scope))
             try:
                 with store.work_context(member, scope["work_order"], scope["job"]):
-                    result, error = None, None
+                    result, error, failure = None, None, None
+                    arguments, candidates = {}, []
                     try:
+                        arguments = json.loads(row["arguments"])
+                        candidates = capture_recovery(store, member, row["action"], arguments)
                         current = spaces.scope(write=row["action"] in {"framework_generate", "work_submit"})
                         if current["paused"]:
-                            raise ValueError("This work is paused; the operation did not start.")
-                        arguments = json.loads(row["arguments"])
+                            raise Failure("This work is paused; the operation did not start.",
+                                          category="not_ready", reason="work_paused")
                         development = Development(store, member)
                         action = row["action"]
+                        require_capability(current["role"], action)
                         if action == "work_submit":
                             result = spaces.submit(**arguments)
                         else:
@@ -223,10 +245,23 @@ def execute(directory, member, ident):
                                 "work_check": "check",
                             }[action]
                             result = getattr(development, method)(**arguments)
-                    except Exception as failure:
+                    except Exception as cause:
                         from .github_http import GitHubHTTP
 
-                        error = GitHubHTTP().clean(str(failure))[:2000]
+                        failure = failure_info(cause)
+                        error = GitHubHTTP().clean(str(cause))[:2000]
+                        result = {"failure": failure}
+                    from .diagnostics import deliver_guidance, result_failure
+
+                    failure = failure or result_failure(result)
+                    if failure and isinstance(result, dict):
+                        result = {**result, "failure": failure}
+                    record_recovery(store, member, candidates, operation="operation:" + str(ident),
+                                    result=result, error=error)
+                    guidance = deliver_guidance(store, member, row["action"], result=result, error=error,
+                                                failure=failure, operation="operation:" + str(ident), arguments=arguments)
+                    if guidance:
+                        result = {**(result if isinstance(result, dict) else {}), "diagnostic_guidance": guidance}
                     with store.connect() as db:
                         db.execute("BEGIN IMMEDIATE")
                         state = "failed" if error else "completed"
@@ -240,11 +275,14 @@ def execute(directory, member, ident):
                         for recipient in {member, scope["reports_to"]} - {None}:
                             now = binding(db, recipient)
                             if now and now["work_order"] == scope["work_order"] and now["job"] in {None, scope["job"]}:
+                                # The worker's method belongs to its role. Supervisors receive
+                                # the outcome, without another role's skill instructions.
+                                notice = canonical({**Operations.summary(completed), "diagnostic_guidance": guidance}) if recipient == member and guidance else body
                                 store._send(
                                     db,
                                     member,
                                     recipient,
-                                    body,
+                                    notice,
                                     key="operation:" + str(ident) + ":" + recipient,
                                     work_order=scope["work_order"],
                                     job=scope["job"],
@@ -259,6 +297,7 @@ def execute(directory, member, ident):
                                 "state": state,
                                 "work_order": scope["work_order"],
                                 "job": scope["job"],
+                                **({"failure": failure} if failure else {}),
                             },
                         )
             finally:

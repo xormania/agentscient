@@ -5,12 +5,8 @@
       "types": [
         "opened",
         "reopened",
-        "synchronize"
-      ],
-      "branches": [
-        "dev",
-        "master",
-        "work-order/*"
+        "synchronize",
+        "edited"
       ]
     },
     "push": {
@@ -69,14 +65,36 @@
         },
         {
           "name": "Lint live support",
-          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github/*.py .github/tests",
+          "id": "lint",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" -m ruff check devtools .github",
           "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
+        },
+        {
+          "name": "Verify security lint coverage",
+          "run": "\"$RUNNER_TEMP/live-mcp-venv/bin/python\" .github/lint_checks.py",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}"
+        },
+        {
+          "name": "Prepare CUE for configuration validation",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}",
+          "uses": "cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c",
+          "with": {
+            "version": "v0.17.1"
+          }
+        },
+        {
+          "name": "Validate configuration, role exports and framework consistency",
+          "if": "${{ steps.select.outputs['live-mcp'] == 'true' }}",
+          "env": {
+            "AGENTSCIENT_CUE": "cue"
+          },
+          "run": "python3 -m devtools.role_packages --check\npython3 -m devtools.configuration --check\npython3 -m devtools.consistency\nPYTHONPATH=devtools/tests:. python3 -m unittest devtools.tests.test_role_packages.PackageCatalogTests.test_cue_source_and_export_agree_and_invalid_definitions_are_rejected devtools.tests.test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields -v"
         }
       ]
     },
     "live-mcp": {
       "runs-on": "${{ fromJSON(vars.CI_RUNNER_MODE == 'local' && '\"self-hosted\"' || (vars.CI_RUNNER_MODE == '' || vars.CI_RUNNER_MODE == 'hosted') && '\"ubuntu-24.04\"' || 'INVALID_CI_RUNNER_MODE_expected_hosted_or_local') }}",
-      "timeout-minutes": 5,
+      "timeout-minutes": 10,
       "steps": [
         {
           "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -101,10 +119,11 @@
           "name": "Verify live MCP and transport protocols",
           "env": {
             "AGENTSCIENT_REQUIRE_TMUX": "1",
+            "AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS": "1",
             "AGENTSCIENT_EVIDENCE_DIR": "${{ runner.temp }}/runtime-evidence",
             "JEV_CI_DIR": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
           },
-          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 -m unittest discover -s devtools/tests -v --durations 10 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
+          "run": "mkdir -p \"$JEV_CI_DIR\"\npython3 -m devtools.tests.run --strict --allow-skip test_role_packages.PackageCatalogTests.test_cue_source_and_export_agree_and_invalid_definitions_are_rejected --allow-skip test_configuration.ConfigurationTests.test_cue_export_matches_and_rejects_stale_unknown_fields -v --durations 10 --report \"$AGENTSCIENT_EVIDENCE_DIR/test-census.json\" 2>&1 | tee \"$JEV_CI_DIR/command.log\"",
           "id": "verify",
           "shell": "bash"
         },

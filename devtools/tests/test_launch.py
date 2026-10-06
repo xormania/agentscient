@@ -60,8 +60,17 @@ class LaunchTests(unittest.TestCase):
                 self.assertNotIn(b'launch-secret-sentinel', path.read_bytes(), str(path))
         self.assertFalse((self.state / 'launches').exists())
         owner = API(self.state, 'owner', operator=True)
-        owner.store.send('owner', 'worker', 'Hold the prompt', key='held')
-        until(lambda: self.store.member('worker')['state'] == 'active')
+        until(lambda: self.store.member('worker')['state'] == 'idle'
+              and self.store.events(actor='worker', kind='readiness_ready')['events'])
+        gates = self.workspace / 'fixture-turns'
+        gates.mkdir()
+        held = owner.store.send('owner', 'worker', 'Hold the prompt', key='held')
+        # Readiness has its own startup turn. Cancel this specific unfinished
+        # work prompt, rather than accidentally stopping the readiness exchange
+        # and leaving the work queued for the replacement session.
+        until(lambda: (gates / ('started-' + str(held['id']))).exists())
+        self.assertFalse((gates / ('completed-' + str(held['id']))).exists())
+        self.assertEqual('active', self.store.member('worker')['state'])
         began = time.monotonic()
         stopped = owner.call('capability_invoke', {'capability': 'session_stop', 'arguments': {'member': 'worker'}})
         self.assertTrue(stopped['stopped'])
@@ -89,9 +98,24 @@ class LaunchTests(unittest.TestCase):
         self.start()
         current = self.store.member('worker')
         owned = processes.owned(self.store, 'worker', current['generation'])
+        native = [row for row in owned if row['pid'] != current['pid']]
+        self.assertTrue(native, 'The ready supervisor must own native processes')
+        # An idle protocol fixture normally exits on stdin EOF when its parent
+        # dies. Suspend only the children and observe that state before crashing
+        # the supervisor, so this test deterministically creates orphaned work.
+        processes.signal_owned(native, signal.SIGSTOP)
+
+        def suspended(row):
+            try:
+                state = (Path('/proc') / str(row['pid']) / 'stat').read_text().rsplit(')', 1)[1].split()[0]
+            except (FileNotFoundError, ProcessLookupError):
+                return False
+            return state == 'T' and processes.identity(row['pid']) == row
+
+        until(lambda: all(suspended(row) for row in native))
         os.kill(current['pid'], signal.SIGKILL)
         until(lambda: not terminals.status(self.store, 'worker')['exists'])
-        self.assertTrue(processes.alive(owned))
+        self.assertEqual(native, processes.alive(native))
         launch.stop(self.state, 'worker', grace=0.1)
         self.assertFalse(processes.alive(owned))
         self.start()

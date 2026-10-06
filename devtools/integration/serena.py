@@ -12,11 +12,11 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client, until  # noqa: E402
+from support import Client, adopt_plan, initialize, until  # noqa: E402
 
 from devtools.api import API  # noqa: E402
-from devtools.launch import initialize  # noqa: E402
 from devtools.retirement import key, lease  # noqa: E402
+from devtools.role_packages import default_role  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -25,6 +25,11 @@ def repl(client, code):
     value = client.finish(ident, timeout=115)
     assert not value.get("isError"), value
     return "\n".join(row["text"] for row in value["content"] if row["type"] == "text")
+
+
+def audit_rows(state):
+    return [json.loads(line) for line in (state / "telemetry/coder.jsonl").read_text().splitlines(keepends=True)
+            if line.endswith("\n")]
 
 
 def main(curated=False):
@@ -49,13 +54,13 @@ def main(curated=False):
         state = root / "state"
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
-        config["project"] = {
+        config["project"].update({
             "checkout": str(checkout),
             "target": "dev",
             "repository": "example/fixture",
             "serena": {"image": image},
             "assignment_policy": "assignment-policy.json",
-        }
+        })
         policy = json.loads((REPO / "devtools/assignment-policy.json").read_text())
         policy["protected_paths"] += ["src/Maker/PlannedMaker.php", "src/Reserved.php", "src/FutureMaker/"]
         (state / "assignment-policy.json").write_text(json.dumps(policy))
@@ -70,13 +75,14 @@ def main(curated=False):
             },
         )
         xo = API(state, "xo")
+        adopt_plan(xo, [{"name": "Serena example", "objective": "Inspect and edit", "done_when": "Evidence", "constraints": "Source only"}])
         xo.call(
             "orchestrate",
             {
                 "work": [
                     {
                         "name": "Serena example",
-                        "role": "coder",
+                        "role": default_role("coder"),
                         "objective": "Inspect and edit",
                         "done_when": "Evidence",
                         "constraints": "Source only",
@@ -101,6 +107,25 @@ def main(curated=False):
             assert "get_symbols_overview" in documentation, documentation
             symbols = repl(client, "s.lsp.get_symbols_overview('src/Example.php', depth=1)")
             assert "Example" in symbols and "greeting" in symbols, symbols
+            # Maintainer-authorized, harmless canary: observation must neither
+            # block the launch nor confuse it with ordinary PHPactor startup.
+            canary = repl(client, "import subprocess\nsubprocess.run(['/bin/true'], check=True).returncode")
+            assert "0" in canary, canary
+
+            def process_evidence():
+                rows = audit_rows(state)
+                attempts = [row["data"] for row in rows if row["kind"] == "process_audit"]
+                return any(row.get("executable") == "/bin/true" and row["origin"] == "repl"
+                           and row["evidence"] == "attempt" and row.get("request_id") for row in attempts)
+
+            until(process_evidence, timeout=5)
+            rows = audit_rows(state)
+            assert any(row["kind"] == "process_audit_status" and row["data"].get("status") == "ready" for row in rows)
+            assert any(row["kind"] == "process_audit" and row["data"]["origin"] == "backend" for row in rows), rows
+            report = subprocess.run([sys.executable, str(REPO / "devtools/scripts/serena-audit.py"),
+                                     "--state", str(state), "--json", "--fail-on-findings"],
+                                    capture_output=True, text=True, timeout=10)
+            assert report.returncode == 1, report.stdout + report.stderr
             edited = repl(client, "s.edit.replace_content('src/Example.php', 'hello', 'welcome', 'literal')")
             assert "Error" not in edited, edited
             assert "welcome" in (workspace / "src/Example.php").read_text(), edited
@@ -173,6 +198,8 @@ def main(curated=False):
                             "Serena v2 REPL",
                             "persistent variables",
                             "PHPactor symbol navigation",
+                            "observe-only process canary and backend classification",
+                            "operator process audit report",
                             "Serena edit facade",
                             "protected source mount",
                             "maintainer-owned Maker protection",

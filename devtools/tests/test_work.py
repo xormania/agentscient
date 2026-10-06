@@ -9,11 +9,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
-from support import Client
+from support import Client, initialize
 
 from devtools.api import API
 from devtools.artifacts import Artifacts
-from devtools.launch import initialize
 from devtools.store import SCHEMA, Store
 
 

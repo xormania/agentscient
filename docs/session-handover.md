@@ -1,35 +1,69 @@
 # Native CO and role replacement
 
-Initialize the [shared runtime](shared-runtime-config.md), log in to the chosen
-native binaries, and enable their vendors. From WSL/Linux/macOS, start the CO:
+Initialize the [shared runtime](shared-runtime-config.md), configure the chosen
+harnesses' [native login storage](../devtools/OPERATIONS.md#native-login-storage),
+and enable their vendors. From Linux or WSL2, start the CO:
 
 ```sh
 python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live"
 ```
 
-This uses the first available profile in the `co` preference list. An operator can
+For an existing work binding, this uses its configured CO role identity. Without
+a work binding, it uses the catalog's default role for CO behavior. A binding
+with another behavior is rejected. The launcher uses the first available profile
+in the selected role's preference list. An operator can
 choose a configured CO profile and override model or reasoning for this launch:
 
 ```sh
 python3 devtools/run.py co --state "$HOME/.local/state/agentscient-live" \
-  --profile claude --model YOUR_MODEL --reasoning YOUR_EFFORT
+  --profile codex_astra_xhigh --model YOUR_MODEL --reasoning YOUR_EFFORT
 ```
 
-Profile names come from `roles.json`; the defaults are `codex`, `claude` and `grok`.
+Profile names come from `roles.json`; the maintained CO profiles are
+`codex_astra_xhigh`, `codex_sol_xhigh` and `grok_high`.
 An explicit profile must belong to CO's preference list and have an available
 vendor and executable. A disabled explicit choice fails instead of silently
 launching a different vendor. Model and effort values must be supported by the
-installed harness and selected model. Omit them to use the configured values or
-native defaults. Ordinary agent MCP tools do not accept these runtime choices.
+installed harness and selected model, and must satisfy that role package's
+model/reasoning allowlists. Overrides are checked before a new session is registered;
+they do not edit the configured profile. Omit them to use the configured values,
+package defaults or permitted native defaults. Ordinary agent MCP tools do not
+accept these runtime choices.
 
-The launcher opens the native interactive terminal with a private profile and
-the common MCP server. Project files are accessed through role tools. The CO calls
-`onboard` and `skill_read`, then directs XO; XO creates managed tmux sessions for
-the specialist roles. Claude may show its native development-channel consent.
-Normal native authentication and consent remain in force.
-Refreshed Codex/Grok login data is retained privately for the same member and
-harness across launches. A changed operator login takes precedence; the runtime
-does not write back to the operator's global credential file.
+The launcher opens the native interactive terminal in the appointed member's
+workspace and attaches the common MCP server. This is the operator's own session:
+native model/reasoning selection, slash commands, tools, settings, delegation and
+quit controls remain available under the harness's normal configuration and
+permissions. The same treatment applies to a configured role alias with CO behavior;
+it does not apply to managed collaborators that happen to use the same harness.
+The CO calls `onboard`, which includes its shared and role instructions. Use `skill_read` only
+for relevant skills not already marked `loaded`. CO then relays xor's instructions
+to XO; XO creates managed tmux sessions for the specialist roles. Claude may show
+its native development-channel consent.
+Console hooks observe lifecycle and tool activity without applying the managed
+MCP-only tool gate. Agentscient MCP still authorizes every call against the current
+role and work binding. CO remains xor's interface to XO; access to native controls
+does not grant coordination, execution or acceptance authority in Agentscient.
+Managed worker launches keep their existing tool restrictions, isolated settings
+and login handling. Normal native authentication and consent remain in force.
+
+Grok CO registers a temporary connection with native `grok mcp add --scope user`
+and adds a personal observer-hook file. Native configuration writes preserve other
+settings but may reformat TOML. The connection and hooks run only in that CO launch
+environment. CO uses Grok's embedded backend (`--no-leader`) so an existing shared
+backend cannot supply another session's environment or connection settings; native
+tools and controls remain available. Normal exit uses native `mcp remove` and
+removes the hook file if their generated contents remain unchanged. Operator edits
+are preserved. A killed launcher can leave inert, generation-gated entries; inspect
+them with native `grok mcp list` and remove the named entry if needed.
+Codex adds its connection and observer hooks through session configuration
+overrides. Native hook trust still applies; disabling or declining observers can
+reduce telemetry. Loose plugins are not used as a substitute for MCP registration.
+
+Use the harness's native model/effort controls to change the running CO session;
+the launcher options above select its initial values. Native quit and interrupt
+commands pass through the terminal relay. Closing its input also shuts down the
+child session and restores the caller's terminal.
 
 ## Swap CO
 
@@ -40,7 +74,7 @@ does not write back to the operator's global credential file.
 3. Run `co` again, optionally choosing another profile. The replacement loads
    `onboard` and `work_context` for the same logical CO and current work.
 
-CO may switch among Claude, Codex and Grok. The existing XO and specialists keep
+CO may switch among its configured harness adapters. The existing XO and specialists keep
 their conversations. Native transcript, private reasoning and REPL variables do
 not migrate. Unreported private decisions cannot be reconstructed by the service.
 Codex/Grok interactive CO clients read new team reports through `work_context`
@@ -52,16 +86,20 @@ active for launch intents and background observation.
 
 | Controller | Action | Preserved |
 | --- | --- | --- |
-| CO | `restart_xo(reason=...)` | XO work, specialist team, reporting chain, evidence |
+| Operator | Replace XO through trusted repair tools | XO work, specialist team, reporting chain, evidence |
 | XO | `steer(action="replace", work=..., role=..., direction=...)` | Named specialist's role, job, workspace, history and evidence |
 | XO | `steer(action="pause" / "resume")` | A still-running native conversation |
 
-Replacement requests stop the old process, then launch the same member with the
-current role/vendor policy. They do not retry an uncertain message or replay a
-native conversation. Recovery uses the latest brief and durable reports. Inspect
-`monitor` for observed startup or a failure; fix operator configuration and use
-resume/replacement again if no runtime is available. Externally attached XO or
-specialists require their operator to reconnect them.
+Replacement requests stop the old process, then launch the same member. A retained
+assignment runtime must still match the current work and role/vendor policy; a
+changed policy or unavailable selected profile blocks startup instead of silently
+choosing another model. The coordinator must refresh that assignment's selection
+through `orchestrate` before retrying. XO selects a current profile at its own
+launch when its retained selection is stale.
+Replacement does not retry an uncertain message or replay a native conversation.
+Recovery uses the latest brief and durable reports. Inspect `monitor` for observed
+startup or a failure. Externally attached XO or specialists require their operator
+to reconnect them.
 
 Each launch has a new generation. Native MCP and hook commands carry that
 generation in a separate private profile directory. Old connections and old

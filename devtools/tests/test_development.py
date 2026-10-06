@@ -1,10 +1,11 @@
 import json
+import os
 import sys
 import unittest
 from unittest.mock import patch
 
-import test_workspaces
-from support import Client, held_check, until
+from fixtures.development import DevelopmentFixture
+from support import Client, fixture_work, held_check, until
 
 from devtools.api import API
 from devtools.development import Development
@@ -12,26 +13,22 @@ from devtools.operations import Operations, execute
 from devtools.workspaces import git
 
 
-class DevelopmentTests(unittest.TestCase):
-    setUp = test_workspaces.WorkspaceTests.setUp
-    prepared = test_workspaces.WorkspaceTests.prepared
+class DevelopmentTests(DevelopmentFixture, unittest.TestCase):
 
-    def configure(self, checks=None):
-        root = self.prepared()
-        (root / "composer.json").write_text("{}")
-        (root / "composer.lock").write_text("{}")
-        (root / "vendor").mkdir(exist_ok=True)
-        (root / "vendor/autoload.php").write_text("<?php")
-        import hashlib
-
-        (root / "vendor/.agentscient-dependencies").write_text(hashlib.sha256(b"{}{}").hexdigest())
-        config = json.loads((self.state / "team.json").read_text())
-        config["project"]["development"] = {
-            "checks": checks or {"fixture": [sys.executable, "-c", "print('measured')"]}
-        }
-        (self.state / "team.json").write_text(json.dumps(config))
-        self.api = API(self.state, "coder")
-        return root
+    def test_checks_leave_application_environment_to_project_configuration(self):
+        program = (
+            "import json, os\n"
+            "print(json.dumps({name: os.environ.get(name) for name in "
+            "('APP_ENV', 'APP_DEBUG', 'COMPOSER_NO_INTERACTION')}))\n"
+        )
+        self.configure({"environment": [sys.executable, "-c", program]})
+        with patch.dict(os.environ, {"APP_ENV": "prod", "APP_DEBUG": "0", "COMPOSER_NO_INTERACTION": "0"}):
+            result = Development(self.store, "coder").check()
+        self.assertTrue(result["passed"], result)
+        self.assertEqual(
+            {"APP_ENV": None, "APP_DEBUG": None, "COMPOSER_NO_INTERACTION": "1"},
+            json.loads(result["checks"][0]["output"]),
+        )
 
     def test_checks_complete_after_client_disconnect_and_route_evidence(self):
         argv, started, release = held_check(self.root)
@@ -72,7 +69,13 @@ class DevelopmentTests(unittest.TestCase):
                 receipt = self.api.call("work_check", {})
                 ident = int(receipt["reference"].split(":")[1])
                 execute(self.state, "coder", ident)
-            self.assertEqual(result, self.api.operations.get(ident)["result"])
+            retained = self.api.operations.get(ident)["result"]
+            self.assertEqual(result, {key: value for key, value in retained.items()
+                                      if key not in {"diagnostic_guidance", "failure"}})
+            self.assertEqual(failed, "diagnostic_guidance" in retained)
+            self.assertEqual(failed, "failure" in retained)
+            if failed:
+                self.assertEqual("check_failed", retained["failure"]["reason"])
             for member in ("coder", "xo"):
                 notice = json.loads(self.store.inbox(member)["messages"][-1]["body"])
                 self.assertEqual(receipt["reference"], notice["reference"])
@@ -80,7 +83,8 @@ class DevelopmentTests(unittest.TestCase):
                 self.assertEqual(int(failed), notice["checks"]["failed"])
                 self.assertEqual([{"check": "fixture", "reference": "artifact:1"}], notice["checks"]["evidence"])
                 self.assertNotIn("UNIQUE DIAGNOSTIC", json.dumps(notice))
-                self.assertLess(len(json.dumps(notice)), 1000)
+                self.assertEqual(failed and member == "coder", "diagnostic_guidance" in notice)
+                self.assertLess(len(json.dumps(notice)), 4000 if member == "coder" else 1000)
         with patch.object(Operations, "launch"):
             receipt = self.api.call("work_check", {})
             ident = int(receipt["reference"].split(":")[1])
@@ -138,9 +142,9 @@ class DevelopmentTests(unittest.TestCase):
             self.assertEqual(payload, json.loads("".join(parts))["result"])
         with self.assertRaises(ValueError):
             self.api.call("work_report", {"text": "Reply", "responding_to": refs[0]})
-        API(self.state, "xo").call("orchestrate", {"work": [
+        fixture_work(API(self.state, "xo"), [
             {"name": "Other", "role": "docs", "objective": "Other", "done_when": "Done", "constraints": "Docs"}
-        ]})
+        ])
         with self.assertRaisesRegex(ValueError, "not available"):
             API(self.state, "docs").call("work_context", {"reference": refs[0]})
 

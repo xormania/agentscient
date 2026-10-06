@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Protocol fixture, NOT a native-model acceptance run.
 
-Holds a tool call open while accepting another live message. Grok's fixture
+Holds a native turn until an explicit test release while accepting live messages. Grok's fixture
 uses a real child MCP server; Codex calls the launcher's real MCP proxy.
 """
 
@@ -13,7 +13,14 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from devtools.role_packages import adapter, default_role
 from devtools.rpc import RPC
+
+
+def readiness_message(text):
+    return any(marker in text for marker in (
+        "Readiness challenge.", "reporting for duty —", "unable to report ready —",
+    ))
 
 
 class Fixture:
@@ -27,6 +34,7 @@ class Fixture:
         self.command = False
         self.organized = False
         self.onboarded = False
+        self.active_turns = set()
 
     def write(self, packet):
         print(json.dumps(packet), flush=True)
@@ -59,36 +67,94 @@ class Fixture:
             )
             if not result["success"]:
                 raise ValueError(result)
-            return result
-        return await self.mcp.request("tools/call", {"name": capability, "arguments": args})
+            return json.loads(result["contentItems"][0]["text"])
+        result = await self.mcp.request("tools/call", {"name": capability, "arguments": args})
+        if result.get("isError"):
+            raise ValueError(result)
+        return json.loads(result["content"][0]["text"])
 
-    async def accept(self, text, hold):
+    def remember_onboarding(self, onboard):
+        self.role = onboard["role"]
+        self.planned = bool(onboard["context"].get("plan_revision"))
+        self.standby = onboard["context"].get("state") == "standby"
+        self.readiness = onboard.get("readiness")
+        self.onboarded = True
+
+    async def accept(self, text, hold, prompt_id=None):
         if not self.onboarded:
-            await self.tool("onboard", {})
-            await self.tool("skill_read", {"name": "agentscient-xo" if self.command else "agentscient-coder"})
-            self.onboarded = True
+            onboard = await self.tool("onboard", {})
+            self.remember_onboarding(onboard)
         ident = int(re.search(r"Live message #(\d+)", text)[1])
+        self.active_turns.add(ident)
         if self.harness == "codex":
-            self.write({"method": "turn/started", "params": {"threadId": self.session, "turn": {"id": "held-turn"}}})
-            self.write(
-                {
-                    "method": "thread/tokenUsage/updated",
-                    "params": {
-                        "threadId": self.session,
-                        "tokenUsage": {"last": {"inputTokens": 23, "outputTokens": 7}},
-                    },
-                }
-            )
+            self.write({"method": "turn/started", "params": {"threadId": self.session, "turn": {"id": str(ident)}}})
+            self.write({"method": "thread/tokenUsage/updated", "params": {
+                "threadId": self.session, "tokenUsage": {"last": {"inputTokens": 23, "outputTokens": 7}},
+            }})
         else:
-            self.write(
-                {
-                    "method": "session/update",
-                    "params": {
+            self.write({"method": "session/update", "params": {
+                "sessionId": self.session,
+                "update": {"sessionUpdate": "agent_message_chunk", "content": {"text": ""}},
+                **({"_meta": {"promptId": prompt_id}} if prompt_id else {}),
+            }})
+        gates = None if self.standby or readiness_message(text) else Path.cwd() / "fixture-turns"
+        try:
+            await self.respond(text, ident)
+            if gates and gates.is_dir():
+                (gates / ("started-" + str(ident))).touch()
+                if hold:
+                    async with asyncio.timeout(20):
+                        while not (gates / "release").exists():
+                            await asyncio.sleep(0.01)
+        finally:
+            self.active_turns.discard(ident)
+            if not self.active_turns:
+                if self.harness == "codex":
+                    self.write({"method": "turn/completed", "params": {
+                        "threadId": self.session, "turn": {"id": str(ident)},
+                    }})
+                else:
+                    self.write({"method": "session/update", "params": {
                         "sessionId": self.session,
-                        "update": {"sessionUpdate": "agent_message_chunk", "content": {"text": ""}},
-                    },
-                }
-            )
+                        "update": {"sessionUpdate": "turn_completed", "prompt_id": prompt_id},
+                        **({"_meta": {"promptId": prompt_id}} if prompt_id else {}),
+                    }})
+            if gates and gates.is_dir():
+                (gates / ("completed-" + str(ident))).touch()
+
+    async def respond(self, text, ident):
+        if self.readiness and self.readiness["status"] == "starting":
+            # Codex onboard may run before thread/start returns its native
+            # identity. Report only after a real prompt reached the session.
+            onboard = await self.tool("onboard", {})
+            self.remember_onboarding(onboard)
+            if self.readiness["status"] == "starting":
+                self.readiness = await self.tool("readiness_report", {
+                    "challenge": self.readiness["challenge"],
+                    "onboarding_revision": onboard["revision"],
+                })
+        if self.standby or readiness_message(text):
+            return
+        if adapter(self.role) == "planner":
+            await self.tool("work_report", {"kind": "result", "text": "Fixture plan ready", "evidence": {
+                "name": "fixture-plan.md", "content": "One job: demonstrate the live command path using a coder."}})
+            return
+        if self.command and "result: Fixture plan ready" in text and not self.planned:
+            reference = re.search(r"Reference: (update:\d+)", text)[1]
+            await self.tool("plan_adopt", {"plan": reference, "jobs": [{"name": "Fixture implementation",
+                "objective": "Demonstrate the live command path", "done_when": "Direction received", "constraints": "Protocol fixture only"}]})
+            self.planned = True
+            # The planner's native process is stopped asynchronously before its
+            # fixed slot can be reused by the implementation role.
+            for attempt in range(100):
+                try:
+                    await self.tool("orchestrate", {"work": [{"name": "Fixture implementation", "role": default_role("coder")}]})
+                    return
+                except ValueError as error:
+                    if "No available" not in str(error):
+                        raise
+                    await asyncio.sleep(0.05)
+            raise AssertionError("Planner slot did not become reusable")
         if self.command and "progress: Received message" in text:
             await self.tool("work_report", {"text": "Collaborator receipt observed"})
             return
@@ -100,8 +166,8 @@ class Fixture:
                 {
                     "work": [
                         {
-                            "name": "Fixture implementation",
-                            "role": "coder",
+                            "name": "Fixture implementation" if self.planned else "Fixture planning",
+                            "role": default_role("coder" if self.planned else "planner"),
                             "objective": "Demonstrate the live command path",
                             "done_when": "Direction received",
                             "constraints": "Protocol fixture only",
@@ -109,9 +175,6 @@ class Fixture:
                     ]
                 },
             )
-        if hold:
-            # The native turn remains unfinished while a second message is handled.
-            await asyncio.sleep(10)
 
     def background(self, awaitable):
         task = asyncio.create_task(awaitable)
@@ -127,8 +190,9 @@ class Fixture:
                 assert params["sandbox"] == "read-only"
                 names = {row["name"] for row in params["dynamicTools"]}
                 self.command = "orchestrate" in names
-                expected = {"work_context", "work_report", "guidance_request", "onboard", "skill_read"}
-                assert names == expected | ({"orchestrate", "monitor", "steer"} if self.command else set())
+                onboard = await self.tool("onboard", {})
+                assert names == set(onboard["tools"]), "Native tools differ from the current MCP surface"
+                self.remember_onboarding(onboard)
                 result = {"thread": {"id": self.session}, "model": "fixture-model", "reasoningEffort": "high"}
             elif method == "session/new":
                 server = params["mcpServers"][0]
@@ -159,7 +223,8 @@ class Fixture:
                 result = {"turn": {"id": "held-turn"}}
             elif method == "session/prompt":
                 assert params["sessionId"] == self.session
-                await self.accept(params["prompt"][0]["text"], hold=True)
+                await self.accept(params["prompt"][0]["text"], hold=True,
+                                  prompt_id=params.get("_meta", {}).get("promptId"))
                 result = {"stopReason": "end_turn"}
             elif method == "_x.ai/interject":
                 assert params["sessionId"] == self.session

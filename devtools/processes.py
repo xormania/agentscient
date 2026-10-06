@@ -32,14 +32,14 @@ def identity(pid):
     return observed[0] if observed else None
 
 
-def family(records):
-    """Capture descendants before a killed parent can reparent them elsewhere."""
+def family(records, *, sessions=()):
+    """Capture descendants, including an owned session after its leader exits."""
     table = {}
     for entry in Path('/proc').iterdir():
         if entry.name.isdecimal() and (observed := status(int(entry.name))):
             table[int(entry.name)] = observed
     found = {row['pid']: row for row in records if table.get(row['pid'], (None,))[0] == row}
-    sessions = {row['pid'] for row in found.values() if row['session'] == row['pid']}
+    sessions = set(sessions) | {row['pid'] for row in found.values() if row['session'] == row['pid']}
     while True:
         extra = {pid: row for pid, (row, parent) in table.items()
                  if pid not in found and (parent in found or row['session'] in sessions)}
@@ -56,6 +56,22 @@ def register(store, member, generation, pid):
         write_json(temporary, record)
         temporary.replace(path)
     return record
+
+
+def registered_alive(store, member, generation, pid):
+    """Check the retained supervisor identity without scanning its process family.
+
+    Registration follows the session transaction, so an absent record does not
+    yet establish process death. A retained birth identity also fences PID reuse.
+    """
+    if not generation or not pid:
+        return None
+    path = store.directory / "processes" / identifier(member) / generation / f"{pid}.json"
+    try:
+        saved = json.loads(path.read_text())
+    except FileNotFoundError:
+        return None
+    return saved["pid"] == pid and identity(pid) == saved
 
 
 def owned(store, member, generation):

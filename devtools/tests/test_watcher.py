@@ -1,5 +1,4 @@
 import json
-import os
 import signal
 import subprocess
 import sys
@@ -8,16 +7,16 @@ import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import test_github
-from support import require_process_identity, until
+from fixtures.github import GitHubFixture
+from support import fixture_environment, require_process_identity, until
 
 from devtools import processes, watcher
 
 
 class WatcherTests(unittest.TestCase):
-    setUp = test_github.GitHubTests.setUp
-    client = test_github.GitHubTests.client
-    work = test_github.GitHubTests.work
+    setUp = GitHubFixture.setUp
+    client = GitHubFixture.client
+    work = GitHubFixture.work
 
     @classmethod
     def setUpClass(cls):
@@ -27,7 +26,7 @@ class WatcherTests(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(Path(__file__).with_name("github_fixture.py")), "watch",
              "--state", str(self.directory), "--action", action],
-            env={**os.environ, "FIXTURE_GITHUB_ROOT": self.provider.url},
+            env=fixture_environment(self.directory, {"FIXTURE_GITHUB_ROOT": self.provider.url}),
             capture_output=True, text=True, timeout=10, check=True,
         )
         return json.loads(result.stdout)

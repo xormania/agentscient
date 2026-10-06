@@ -14,12 +14,13 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "devtools/tests"))
 
-from support import Client  # noqa: E402
+from support import Client, adopt_plan, initialize  # noqa: E402
 
 from devtools.api import API  # noqa: E402
 from devtools.development import DEFAULT_CHECKS, Development  # noqa: E402
-from devtools.launch import initialize  # noqa: E402
 from devtools.readiness import platform  # noqa: E402
+from devtools.role_packages import default_role  # noqa: E402
+from devtools.role_packages import role as role_package  # noqa: E402
 from devtools.workspaces import git  # noqa: E402
 
 
@@ -63,10 +64,14 @@ def main():
             {name: list(argv) for name, argv in DEFAULT_CHECKS.items()}
             if args.full_checks else {"generated-test": ["php", "vendor/bin/phpunit", "tests/FixtureGeneratedTest.php"]}
         )
-        checks["tests" if args.full_checks else "generated-test"].extend(["--log-events-text", str(events)])
+        test_check = checks["tests" if args.full_checks else "generated-test"]
+        # Populate both PHP environment arrays so a runtime APP_ENV override cannot
+        # hide behind an installation whose variables_order omits $_ENV.
+        test_check[1:1] = ["-d", "variables_order=EGPCS"]
+        test_check.extend(["--log-events-text", str(events)])
         initialize(state, checkout, ["owner:external", "xo:external", "coder:external"], co="owner")
         config = json.loads((state / "team.json").read_text())
-        config["project"] = {
+        config["project"].update({
             "checkout": str(checkout),
             "target": "fixture-base",
             "repository": "example/fixture",
@@ -74,9 +79,10 @@ def main():
             "development": {
                 "checks": checks,
             },
-        }
+        })
         (state / "team.json").write_text(json.dumps(config))
         co, xo, coder = [Client(state, member) for member in ("owner", "xo", "coder")]
+        coder_role = default_role("coder")
         report = {"platform": platform_result, "full_checks": args.full_checks}
         try:
             co.tool(
@@ -88,13 +94,15 @@ def main():
                     "constraints": "Disposable workspace only",
                 },
             )
+            adopt_plan(API(state, "xo"), [{"name": "Exercise Symfony", "objective": "Generate with native Makers",
+                                          "done_when": "Attributes and autoconfiguration work", "constraints": "No handwritten replacement generator"}])
             xo.tool(
                 "orchestrate",
                 {
                     "work": [
                         {
                             "name": "Exercise Symfony",
-                            "role": "coder",
+                            "role": coder_role,
                             "objective": "Generate with native Makers",
                             "done_when": "Attributes and autoconfiguration work",
                             "constraints": "No handwritten replacement generator",
@@ -133,16 +141,31 @@ def main():
             mate = completed(coder, "framework_inspect", {"kind": "mate", "name": "server-info", "parameters": {}})
             assert mate["result"], mate
             onboarding = coder.tool("onboard", {})
-            assert onboarding["role"] == "coder" and len(onboarding["skills"]) == 8, onboarding
+            skills = role_package(coder_role)["skills"]
+            expected_skills = [skills["shared"], skills["role"], *skills["framework"]]
+            assert onboarding["role"] == coder_role, onboarding
+            assert [entry["name"] for entry in onboarding["skills"]] == expected_skills, onboarding
             coder.tool("skill_read", {"name": "mate-system-information"})
             package = completed(coder, "framework_inspect", {"kind": "packages", "package": "symfony/console"})
             assert package["result"]["name"] == "symfony/console", package
             tests = completed(
                 coder,
                 "framework_generate",
-                {"maker": "make:test", "arguments": {"type": "TestCase", "name": "FixtureGeneratedTest"}},
+                {"maker": "make:test", "arguments": {"type": "KernelTestCase", "name": "FixtureGeneratedTest"}},
             )["result"]
             assert tests["exit_code"] == 0, tests
+            generated_test = workspace / "tests/FixtureGeneratedTest.php"
+            test_source = generated_test.read_text()
+            environment_assertion = "$this->assertSame('test', $kernel->getEnvironment());"
+            assert test_source.count(environment_assertion) == 1, test_source
+            # Extend the maintained Maker's kernel test with actual access to the
+            # test-only container that application integration tests depend on.
+            test_source = test_source.replace(
+                environment_assertion,
+                environment_assertion + "\n"
+                "        $this->assertSame($kernel->getContainer()->get('test.service_container'), static::getContainer());",
+            )
+            generated_test.write_text(test_source)
             validation = completed(coder, "work_check", {})
             report["validation"] = validation
             assert validation["passed"], validation
@@ -158,6 +181,7 @@ def main():
                             "autoconfigured command execution",
                             "Mate server-info",
                             "test generation",
+                            "test environment and service container through work_check",
                             "configured checks",
                         ],
                         "mate": mate["result"],

@@ -1,10 +1,9 @@
 """Two Codex reviews on the submitted work-order head, through existing GitHub services."""
 
-import hashlib
 import re
 
 from .github_http import GitHubError
-from .store import canonical
+from .store import digest
 from .workspaces import Workspaces
 
 BOT = "chatgpt-codex-connector[bot]"
@@ -25,7 +24,7 @@ class CodexReviews:
     def request(self, context, revision):
         if context["job"] is not None or not context["work_order"]:
             raise ValueError("Codex reviews belong to the integrated work-order PR.")
-        key = hashlib.sha256(canonical([context["repository"], context["pr"]]).encode()).hexdigest()
+        key = digest([context["repository"], context["pr"]])
         with Workspaces(self.store, self.github.member).lock("codex-" + key):
             pr = self.github._pr(context)
             self.github._revision(pr, revision)
@@ -34,7 +33,7 @@ class CodexReviews:
             comments = self.github._all(context["root"] + f"/issues/{context['pr']}/comments")
             for kind, (_, command) in KINDS.items():
                 identity = self.identity(context, revision, kind)
-                marker = "<!-- agentscient-codex:" + hashlib.sha256(canonical(identity).encode()).hexdigest() + " -->"
+                marker = "<!-- agentscient-codex:" + digest(identity) + " -->"
                 with self.store.connect() as db:
                     db.execute("INSERT OR IGNORE INTO codex_requests VALUES (?,?,?,?,'pending',NULL)", identity)
                     row = db.execute(
@@ -135,9 +134,9 @@ class CodexReviews:
             if not cursor:
                 break
         unresolved = sum(not thread["isResolved"] for thread in threads)
-        self.findings = hashlib.sha256(canonical([
+        self.findings = digest([
             [row["id"], row["comments"]] for row in threads if not row["isResolved"]
-        ]).encode()).hexdigest()
+        ])
         complete = all(row["state"] == "completed" and row["revision"] == revision for row in reviews.values())
         failed = any(row["state"] in {"failed", "cancelled", "canceled"} for row in reviews.values())
         start = (page - 1) * 10

@@ -1,7 +1,6 @@
 {
   "version": 1,
   "enabled": true,
-  "jev_policy": "../devtools/jev.json",
   "min_confidence": 0.65,
   "limits": {
     "log_bytes": 2097152,

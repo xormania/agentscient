@@ -5,58 +5,13 @@ import json
 import re
 from pathlib import Path
 
+from .control import GAP_REPORTING
+from .role_packages import assignable_roles, catalog, descriptor
+from .role_packages import role as role_package
+
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".agents/skills"
-ROLES = {
-    "co": (
-        "Translate the user's intent into an authorized objective and boundaries; direct XO, assess the integrated result, and keep the user informed.",
-        "agentscient-co",
-    ),
-    "xo": (
-        "Organize named work across the specialist roles, route guidance, inspect evidence and integrate accepted contributions for CO.",
-        "agentscient-xo",
-    ),
-    "coder": (
-        "Implement the bounded change using installed framework features, preserve unrelated work, validate behavior and submit evidence.",
-        "agentscient-coder",
-    ),
-    "nco": (
-        "Coordinate planning and bounded implementation within XO's delegated mission; manage verification and completion, and report changes of mission to XO.",
-        "agentscient-nco",
-    ),
-    "planner": (
-        "Inspect the application and existing capabilities, then report an implementation plan with boundaries, dependencies and completion criteria. Planning does not change source or coordinate execution.",
-        "agentscient-planner",
-    ),
-    "audit": (
-        "Independently review the submitted immutable revision against the objective; report reproducible findings and do not modify the producer's source.",
-        "agentscient-audit",
-    ),
-    "docs": (
-        "Keep user and developer documentation accurate to observed behavior, with runnable examples and explicit limitations.",
-        "agentscient-docs",
-    ),
-    "research": (
-        "Investigate the question using available sources, distinguish evidence from inference, and report a supported recommendation without source edits.",
-        "agentscient-research",
-    ),
-    "test_writer": (
-        "Design behavior tests that expose the relevant failure, cover meaningful boundaries, and retain measured results within test paths.",
-        "agentscient-test-writer",
-    ),
-    "architect": (
-        "Inspect existing capabilities, compare designs and tradeoffs, and record the smallest supported design within the documentation scope.",
-        "agentscient-architect",
-    ),
-}
-MATE = (
-    "mate-system-information",
-    "mate-php-environment-check",
-    "mate-symfony-service-inspection",
-    "mate-symfony-request-triage",
-    "mate-symfony-profiler-debugging",
-    "mate-symfony-dotenv-diagnostics",
-)
+
 
 
 def document(name):
@@ -97,60 +52,80 @@ class Onboarding:
 
     def catalog(self):
         role = self.role()
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             return []
-        names = ["agentscient-context", ROLES[role][1]]
+        skills = role_package(role)["skills"]
+        names = [skills["shared"], skills["role"]]
         tools = {row["name"] for row in self.api.tools()}
         if "framework_inspect" in tools:
-            names += list(MATE) if role not in {"docs", "architect"} else [MATE[0], MATE[2]]
-        catalog = []
+            names += skills["framework"]
+        entries = []
         for name in names:
             skill = document(name)
             skill["guidance_sha256"] = hashlib.sha256(
                 json.dumps(skill, sort_keys=True, separators=(",", ":")).encode()
             ).hexdigest()
-            catalog.append(skill)
-        return catalog
+            entries.append(skill)
+        return entries
 
     def startup(self):
         role = self.role()
-        if role not in ROLES:
+        if role not in catalog()["roles"]:
             return "Await an authorized role binding; work_context shows your current state."
         return (
             "Use the role-bound MCP tools. Call onboard once in a new session, after handover or a role change. "
             "It supplies the complete shared/role instructions and current brief. "
+            "When it supplies a readiness challenge, call readiness_report with that challenge and onboarding revision "
+            "to report for duty, including any startup blockers. "
             "For subsequent work/context changes refresh work_context. "
+            "Managed workers use standalone conversations; Agentscient owns their sessions and assignments. "
+            "The appointed interactive CO is the operator's native console: its commands, tools, settings, "
+            "model, reasoning and exit controls remain the operator's choice. "
             "Read only relevant skills not already supplied by onboard. Your role: " + role + "."
         )
 
     def onboard(self):
         role = self.role()
-        catalog = self.catalog()
-        if not catalog:
+        skills = self.catalog()
+        if not skills:
             raise ValueError("Await an authorized role binding")
         tools = [row["name"] for row in self.api.tools()]
-        revision = hashlib.sha256(json.dumps([(r["name"], r["guidance_sha256"]) for r in catalog]).encode()).hexdigest()
+        package = descriptor(role)
         value = {
             "role": role,
-            "responsibility": ROLES[role][0],
-            "revision": revision,
-            "shared": catalog[0]["content"],
-            "role_instructions": catalog[1]["content"],
+            "responsibility": role_package(role)["responsibility"],
+            "package": package,
+            "shared": skills[0]["content"],
+            "role_instructions": skills[1]["content"],
             "context": self.api.invoke("work_context", {}),
+            "capability_gap_reporting": GAP_REPORTING,
             "tools": tools,
             "skills": [
                 {"name": row["name"], "description": row["description"], "loaded": index < 2}
-                for index, row in enumerate(catalog)
+                for index, row in enumerate(skills)
             ],
         }
+        if "orchestrate" in tools:
+            value["assignable_roles"] = [
+                {"name": name, "responsibility": role_package(name)["responsibility"]}
+                for name in assignable_roles(role)
+            ]
+        revision = hashlib.sha256(json.dumps(
+            [package, [(row["name"], row["guidance_sha256"]) for row in skills],
+             tools, value.get("assignable_roles", []), GAP_REPORTING], sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()
+        value["revision"] = revision
         self.api.store.event(
             self.api.member,
             "onboarding_delivered",
             role=role,
             revision=revision,
-            skills=[row["name"] for row in catalog],
+            package=package,
+            skills=[row["name"] for row in skills],
         )
-        return value
+        from .duty import onboard
+
+        return onboard(self.api, value)
 
     def read(self, name):
         skill = next((r for r in self.catalog() if r["name"] == name), None)

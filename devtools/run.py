@@ -9,7 +9,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from devtools import launch
+from devtools import adapters, launch
 from devtools.api import API
 from devtools.mcp import serve
 from devtools.profiles import hook
@@ -31,6 +31,7 @@ def main():
         "operation",
         "serena",
         "doctor",
+        "config",
         "connection",
         "evidence",
         "co",
@@ -38,7 +39,7 @@ def main():
     ):
         command = commands.add_parser(name)
         command.add_argument("--state", required=True, help="Private state directory outside source worktrees")
-        if name not in {"init", "status", "doctor", "connection", "evidence", "co", "watch"}:
+        if name not in {"init", "status", "doctor", "config", "connection", "evidence", "co", "watch"}:
             command.add_argument("--member", required=True)
         if name in {"mcp", "hook", "serena"}:
             command.add_argument("--generation", help=argparse.SUPPRESS)
@@ -49,18 +50,23 @@ def main():
             command.add_argument("--profile", help="Select one configured CO profile; default uses availability order")
             command.add_argument("--model", help="Override the model for this CO session")
             command.add_argument("--reasoning", help="Override native reasoning effort for this CO session")
+            command.add_argument("--brief-file", type=Path, help="Submit this UTF-8 brief as the initial CO user prompt")
         elif name == "init":
             command.add_argument("--runtime", action="store_true", help="Create shared role/vendor runtime policy")
             command.add_argument("--co", help="Name of the external user-facing CO session")
             command.add_argument("--workspace", required=True)
-            command.add_argument("--member", action="append", required=True, help="name:codex|claude|grok|external")
+            command.add_argument("--member", action="append", required=True, help="name:harness (installed adapter or external)")
             command.add_argument(
                 "--repository", help="owner/repository; enables project workspaces and installed Symfony tools"
             )
             command.add_argument("--target", default="dev")
             command.add_argument("--remote", default="origin")
             command.add_argument("--serena-image", help="Locally built devtools/serena image; requires --repository")
+        elif name == "config":
+            command.add_argument("--role", help="Inspect one configured role's effective settings")
+            command.add_argument("--job", type=int, help="Inspect one existing job's effective settings")
         elif name == "doctor":
+            command.add_argument("--startup", action="store_true", help="Check only capabilities configured for this team")
             command.add_argument(
                 "--online", action="store_true", help="Also read the Git remote and GitHub repository access"
             )
@@ -75,13 +81,14 @@ def main():
             command.add_argument("--operation", required=True, type=int)
         elif name == "agent":
             command.add_argument("--binding-revision", type=int, help=argparse.SUPPRESS)
+            command.add_argument("--standby-revision", type=int, help=argparse.SUPPRESS)
             command.add_argument("--launch-fd", type=int, help=argparse.SUPPRESS)
         elif name == "send":
             command.add_argument("--to", required=True)
             command.add_argument("--body", required=True)
             command.add_argument("--key", required=True)
         elif name == "hook":
-            command.add_argument("--harness", required=True, choices=("codex", "claude", "grok"))
+            command.add_argument("--harness", required=True, choices=adapters.names("harness"))
     args = parser.parse_args()
     try:
         if args.command == "watch":
@@ -92,9 +99,10 @@ def main():
                 return 0
             result = getattr(watcher, args.action)(Store(args.state))
         elif args.command == "co":
-            from devtools.console import run
+            from devtools.console import read_brief, run
 
-            return run(args.state, args.profile, args.model, args.reasoning)
+            initial_prompt = read_brief(args.brief_file) if args.brief_file is not None else None
+            return run(args.state, args.profile, args.model, args.reasoning, initial_prompt=initial_prompt)
         elif args.command == "init":
             from devtools.readiness import project
 
@@ -106,14 +114,16 @@ def main():
                 else None
             )
             result = launch.initialize(args.state, args.workspace, args.member, args.co, configured, args.runtime)
-        elif args.command in {"doctor", "connection", "evidence"}:
+        elif args.command in {"doctor", "config", "connection", "evidence"}:
             from devtools import readiness
 
             options = (
-                {"online": args.online}
+                {"online": args.online, "startup": args.startup}
                 if args.command == "doctor"
                 else {"work_order": args.work_order}
                 if args.command == "evidence"
+                else {"role": args.role, "job": args.job}
+                if args.command == "config"
                 else {}
             )
             result = getattr(readiness, args.command)(args.state, **options)
@@ -133,7 +143,8 @@ def main():
             serena_serve(args.state, args.member, args.generation)
             return 0
         elif args.command == "agent":
-            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd)
+            launch.agent(args.state, args.member, args.binding_revision, args.launch_fd,
+                         standby_revision=args.standby_revision)
             return 0
         elif args.command == "start":
             result = launch.start(args.state, args.member)

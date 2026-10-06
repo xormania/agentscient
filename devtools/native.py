@@ -10,10 +10,11 @@ import signal
 import subprocess
 import time
 import uuid
+from collections import deque
 
 from .api import API, SERVER, TOOLS
 from .compat import ClaudeChannelLog, codex_capability
-from .profiles import CODEX_FEATURES, permitted, prepare, toml
+from .profiles import CODEX_FEATURES, claude_command, permitted, prepare, toml, tool_catalogue
 from .rpc import RPC
 from .serena_provider import SERVER as SERENA_SERVER
 from .serena_provider import TOOL as SERENA_TOOL
@@ -31,13 +32,22 @@ class Native:
         self.config, self.generation = config, generation
         self.workspace = config["workspace"]
         self.harness = config["harness"]
-        self.private, self.env, self.server = prepare(directory, member, self.harness)
+        from .harnesses import get
+
+        self.protocol = get(self.harness).protocol
+        if self.protocol not in {"codex", "grok"}:
+            raise ValueError("This native backend does not implement the selected harness protocol.")
+        self.private, self.env, self.server = prepare(directory, member, self.harness, config=config)
         self.trace = Trace(directory, member, context=lambda: context(self.store, member))
         requested(self.store, member, config, self.private)
         self.session = None
         self.busy = False
         self.prompts_in_flight = 0
         self.native_busy = False
+        self.grok_turn = 0
+        self.grok_prompt_id = None
+        self.grok_seen_ids = deque(maxlen=128)
+        self.grok_completed_ids = deque(maxlen=128)
         self.pending_interjections = set()
         self.rpc = self.mcp = None
         self.serena = None
@@ -47,7 +57,7 @@ class Native:
         self.tasks = set()
 
     def event(self, kind, **data):
-        self.store.event(self.member, kind, **self.trace.clean(data))
+        self.store.event(self.member, kind, **data)
 
     def state(self, state, **extra):
         self.store.session(self.member, generation=self.generation, state=state, **extra)
@@ -85,7 +95,7 @@ class Native:
 
     async def start(self):
         binary = self.config["binary"]
-        if self.harness == "codex":
+        if self.protocol == "codex":
             capability = await asyncio.to_thread(codex_capability, binary)
             self.event("protocol_capability", **capability)
             if capability["status"] != "supported":
@@ -158,7 +168,7 @@ class Native:
             result = await self.rpc.request("thread/start", params)
             self.session = result["thread"]["id"]
         else:
-            argv = [binary, "--no-auto-update"]
+            argv = [binary, "--no-auto-update", "--no-subagents"]
             if self.config.get("model"):
                 argv += ["--model", self.config["model"]]
             if self.config.get("reasoning"):
@@ -193,9 +203,9 @@ class Native:
 
     async def request(self, method, params):
         self.verify_identity(params)
-        if self.harness == "codex" and method == "item/tool/call":
+        if self.protocol == "codex" and method == "item/tool/call":
             name, args = params.get("tool"), params.get("arguments")
-            if not permitted("codex", name, args) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
+            if not permitted(self.harness, name, args, catalogue=tool_catalogue(self.store.directory, self.member)) or name not in {row["name"] for row in [*TOOLS, SERENA_TOOL]}:
                 self.event("native_tool_denied", tool=name)
                 raise ValueError("Use this team's MCP tools")
             provider = self.serena if name == SERENA_TOOL["name"] else self.mcp
@@ -211,11 +221,12 @@ class Native:
                 ],
                 "success": not result.get("isError", False),
             }
-        if self.harness == "grok" and method == "session/request_permission":
+        if self.protocol == "grok" and method == "session/request_permission":
             call = params.get("toolCall", {})
             metadata = call.get("_meta", {}).get("x.ai/tool", {})
             allowed = metadata.get("namespace") == "grok_build" and permitted(
-                "grok", metadata.get("name"), call.get("rawInput", {})
+                self.harness, metadata.get("name"), call.get("rawInput", {}),
+                catalogue=tool_catalogue(self.store.directory, self.member),
             )
             option = next(
                 (
@@ -254,7 +265,7 @@ class Native:
                 native_id=self.session,
                 observation=params.get("tokenUsage", update.get("usage", params)),
             )
-        if self.harness == "codex":
+        if self.protocol == "codex":
             if method in {"turn/started", "turn/completed"}:
                 self.busy = method == "turn/started"
                 self.state("active" if self.busy else "idle")
@@ -268,15 +279,14 @@ class Native:
                     raise ValueError("Native non-MCP tool activity observed: " + kind)
         else:
             kind = update.get("sessionUpdate")
+            prompt_id = params.get("promptId", update.get("prompt_id", params.get("_meta", {}).get("promptId")))
             if method == "_x.ai/session/prompt_complete" or kind == "turn_completed":
-                self.native_busy = False
-                self.grok_activity()
+                self.grok_complete(prompt_id)
                 self.event(
-                    "turn_completed", native_id=self.session, turn=params.get("promptId", update.get("prompt_id"))
+                    "turn_completed", native_id=self.session, turn=prompt_id
                 )
             elif kind in {"agent_message_chunk", "agent_thought_chunk", "tool_call", "tool_call_update"}:
-                self.native_busy = True
-                self.grok_activity()
+                self.grok_started(prompt_id)
         if method == "item/agentMessage/delta":
             print(params.get("delta", ""), end="", flush=True)
         elif update.get("sessionUpdate") == "agent_message_chunk":
@@ -285,7 +295,7 @@ class Native:
     def delivered(self, message, error=None, transport=None):
         self.store.delivered(self.member, message["id"], message["attempt"], error=error, transport=transport)
 
-    async def grok_prompt(self, message):
+    async def grok_prompt(self, message, prompt_id, turn):
         submitted = False
 
         async def sent():
@@ -294,12 +304,21 @@ class Native:
             submitted = True
 
         try:
-            await self.rpc.request(
+            result = await self.rpc.request(
                 "session/prompt",
-                {"sessionId": self.session, "prompt": [{"type": "text", "text": self.control.render(message)}]},
+                {
+                    "sessionId": self.session,
+                    "prompt": [{"type": "text", "text": self.control.render(message)}],
+                    "_meta": {"promptId": prompt_id},
+                },
                 timeout=3600,
                 on_sent=sent,
             )
+            if not isinstance(result, dict) or not isinstance(result.get("stopReason"), str) or not result["stopReason"]:
+                raise ValueError("Grok session/prompt response is missing its stopReason")
+            # ACP's response completes this prompt even without an extension notification.
+            # An interjected turn may have started before this coroutine resumes.
+            self.grok_complete(prompt_id, turn=turn)
         except Exception as error:
             # A written prompt may already have executed; do not automatically replay it.
             self.event("native_prompt_error", message=message["id"], error=str(error)[:1000])
@@ -308,6 +327,34 @@ class Native:
         finally:
             self.prompts_in_flight -= 1
             self.grok_activity()
+
+    def grok_started(self, prompt_id=None):
+        if prompt_id is not None:
+            # Late chunks from a previously observed turn cannot replace newer activity.
+            # Its outstanding request still counts as live until its own response arrives.
+            if prompt_id in self.grok_completed_ids or (
+                prompt_id != self.grok_prompt_id and prompt_id in self.grok_seen_ids
+            ):
+                return self.grok_turn
+            if prompt_id not in self.grok_seen_ids:
+                self.grok_seen_ids.append(prompt_id)
+        # Without a provider ID, a completion followed by activity starts a new epoch.
+        if not self.native_busy or (prompt_id is not None and prompt_id != self.grok_prompt_id):
+            self.grok_turn += 1
+            self.grok_prompt_id = prompt_id
+        self.native_busy = True
+        self.grok_activity()
+        return self.grok_turn
+
+    def grok_complete(self, prompt_id=None, *, turn=None):
+        completed_id = self.grok_prompt_id if prompt_id is None else prompt_id
+        if completed_id is not None and completed_id not in self.grok_completed_ids:
+            self.grok_completed_ids.append(completed_id)
+        if (turn is None or turn == self.grok_turn) and (
+            prompt_id is None or prompt_id == self.grok_prompt_id
+        ):
+            self.native_busy = False
+        self.grok_activity()
 
     def grok_activity(self):
         if self.pending_interjections:
@@ -326,7 +373,7 @@ class Native:
 
     async def deliver(self, message):
         try:
-            if self.harness == "codex":
+            if self.protocol == "codex":
                 await self.rpc.request(
                     "turn/start",
                     {
@@ -353,9 +400,9 @@ class Native:
                 self.delivered(message, transport="grok/_x.ai/interject")
             else:
                 self.prompts_in_flight += 1
-                self.native_busy = True
-                self.grok_activity()
-                task = asyncio.create_task(self.grok_prompt(message))
+                prompt_id = str(uuid.uuid4())
+                turn = self.grok_started(prompt_id)
+                task = asyncio.create_task(self.grok_prompt(message, prompt_id, turn))
                 self.tasks.add(task)
                 task.add_done_callback(self.tasks.discard)
         except Exception as error:
@@ -366,7 +413,7 @@ class Native:
         try:
             await self.start()
             while not self.rpc.dead.is_set() and self.store.member(self.member)["desired"] == "running":
-                if self.harness == "grok":
+                if self.protocol == "grok":
                     self.grok_activity()
                 message = self.store.take_delivery(self.member, scoped=True, generation=self.generation)
                 if message:
@@ -391,46 +438,16 @@ class Native:
 
 def claude(directory, member, config, generation):
     store = Store(directory)
-    private, env, _ = prepare(directory, member, "claude")
-    native_id = str(uuid.uuid4())
-    debug = private / "native-debug.log"
-    debug.write_text("")
-    debug.chmod(0o600)
-    channel_log = ClaudeChannelLog(debug)
+    private, env, _ = prepare(directory, member, config["harness"], config=config)
+    argv, native_id = claude_command(
+        config, private, API(directory, member).instructions(),
+        tool_catalogue(directory, member, package_ceiling=True),
+        "Stay in this conversation and handle live peer messages through " + SERVER + ".",
+    )
+    channel_log = ClaudeChannelLog(private / "native-debug.log")
     trace = Trace(directory, member, component="claude", context=lambda: context(store, member))
     transcript = Transcript(store, member, trace)
     requested(store, member, config, private)
-    argv = [
-        config["binary"],
-        "--session-id",
-        native_id,
-        "--setting-sources",
-        "",
-        "--disable-slash-commands",
-        "--strict-mcp-config",
-        "--mcp-config",
-        str(private / "mcp.json"),
-        "--settings",
-        str(private / "settings.json"),
-        "--debug-file",
-        str(debug),
-        "--dangerously-load-development-channels",
-        "server:" + SERVER,
-        "--tools",
-        "",
-        "--allowedTools",
-        ",".join(
-            ["mcp__" + SERVER + "__" + row["name"] for row in API(directory, member).tools()]
-            + (["mcp__serena__serena_repl"] if serena_enabled(store, API(directory, member).control.snapshot()) else [])
-        ),
-        "--append-system-prompt",
-        API(directory, member).instructions(),
-    ]
-    if config.get("model"):
-        argv += ["--model", config["model"]]
-    if config.get("reasoning"):
-        argv += ["--effort", config["reasoning"]]
-    argv += ["--", "Stay in this conversation and handle live peer messages through " + SERVER + "."]
     process = subprocess.Popen(argv, cwd=config["workspace"], env=env, start_new_session=True)
     from .processes import register
 

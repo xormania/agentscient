@@ -10,48 +10,37 @@ import os
 import re
 import subprocess
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from .artifacts import Artifacts
 from .control import Control, binding
+from .failures import Failure
+from .role_packages import adapter, require_capability
+from .role_views import RolePaths, RoleSet
 from .store import UNSET, stamp
 from .work import Work, record
 
-EDITORS = {"coder", "docs", "test_writer", "architect"}
-DEFAULT_PATHS = {
-    "coder": [
-        "src/",
-        "config/",
-        "packages/",
-        "tests/",
-        "templates/",
-        "assets/",
-        "translations/",
-        "public/",
-        "migrations/",
-        "composer.json",
-        "composer.lock",
-        "symfony.lock",
-        "phpunit.dist.xml",
-    ],
-    "test_writer": ["tests/", "phpunit.dist.xml"],
-    "docs": ["docs/", "README.md"],
-    "architect": ["docs/"],
-}
+EDITORS = RoleSet("workspace", "editor")
+DEFAULT_PATHS = RolePaths()
 
 
 def project_config(store):
     path = store.directory / "team.json"
-    return json.loads(path.read_text()).get("project", {}) if path.is_file() else {}
+    value = json.loads(path.read_text()).get("project", {}) if path.is_file() else {}
+    # Evaluation policy may be configured for a native team without a managed
+    # source checkout. It must not implicitly enable workspace/provider tools.
+    return {} if isinstance(value, dict) and set(value) <= {"configuration_file"} else value
 
 
-def git(root, *args, check=True, timeout=60, env=None):
+def git(root, *args, check=True, timeout=60, env=None, input=None):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    environment.update(GIT_TERMINAL_PROMPT="0", GIT_PAGER="cat", GIT_LITERAL_PATHSPECS="1", LC_ALL="C", **(env or {}))
+    environment.update(GIT_TERMINAL_PROMPT="0", GIT_PAGER="cat", GIT_LITERAL_PATHSPECS="1", LC_ALL="C")
+    environment.update(env or {})
     result = subprocess.run(
         ["git", "-C", str(root), "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args],
         capture_output=True,
+        input=input,
         timeout=timeout,
         env=environment,
     )
@@ -78,21 +67,32 @@ class Workspaces:
         expected = self.control.current()
         with self.store.connect() as db:
             current = binding(db, self.member)
-        if (
-            not current
-            or (not current["job"] and current["role"] not in {"co", "xo", "nco"})
-            or not expected
-            or any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to"))
-        ):
-            raise ValueError("This capability needs your current work binding; it may have changed or been paused.")
-        writable = current["role"] in EDITORS if current["job"] else current["role"] == "xo"
-        if write and (not writable or current["paused"]):
-            raise ValueError("Your current role cannot change this work, or the work is paused.")
+            if current and write:
+                from .planning import execution_current
+
+                execution_current(db, current)
+        if not current or not expected:
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_permitted", reason="work_binding_required")
+        if not current["job"] and adapter(current["role"]) not in {"co", "xo", "nco", "planner", "arbitrator"}:
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_permitted", reason="job_binding_required")
+        if any(current[k] != expected[k] for k in ("role", "job", "work_order", "revision", "paused", "reports_to")):
+            raise Failure("This capability needs your current work binding; it may have changed or been paused.",
+                          category="not_ready", reason="binding_changed")
+        writable = current["role"] in EDITORS if current["job"] else adapter(current["role"]) == "xo"
+        if write and not writable:
+            raise Failure("Your current role cannot change this work, or the work is paused.",
+                          category="not_permitted", reason="role_cannot_write")
+        if write and current["paused"]:
+            raise Failure("Your current role cannot change this work, or the work is paused.",
+                          category="not_ready", reason="work_paused")
         if write:
             with self.store.connect() as db:
                 table, ident = ("jobs", current["job"]) if current["job"] else ("work_orders", current["work_order"])
                 if record(db, table, ident)["status"] in {"done", "cancelled"}:
-                    raise ValueError("This work is finished; new changes belong to a new responsibility.")
+                    raise Failure("This work is finished; new changes belong to a new responsibility.",
+                                  category="not_ready", reason="work_finished")
         return current
 
     @contextmanager
@@ -165,9 +165,16 @@ class Workspaces:
 
     def ensure(self):
         scope = self.scope()
+        # The planner inspects the current integrated result. Keep its refresh
+        # serialized with XO's integration operations, without moving job views.
+        with self.lock(self.scope_lock(scope)) if adapter(scope["role"]) == "planner" else nullcontext():
+            self.scope()
+            return self._prepare(scope)
+
+    def _prepare(self, scope):
         with self.lock("repository"):
             workspace = self._ensure(scope)
-            if scope["role"] == "audit":
+            if adapter(scope["role"]) == "audit":
                 from .delivery import review_snapshot
 
                 workspace = review_snapshot(self.store, self.member, workspace)
@@ -177,8 +184,16 @@ class Workspaces:
         from .orders import Orders
         from .retirement import register
 
+        if adapter(scope["role"]) == "co":
+            # The CO's persistent conversation outlives an integrated order.
+            # Its native cwd must not keep a disposable worktree in use.
+            checkout = self.checkout()
+            return dict(job=None, root=str(checkout), target=self.target(),
+                        branch=git(checkout, "symbolic-ref", "--quiet", "--short", "HEAD", check=False)
+                        .stdout.decode().strip() or None,
+                        base_revision=git(checkout, "rev-parse", "HEAD").stdout.decode().strip())
         if not scope["job"]:
-            return Orders(self.store, self.member).ensure_in(scope["work_order"])
+            return Orders(self.store, self.member).ensure_in(scope["work_order"], refresh=adapter(scope["role"]) == "planner")
         checkout = self.checkout()
         with self.store.connect() as db:
             old = db.execute("SELECT * FROM job_workspaces WHERE job=?", (scope["job"],)).fetchone()
@@ -249,6 +264,8 @@ class Workspaces:
         allowed = self.config.get("paths", {}).get(role, DEFAULT_PATHS.get(role, [])) if role in EDITORS else []
         if not isinstance(allowed, list) or any(not isinstance(p, str) or not valid_path(p) for p in allowed):
             raise ValueError("Configure relative editable role paths.")
+        if any(not any(covers(boundary, path) for boundary in DEFAULT_PATHS[role]) for path in allowed):
+            raise ValueError("Configured editable paths exceed the role package ceiling.")
         rules = policy(self.store, self.config)
         assignment = current(self.store, self.control.current()) if assignment is None else assignment
         requested = assignment.get("editable_paths", allowed)
@@ -322,6 +339,13 @@ class Workspaces:
     @contextmanager
     def use(self, write=False):
         scope = self.scope(write)
+        if adapter(scope["role"]) == "planner":
+            with self.lock(self.scope_lock(scope)):
+                self.scope(write)
+                workspace = self._prepare(scope)
+                self._verify(workspace, self.checkout())
+                yield scope, workspace
+            return
         workspace = self.ensure()
         with self.lock(self.scope_lock(scope)):
             self.scope(write)
@@ -329,6 +353,7 @@ class Workspaces:
             yield scope, workspace
 
     def inspect(self, section="overview", path=None, offset=0):
+        require_capability(self.scope()["role"], "work_inspect")
         with self.use() as (scope, workspace):
             root = workspace["root"]
             head = git(root, "rev-parse", "HEAD").stdout.decode().strip()
@@ -419,10 +444,12 @@ class Workspaces:
         }
 
     def save(self, note):
+        require_capability(self.scope(write=True)["role"], "work_save")
         with self.use(write=True) as (scope, workspace):
             return self._save(scope, workspace, note)
 
     def refresh(self):
+        require_capability(self.scope(write=True)["role"], "work_refresh")
         with self.use(write=True) as (scope, workspace):
             if not scope["job"]:
                 from .orders import Orders
@@ -491,6 +518,7 @@ class Workspaces:
             }
 
     def recover(self, checkpoint, reason):
+        require_capability(self.scope(write=True)["role"], "work_recover")
         revision = checkpoint.removeprefix("checkpoint:")
         with self.use(write=True) as (scope, workspace):
             with self.store.connect() as db:
@@ -499,14 +527,43 @@ class Workspaces:
                 ).fetchone()
             if not known:
                 raise ValueError("Choose a checkpoint from this job's history.")
+            root = workspace["root"]
+            # Include both ends of renames and untracked work which _save would
+            # preserve first. Validate before saving: a rejected recovery must
+            # not change source, the index, history or checkpoint records.
+            paths = set(git(root, "diff", "--no-renames", "--name-only", "-z", revision, "--")
+                        .stdout.decode().split("\0")) - {""}
+            paths.update(path for item in self.changes(root)
+                         for path in (item["path"], item.get("previous_path")) if path)
+            denied = sorted(path for path in paths if not self.permitted_path(path, scope["role"]))
+            if denied:
+                raise ValueError("Recovery would change paths outside this role's configured paths: "
+                                 + ", ".join(denied[:10]) + ". Nothing was changed; request guidance.")
+            for path in paths:
+                parent = Path(root) / path
+                while parent != Path(root):
+                    if parent.is_symlink():
+                        raise ValueError("Recovery cannot replace or write through project symlinks.")
+                    parent = parent.parent
+            if paths:
+                for entry in git(root, "ls-tree", "-rz", revision, "--", *sorted(paths)).stdout.decode().split("\0"):
+                    if entry and entry.split(" ", 1)[0] not in {"100644", "100755"}:
+                        raise ValueError("Recovery restores regular project files only.")
             preserved = self._save(scope, workspace, "Preserve work before recovery: " + reason)
-            git(workspace["root"], "restore", "--source=" + revision, "--staged", "--worktree", "--", ".")
+            with self.store.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
+                self.scope(write=True)
+                if any(not self.permitted_path(path, scope["role"]) for path in paths):
+                    raise ValueError("Recovery scope changed; no checkpoint files were restored. Request guidance.")
+                if paths:
+                    git(root, "restore", "--source=" + revision, "--staged", "--worktree", "--", *sorted(paths))
             restored = self._save(scope, workspace, "Recover checkpoint: " + reason)
             return {"restored": restored, "preserved": preserved}
 
     def submit(self, summary):
         from .github import GitHub
 
+        require_capability(self.scope(write=True)["role"], "work_submit")
         with self.use(write=True) as (scope, workspace):
             if not scope["job"]:
                 from .orders import Orders
@@ -574,6 +631,6 @@ def current_workspace(store, member, job=UNSET):
         row = db.execute("SELECT root FROM job_workspaces WHERE job=?", (job,)).fetchone() if job else None
         if order and not job:
             row = db.execute("SELECT root FROM order_workspaces WHERE work_order=?", (order,)).fetchone()
-        if job and scope and scope["role"] == "audit":
+        if job and scope and adapter(scope["role"]) == "audit":
             row = db.execute("SELECT root FROM review_views WHERE member=? AND job=?", (member, job)).fetchone() or row
     return Path(row["root"] if row else store.member(member)["workspace"])

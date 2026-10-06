@@ -1,17 +1,19 @@
 # Continuous integration
 
-[ci.yml](workflows/ci.yml) runs on pull requests into `dev`, `master` and
-`work-order/*`, pushes to `dev` and `master`, merge groups, and manual invocation.
+[ci.yml](workflows/ci.yml) runs on pull requests targeting any branch, pushes to `dev` and `master`, merge groups, and manual invocation.
+Pull-request edits rerun CI, including base-branch changes, so retargeting a stacked
+PR recomputes its selected suites against the new base. Title and body edits also
+rerun the same checks.
 The workflow always starts so its required `lane` check can report a result.
 The `changes` job selects suites using [ci-paths.json](ci-paths.json):
 
 | Job | Checks |
 | --- | --- |
-| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; runs Ruff before selected dev-lane jobs can start. |
-| `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with the ten slowest tests listed in the log. |
-| `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated fixture test through `work_check`. |
+| `changes` | Tests CI routing, the aggregate gate and PHP cache integrity; selects jobs from the Git revisions; checks CUE exports and rejection cases, registry/configuration/tool/skill consistency, Ruff and its security-rule detection before selected dev-lane jobs can start. |
+| `live-mcp` | Python service, stdio MCP, native protocol, Git and GitHub fixture tests, with checked discovery, an execution/skip census and the ten slowest tests listed in the log. |
+| `maker-mate` | Real installed Maker/Mate integration through normal MCP in a disposable job worktree. Runs its generated kernel test through `work_check`, checking the test environment and test service container. |
 | `symfony / php` | Product checks: locked Composer metadata/platform, PHP/YAML/container lint and the full application PHPUnit suite. Uses [ci-prod-lane.yml](workflows/ci-prod-lane.yml). |
-| `serena` | Build the pinned provider image and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
+| `serena` | Build the provider image from the pinned Serena source and exercise real REPL persistence, PHPactor navigation, edits, protected paths, pause/resume, checkpointing and provider shutdown after release. |
 | `lane` | Requires successful selection and every selected job to succeed. Accepts a skipped job only when the selector explicitly excluded it. |
 
 The Symfony job uploads its tested revision, dependency observations, PHPUnit
@@ -54,9 +56,32 @@ comparisons run everything. A selector failure, missing output, or failed,
 cancelled or unexpectedly skipped selected job makes `lane` fail.
 
 Maker/Mate still installs the locked PHP development dependencies to exercise
-the actual tools. Its fixture configures only the generated test as a check;
+the actual tools. Its fixture configures only the generated kernel test as a check,
+with PHP's environment variables enabled (`variables_order=EGPCS`) so a forced
+application environment cannot be hidden by the interpreter's defaults;
 normal agents retain their default container, YAML and application test checks.
 The product workflow can also be invoked manually on its own.
+
+## Python security lint
+
+The existing pinned Ruff checks `devtools` and `.github` recursively, including
+nested action scripts. [ruff.toml](../ruff.toml) explicitly selects reviewed
+Bandit-derived rules for unsafe execution/deserialization, archive extraction,
+temporary files, permissions, weak hashes, TLS/SSH verification and shell
+injection. This is a bounded static check, not every `S` rule or a substitute for
+runtime authorization tests, dependency auditing or manual review. SQL/URL
+construction and other unselected rules still require review.
+
+Security findings fail the existing lint step and therefore the required `lane`
+gate. There is no blanket baseline or test-directory security exclusion. The
+trusted runner-script loader has one documented, rule-specific `S102` exception
+on its `exec` line; future exceptions should be equally narrow and explained.
+
+After lint, [lint_checks.py](lint_checks.py) uses the installed Ruff, the actual
+workflow lint arguments and repository configuration to check unsafe and safe
+temporary samples. It verifies the selected security rules and discovery of
+nested `.github` code. Missing Ruff, an undetected unsafe sample, or a failing
+safe sample fails the check. The earlier CI routing tests remain stdlib-only.
 
 ## Scheduling and caches
 
@@ -65,6 +90,17 @@ checks do not wait for the Python suite, and integrations do not wait for each
 other. An updated PR cancels its obsolete run. Pushes, merge groups and manual
 runs keep separate concurrency groups: push filters cover only that event's
 delta, so cancelling an earlier push could discard its selected coverage.
+
+When `live-mcp` is selected, `changes` installs pinned CUE v0.17.1 and runs the
+role-package and shared-configuration CUE rejection tests explicitly, alongside
+export and consistency checks. `AGENTSCIENT_CUE=cue` makes a missing compiler fail
+these checks. The remaining role-package tests run with the full Python suite in
+`live-mcp`; that job may skip the two CUE cases when CUE is unavailable because
+`changes` has already required them. The full suite uses strict execution with
+only those two exact test IDs permitted to skip. Unexpected skips, skipped
+subtests, expected failures, incomplete execution and an empty run fail the job;
+the retained census still records every permitted skip. Local runs remain
+permissive unless `--strict` is requested.
 
 | Cache | Local runners | Hosted runners |
 | --- | --- | --- |
@@ -82,12 +118,47 @@ verified again before use; an invalid download fails the job.
 Serena uses a unique image tag per run and attempt, passed through to the integration
 and removed afterwards. Concurrent jobs sharing the WSL Docker daemon cannot
 replace the image another job is about to test. Layer caching remains available.
+Serena's PHP base and uv installer use immutable image digests. APT uses only
+signed, dated Debian snapshots and fails on any metadata fetch error. Python
+runtime dependencies come from the pinned Serena revision's own `uv.lock`;
+build dependencies have a separate complete hash lock and build isolation is
+disabled. The build checks dependency compatibility and unchanged upstream lock
+metadata. PHPactor remains checksum-verified. These inputs fix dependency
+selection per platform; CI verifies the resulting image's behavior, without
+claiming byte-identical OCI builds. See the [image maintenance guide](../devtools/serena/README.md)
+for updates, lock regeneration and cold-build acceptance.
 
 Test fixtures use short HTTP shutdown polling and explicit release markers for
 work that must remain running through an MCP disconnect. Assertions wait for the
 state they need; CI does not retry failed tests to obtain a green result. If a
 runner loses Docker or PHP crashes, inspect the failing step and retained evidence
 as an environment/runtime failure before labelling it a test flake.
+
+The stdlib unittest entrypoint in `devtools/tests/run.py` rejects empty discovery,
+import errors and duplicate test IDs before running cases. It does not require a
+fixed test count. The log and retained `test-census.json` report collected cases,
+executed cases, skipped cases and cases not run because setup failed. Class and
+module setup skips expand to their collected methods; a skipped subtest does not
+make its containing method disappear. An import-time skip is reported as the
+single discovery placeholder available to unittest. Expected failures and
+unexpected successes retain unittest's ordinary meaning. Standard unittest
+discovery and individual test selection remain supported.
+
+The small fault-calibration tests run three existing boundary assertions once
+against healthy code and once with a temporary service-seam fault: bypassed stale
+completion verification, fallback to the first runtime profile, and unrestricted
+Arbitrator operation reads. Each mutation must fail the intended assertion;
+setup errors, unrelated failures and skips do not count as detection. These
+offline checks establish sensitivity to those faults, not comprehensive mutation
+coverage or authenticated harness/model acceptance. Race tests synchronize at
+the competing channel poll, output lock or SQLite write attempt rather than
+using a short quiet period as evidence that an action was blocked.
+
+The bootstrap environment handoff test requires Linux abstract Unix sockets,
+independently of tmux. Constrained local environments may skip this test after a
+socket capability probe; `AGENTSCIENT_REQUIRE_ABSTRACT_SOCKETS=1` makes an unavailable
+socket fail `live-mcp`. Real terminal tests separately require tmux through
+`AGENTSCIENT_REQUIRE_TMUX=1`.
 
 ## Optional Jev failure diagnosis
 
@@ -106,7 +177,7 @@ an unavailable assessment. Successful checks make no Jev calls.
 
 [jev-ci.json](jev-ci.json) owns enablement, the failure categories and questions,
 confidence threshold, log matching and bounded evidence selection. It references
-[the shared Jev policy](../devtools/jev.json) for the pinned model and transport
+[the shared service configuration](../devtools/configuration.cue) for the pinned model and transport
 settings, using the same client and credential filter as the MCP advice tools.
 The initial confidence threshold is a configurable presentation threshold, not
 a measured accuracy guarantee. Low confidence becomes `unknown` or no selected
@@ -180,6 +251,9 @@ provenance and inputs to explicit publication, never installation fallbacks.
 Credentials are excluded from redirected asset-storage requests. A valid warm
 cache needs no release request. Missing/corrupt entries are downloaded, checked
 and atomically published to the cache before isolated job installation.
+`toolchain.py` owns downloads and cache publication; `install-php.sh` only verifies
+and extracts the selected local PHP archive into a fresh runtime. A missing or
+changed archive at extraction fails without a second download path.
 
 [Retain CI toolchain](workflows/retain-toolchain.yml) is an operator-only manual
 workflow, separate from pull-request CI. Its publication job alone has
@@ -213,8 +287,9 @@ From the repository root, use the relevant checks:
 
 ```sh
 python3 -m unittest discover -s .github/tests -v
-python3 -m unittest discover -s devtools/tests -v --durations 10
-uv tool run --from ruff==0.16.8 ruff check devtools .github/*.py .github/tests
+python3 -m devtools.tests.run -v --durations 10
+uv tool run --from ruff==0.16.8 ruff check devtools .github
+uv run --with ruff==0.16.8 --no-project python .github/lint_checks.py
 ```
 
 The Ruff command uses `uv`; an installed Ruff matching the workflow pin also works.

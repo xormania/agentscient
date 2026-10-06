@@ -1,61 +1,108 @@
 import json
-import tempfile
+import os
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from unittest.mock import patch
 
-from support import Client, until
+from fixtures.control import ControlFixture
+from support import until
 
 from devtools.api import API
 from devtools.control import Control
-from devtools.launch import initialize
-from devtools.store import Store
 
 
-class ControlTests(unittest.TestCase):
+class ReadinessContextTests(ControlFixture, unittest.TestCase):
+    def test_completed_work_co_receives_only_authorized_standby_readiness(self):
+        from devtools import processes, standby
+        from devtools.delivery import Delivery
+
+        team_path = self.state / "team.json"
+        team = json.loads(team_path.read_text())
+        team["co"] = "owner"
+        for member in team["members"]:
+            if member["name"] == "idle":
+                member.update(harness="codex", binary="/bin/true")
+        team_path.write_text(json.dumps(team))
+        parent = API(self.state, "owner")
+        # Conclude releases the execution team through Delivery.release while
+        # CO retains its completed work binding and conversation.
+        scope = parent.control.snapshot()
+        with self.store.connect() as db:
+            db.execute("UPDATE members SET harness='codex' WHERE name='idle'")
+            for child in parent.commands._descendants(db, scope):
+                Delivery.release(db, child["member"])
+            db.execute("UPDATE work_orders SET status='done' WHERE id=?", (self.order,))
+        with patch("devtools.readiness.startup_preflight", return_value={"status": "preflight_passed", "checks": []}):
+            member = parent.call("roll_call", {})["xo"]["member"]
+        with self.store.connect() as db:
+            revision = standby.binding(db, member)["revision"]
+        generation = self.store.begin_session(member, os.getpid(), standby_revision=revision)
+        processes.register(self.store, member, generation, os.getpid())
+        self.store.session(member, generation=generation, native_id="standby-native", state="idle")
+        child = API(self.state, member)
+        onboard = child.call("onboard", {})
+        ready = child.call("readiness_report", {key: onboard["readiness"][key]
+                           for key in ("challenge", "onboarding_revision")})
+        self.assertEqual("ready", ready["status"])
+        for arguments, field in (({}, "incoming"), ({"section": "messages"}, "messages")):
+            self.assertIn(ready["receipt"], [row["reference"] for row in parent.call("work_context", arguments)[field]])
+        self.assertTrue(parent.call("work_context", {"reference": ready["receipt"]})["readiness_current"])
+        self.assertEqual(int(ready["receipt"][8:]), self.store.take_delivery("owner", scoped=True)["id"])
+
+        # A null work scope and readiness label alone grant no visibility.
+        unrelated = self.store.send(member, "owner", "Unverified null-work readiness", key="unverified",
+                                    work_order=None, job=None)
+        with self.store.connect() as db:
+            db.execute("UPDATE messages SET category='readiness' WHERE id=?", (unrelated["id"],))
+        reference = "message:" + str(unrelated["id"])
+        with self.assertRaisesRegex(ValueError, "not available"):
+            parent.call("work_context", {"reference": reference})
+        self.assertNotIn(reference, [row["reference"] for row in parent.call("work_context", {"section": "messages"})["messages"]])
+        self.assertIsNone(self.store.take_delivery("owner", scoped=True))
+
+    def test_live_context_excludes_obsolete_ready_but_explicit_history_is_marked(self):
+        from devtools import duty, processes
+
+        with self.store.connect() as db:
+            db.execute("UPDATE members SET harness='codex' WHERE name='coder'")
+        generation = self.store.begin_session("coder", os.getpid())
+        processes.register(self.store, "coder", generation, os.getpid())
+        self.store.session("coder", generation=generation, native_id="fixture-native", state="idle")
+        child, parent = API(self.state, "coder"), API(self.state, "xo")
+        onboard = child.call("onboard", {})
+        ready = child.call("readiness_report", {
+            "challenge": onboard["readiness"]["challenge"], "onboarding_revision": onboard["revision"],
+        })
+        ordinary = self.store.send("coder", "xo", "Ordinary retained report", key="ordinary",
+                                   work_order=self.order, job=self.job)
+        self.assertIn(ready["receipt"], [row["reference"] for row in parent.call("work_context", {})["incoming"]])
+        self.assertTrue(parent.call("work_context", {"reference": ready["receipt"]})["readiness_current"])
+
+        # No watcher tick: every live read must derive freshness itself.
+        self.store.session("coder", generation=generation, state="stopped", desired="stopped", pid=None)
+        for arguments, field in (({}, "incoming"), ({"section": "messages"}, "messages")):
+            visible = [row["reference"] for row in parent.call("work_context", arguments)[field]]
+            self.assertNotIn(ready["receipt"], visible)
+            self.assertIn("message:" + str(ordinary["id"]), visible)
+        historical = parent.call("work_context", {"reference": ready["receipt"]})
+        self.assertFalse(historical["readiness_current"])
+        self.assertIn("startup checks passed", historical["text"])
+        duty.tick(self.store)
+        messages = parent.call("work_context", {"section": "messages"})["messages"]
+        self.assertTrue(any("unable to report ready" in row["text"] for row in messages))
+        self.assertNotIn(ready["receipt"], [row["reference"] for row in messages])
+
+
+class ControlTests(ControlFixture, unittest.TestCase):
     def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        root = Path(temporary.name)
-        workspace = root / "workspace"
-        workspace.mkdir()
-        self.state = root / "state"
-        initialize(self.state, workspace, [name + ":external" for name in ("owner", "xo", "coder", "audit", "idle")])
-        self.store = Store(self.state)
+        super().setUp()
         self.operator = self.client("owner", operator=True)
-        self.order = self.operator.invoke(
-            "work_order_create", title="One", objective="Build the feature", done_when="Works"
-        )["work_order"]["id"]
-        self.job = self.operator.invoke(
-            "job_create", title="Feature", objective="Implement contract", done_when="Checks pass"
-        )["job"]["id"]
-        self.other = self.operator.invoke(
-            "job_create", title="Unrelated", objective="SECRET SIBLING", done_when="Separate"
-        )["job"]["id"]
-        for member, role, parent, job in (
-            ("owner", "co", None, None),
-            ("xo", "xo", "owner", None),
-            ("coder", "coder", "xo", self.job),
-            ("audit", "audit", "xo", self.other),
-        ):
-            args = dict(member=member, role=role, work_order=self.order, brief="Use established contracts")
-            if parent:
-                args["reports_to"] = parent
-            if job:
-                args["job"] = job
-            self.operator.invoke("member_bind", **args)
-
-    def client(self, member, **args):
-        client = Client(self.state, member, **args)
-        self.addCleanup(client.close)
-        return client
 
     def test_default_surface_supplies_brief_and_rejects_bypasses(self):
         coder = self.client("coder")
         self.assertEqual(
-            ["work_context", "work_report", "guidance_request", "onboard", "skill_read"],
+            ["work_context", "work_report", "guidance_request", "readiness_report", "onboard", "skill_read"],
             [r["name"] for r in coder.call("tools/list")["tools"]]
         )
         self.assertNotIn("Implement contract", coder.initialization["instructions"])
@@ -240,7 +287,7 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(saved["reference"], retried["reference"])
         self.assertEqual(1, len(self.store.inbox("xo")["messages"]))
 
-    def test_inflight_report_keeps_binding_while_next_call_uses_new_scope(self):
+    def test_inflight_report_rejects_revoked_binding_and_next_call_uses_new_scope(self):
         api = API(self.state, "coder")
         entered, resume = threading.Event(), threading.Event()
         original = api.control.report
@@ -258,11 +305,10 @@ class ControlTests(unittest.TestCase):
                 self.operator.invoke("member_bind", member="coder", role="research", job=self.other, reports_to="xo")
             finally:
                 resume.set()
-            result = pending.result()
-        self.assertEqual(self.job, self.store.inbox("xo")["messages"][0]["job"])
+            with self.assertRaisesRegex(ValueError, "changed during this report"):
+                pending.result()
+        self.assertEqual([], self.store.inbox("xo")["messages"])
         self.assertEqual("research", api.call("work_context", {})["role"])
-        with self.assertRaises(ValueError):
-            api.call("work_context", {"reference": result["reference"]})
 
     def test_binding_validation_and_noop_rebind(self):
         before = Control(self.store, "coder").snapshot()
@@ -279,8 +325,8 @@ class ControlTests(unittest.TestCase):
             dict(member="coder", role="xo", job=self.job, reports_to="audit"),
             dict(member="xo", role="architect", work_order=self.order, reports_to="coder"),
             dict(member="owner", role="co", work_order=self.order, reports_to="xo"),
+            dict(member="owner", role="co", job=self.job),
             dict(member="coder", role="invalid", job=self.job, reports_to="xo"),
         ):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 self.operator.invoke("member_bind", **args)
-

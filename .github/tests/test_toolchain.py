@@ -68,11 +68,15 @@ class ToolchainTests(unittest.TestCase):
             self.assertEqual(request.call_count, 2)
             toolchain.install(self.config, self.paths)
             self.assertEqual(metadata.call_count, 1)  # Warm install needs no network.
-            self.paths["composer"].write_bytes(b"corrupt")
-            toolchain.install(self.config, self.paths)
-            self.assertEqual(request.call_count, 3)
+            self.assertEqual(request.call_count, 2)
+            for calls, component in enumerate(("php", "composer"), 3):
+                with self.subTest(corrupt=component):
+                    self.paths[component].write_bytes(b"corrupt")
+                    toolchain.install(self.config, self.paths)
+                    self.assertEqual(request.call_count, calls)
+                    self.assertTrue(toolchain.verified(self.paths[component], self.config[component]["sha256"]))
         runtimes = Path(self.env["GITHUB_PATH"]).read_text().splitlines()
-        self.assertEqual(len(set(runtimes)), 3)
+        self.assertEqual(len(set(runtimes)), 4)
         for runtime in runtimes:
             # No PHP in PATH: the Composer wrapper must select its sibling binary.
             env = {**os.environ, "PATH": "/usr/bin:/bin"}

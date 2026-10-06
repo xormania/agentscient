@@ -17,8 +17,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from devtools.configuration import defaults  # noqa: E402
+from devtools.credentials import CredentialUnavailable, read_credential  # noqa: E402
 from devtools.jev import Jev, checked_response, number  # noqa: E402
-from devtools.jev_config import load as load_jev  # noqa: E402
 from devtools.telemetry import clean  # noqa: E402
 
 DEFAULT = Path(__file__).with_name("jev-ci.json")
@@ -31,7 +32,7 @@ def encode(value):
 
 def load_config(path):
     value = json.loads(path.read_text())
-    required = {"version", "enabled", "jev_policy", "min_confidence", "limits", "error_pattern",
+    required = {"version", "enabled", "min_confidence", "limits", "error_pattern",
                 "evidence_patterns", "failure_question", "excerpt_instructions"}
     if not isinstance(value, dict) or value.keys() != required or value["version"] != 1:
         raise ValueError("Unsupported CI Jev policy.")
@@ -64,7 +65,8 @@ def load_config(path):
     for text in (question["instructions"], value["excerpt_instructions"]):
         if not isinstance(text, str) or not 1 <= len(text) <= 2000:
             raise ValueError("CI questions need bounded instructions.")
-    policy = load_jev(path.parent, {"policy_file": value["jev_policy"]})
+    shared = defaults()
+    policy = {key: shared[key] for key in ("model", "transport", "connection")}
     return value, policy
 
 
@@ -130,34 +132,57 @@ def log_regions(path, limit):
             for first, data in regions if data], partial
 
 
+def log_excerpt(first_line, lines, anchor, limits, match=None):
+    """Keep the matched line inside the byte budget before adding context."""
+    before = limits["before_lines"] if match else limits["excerpt_lines"] - 1
+    preferred_start = max(0, anchor - before)
+    start = preferred_start
+    end = min(len(lines), start + limits["excerpt_lines"])
+    budget = limits["excerpt_bytes"]
+    # Oversized context must not consume the bytes reserved for the actual match.
+    while start < anchor and len("\n".join(lines[start:anchor + 1]).encode()) > budget:
+        start += 1
+    if len(lines[anchor].encode()) > budget:
+        # Redaction already ran on the complete line. Retain the matching portion
+        # when the line itself is too large, without pretending it is complete.
+        text, _ = clipped(lines[anchor][match.start() if match else 0:], budget)
+        return {"line_start": first_line + anchor, "line_end": first_line + anchor,
+                "text": text, "partial": True}, anchor
+    text, cut = clipped("\n".join(lines[start:end]), budget)
+    last = start + text.count("\n")
+    # A clipped final line cannot suppress its own later match: that match may
+    # occur beyond the retained prefix. Only complete retained lines are covered.
+    covered_until = last + (text.rsplit("\n", 1)[-1] == lines[last])
+    return {"line_start": first_line + start, "line_end": first_line + last,
+            "text": text, "partial": cut or start != preferred_start}, covered_until
+
+
 def collect(log, evidence, config):
     limits = config["limits"]
     regions, partial = log_regions(log, limits["log_bytes"])
     pattern = re.compile(config["error_pattern"])
-    starts = []
+    excerpts = []
     for first_line, lines in regions:
-        local_starts = []
+        covered_until = 0
+        matched = False
         for index, line in enumerate(lines):
-            if pattern.search(line):
-                start = max(0, index - limits["before_lines"])
-                if not local_starts or start >= local_starts[-1] + limits["excerpt_lines"]:
-                    local_starts.append(start)
-        if lines and not local_starts:
-            local_starts = [max(0, len(lines) - limits["excerpt_lines"])]
-        # Keep regions separate; an excerpt must not bridge an omitted gap.
-        starts.extend((first_line, lines, start) for start in local_starts)
+            match = pattern.search(line)
+            if match:
+                matched = True
+                if index >= covered_until:
+                    excerpt, covered_until = log_excerpt(first_line, lines, index, limits, match)
+                    excerpts.append(excerpt)
+        if lines and not matched:
+            excerpt, _ = log_excerpt(first_line, lines, len(lines) - 1, limits)
+            excerpts.append(excerpt)
+        # Each excerpt belongs to one region; none bridges an omitted log gap.
     # Preserve early causes as well as late failures when there are many matches.
-    total = len(starts)
+    total = len(excerpts)
     maximum = limits["candidates"]
     if total > maximum:
         first = (maximum + 1) // 2
-        starts = starts[:first] + (starts[-(maximum - first):] if maximum > first else [])
-    candidates = []
-    for index, (first_line, lines, start) in enumerate(starts):
-        excerpt, cut = clipped("\n".join(lines[start:start + limits["excerpt_lines"]]), limits["excerpt_bytes"])
-        candidates.append({"id": "excerpt_" + str(index), "line_start": first_line + start,
-                           "line_end": first_line + start + excerpt.count("\n"), "text": excerpt,
-                           "partial": cut})
+        excerpts = excerpts[:first] + (excerpts[-(maximum - first):] if maximum > first else [])
+    candidates = [{"id": "excerpt_" + str(index), **excerpt} for index, excerpt in enumerate(excerpts)]
     records, omitted = [], 0
     if evidence and evidence.is_dir() and not evidence.is_symlink():
         paths = sorted({path for p in config["evidence_patterns"] for path in evidence.glob(p)})
@@ -217,6 +242,7 @@ def request_for(state, config, policy):
 
 def assess(log, evidence, job, config_path=DEFAULT, client=None):
     started = time.monotonic()
+    secrets = ()
     result = {"version": 1, "status": "unavailable", "note": NOTE, "job": job,
               "context": {key: os.environ.get(key, "") for key in
                           ("GITHUB_REPOSITORY", "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT")}}
@@ -226,10 +252,13 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         if not config["enabled"]:
             result.update(status="disabled", reason="disabled_by_configuration")
             return result
-        if not os.environ.get("TYPESAFE_API_KEY"):
-            result["reason"] = "missing_TYPESAFE_API_KEY"
+        try:
+            secrets = (read_credential(policy["connection"]["credential"]),)
+        except CredentialUnavailable:
+            result["reason"] = "missing_credential"
             return result
-        state = collect(log, evidence, config)
+        config = clean(config, secrets=secrets)
+        state = clean(collect(log, evidence, config), secrets=secrets)
         state["job"] = job
         if not state["candidates"]:
             result["reason"] = "no_log_evidence"
@@ -237,7 +266,7 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         request = request_for(state, config, policy)
         result["request"] = request
         result["input_sha256"] = hashlib.sha256(encode({"request": request, "policy": result["policy"]})).hexdigest()
-        provider = client or Jev(policy["transport"])
+        provider = client or Jev(policy["transport"], policy["connection"])
         response = provider.evaluate(state, request["questions"], policy["model"])
         response = checked_response(response, request["questions"], policy["model"])
         answers = response["answers"]
@@ -253,6 +282,10 @@ def assess(log, evidence, job, config_path=DEFAULT, client=None):
         result["error_type"] = type(error).__name__
     finally:
         result["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        # File credentials and arbitrarily named env credentials have no global env marker.
+        sanitized = clean(result, secrets=secrets)
+        result.clear()
+        result.update(sanitized)
     return result
 
 

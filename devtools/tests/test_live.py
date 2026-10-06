@@ -1,17 +1,20 @@
+import io
 import json
 import os
+import queue
 import subprocess
 import sys
 import tempfile
-import time
+import threading
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from support import ENTRY, Client, until
+from support import ENTRY, Client, initialize, until
 
 from devtools.api import API
-from devtools.launch import initialize
+from devtools.mcp import serve
 from devtools.profiles import permitted
 from devtools.store import Store
 from devtools.telemetry import Trace
@@ -74,20 +77,83 @@ class LiveTests(unittest.TestCase):
 
     def test_claude_notifications_wait_for_native_channel_registration(self):
         generation = self.store.begin_session("beta", os.getpid())
-        alpha, beta = self.client("alpha"), self.client("beta", channel=True)
-        message = alpha.invoke("message_send", to="beta", body="pending before ready", key="channel")
-        time.sleep(0.2)
-        self.assertFalse(beta.notifications)
-        self.assertEqual("queued", self.store.inbox("beta")["messages"][0]["delivery"])
-        self.store.session("beta", generation=generation, state="idle")
-        packet = until(lambda: beta.notifications and beta.notifications[0])
-        self.assertEqual("notifications/claude/channel", packet["method"])
-        self.assertEqual(str(message["id"]), packet["params"]["meta"]["message_id"])
-        delivered = until(
-            lambda: row if (row := self.store.inbox("beta")["messages"][0])["delivery"] == "submitted" else None
-        )
-        self.assertIsNone(delivered["acknowledged"])
-        beta.invoke("message_ack", message=message["id"])
+        message = self.store.send("alpha", "beta", "pending before ready", key="channel")
+        attempted, release = threading.Event(), threading.Event()
+        pending, packets, background, errors = queue.Queue(), [], [], []
+        original_member = Store.member
+        channel = None
+        reads = 0
+
+        class Input:
+            def readline(self, *args):
+                return pending.get(timeout=5)
+
+        class Output(io.StringIO):
+            def write(self, text):
+                packets.append(json.loads(text))
+                return super().write(text)
+
+        def thread(**kwargs):
+            nonlocal channel
+            created = threading.Thread(**kwargs)
+            background.append(created)
+            if kwargs["target"].__name__ == "channels":
+                channel = created
+            return created
+
+        def member(store, name):
+            nonlocal reads
+            row = original_member(store, name)
+            if threading.current_thread() is channel:
+                reads += 1
+                if reads == 2:
+                    # Reaching a second poll proves the first delivery attempt
+                    # completed while the native channel was still unregistered.
+                    attempted.set()
+                    if not release.wait(3):
+                        raise RuntimeError("Test did not release the channel poll")
+            return row
+
+        def server():
+            try:
+                serve(self.directory, "beta", channel=True, operator=True)
+            except Exception as error:
+                errors.append(error)
+
+        def send(packet):
+            pending.put((json.dumps(packet) + "\n").encode())
+
+        threads = SimpleNamespace(Lock=threading.Lock, Event=threading.Event, Thread=thread)
+        output = Output()
+        with patch("devtools.mcp.sys.stdin", SimpleNamespace(buffer=Input())), patch("devtools.mcp.sys.stdout", output), \
+                patch("devtools.mcp.threading", threads), patch.object(Store, "member", member):
+            serving = threading.Thread(target=server)
+            serving.start()
+            try:
+                send({"id": 1, "method": "initialize"})
+                send({"method": "notifications/initialized"})
+                self.assertTrue(attempted.wait(3), "Channel did not attempt delivery before registration")
+                self.assertFalse([p for p in packets if p.get("method") == "notifications/claude/channel"])
+                self.assertEqual("queued", self.store.inbox("beta")["messages"][0]["delivery"])
+                self.store.session("beta", generation=generation, state="idle")
+                release.set()
+                packet = until(lambda: next((p for p in packets if p.get("method") == "notifications/claude/channel"), None))
+                self.assertEqual(str(message["id"]), packet["params"]["meta"]["message_id"])
+                delivered = until(lambda: row if (row := self.store.inbox("beta")["messages"][0])["delivery"] == "submitted" else None)
+                self.assertIsNone(delivered["acknowledged"])
+                send({"id": 2, "method": "tools/call", "params": {"name": "capability_invoke", "arguments": {
+                    "capability": "message_ack", "arguments": {"message": message["id"]}}}})
+                response = until(lambda: next((p for p in packets if p.get("id") == 2), None))
+                self.assertFalse(response["result"].get("isError"))
+            finally:
+                release.set()
+                pending.put(b"")
+                serving.join(3)
+                for worker in background:
+                    worker.join(3)
+            self.assertFalse(serving.is_alive())
+            self.assertFalse(any(worker.is_alive() for worker in background))
+            self.assertEqual([], errors)
 
     def test_transport_crash_is_uncertain_and_retry_is_explicit(self):
         message = self.store.send("alpha", "beta", "durable", key="crash")

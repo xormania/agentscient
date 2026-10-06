@@ -8,7 +8,8 @@ import io
 from .artifacts import Artifacts
 from .codex_reviews import CodexReviews
 from .github import GitHub
-from .store import canonical, stamp
+from .role_packages import adapter, require_capability
+from .store import digest, stamp
 from .work import Work, record
 from .workspaces import Workspaces, git
 
@@ -18,8 +19,8 @@ class Orders:
         self.store, self.member = store, member
         self.spaces = Workspaces(store, member)
 
-    def ensure_in(self, ident):
-        """Prepare once under the repository lock; callers already checked their binding."""
+    def ensure_in(self, ident, *, refresh=False):
+        """Prepare under the repository lock; refreshing also requires the order lock."""
         from .retirement import register
 
         with self.store.connect() as db:
@@ -29,6 +30,8 @@ class Orders:
         if old:
             workspace = {**dict(old), "job": None}
             self.spaces._verify(workspace, checkout)
+            if refresh:
+                self._sync_in(workspace)
             return workspace
         if work["status"] in {"done", "cancelled"}:
             raise ValueError("This work order is finished.")
@@ -64,7 +67,7 @@ class Orders:
 
     def scope(self, role=None):
         scope = self.spaces.scope()
-        if scope["job"] or role and scope["role"] != role:
+        if scope["job"] or adapter(scope["role"]) not in {"xo", "planner"} or role and adapter(scope["role"]) != role:
             raise ValueError("This outcome requires the current work-order command role.")
         return scope
 
@@ -74,13 +77,19 @@ class Orders:
             "SELECT 1 FROM jobs WHERE work_order=? AND status NOT IN ('done','cancelled')", (ident,)
         ).fetchone():
             raise ValueError("Jobs remain unfinished. Have XO accept or explicitly cancel them first.")
+        if db.execute("SELECT 1 FROM role_assignments WHERE work_order=? AND status='active'", (ident,)).fetchone():
+            raise ValueError("Role assignments remain active. Have their coordinator complete or explicitly cancel them first.")
 
     def sync(self, workspace):
+        with self.spaces.lock("repository"):
+            return self._sync_in(workspace)
+
+    def _sync_in(self, workspace):
+        """Refresh while the caller holds the order and repository locks."""
         self.spaces._verify(workspace, self.spaces.checkout())
         if self.spaces.changes(workspace["root"]):
             raise ValueError("The integration workspace has unexpected changes. They were preserved for inspection.")
-        with self.spaces.lock("repository"):
-            revision = self.spaces.upstream(workspace["branch"])
+        revision = self.spaces.upstream(workspace["branch"])
         git(workspace["root"], "merge", "--ff-only", revision)
         if git(workspace["root"], "rev-parse", "HEAD").stdout.decode().strip() != revision:
             raise ValueError("The integration workspace has unexpected local commits; preserved for inspection.")
@@ -89,14 +98,14 @@ class Orders:
     def submit(self, scope, workspace, summary):
         from .development import Development, configured
 
-        self.scope("xo")
+        require_capability(self.scope("xo")["role"], "work_submit")
         with self.store.connect() as db:
             self.settled(db, scope["work_order"])
         revision = self.sync(workspace)["revision"]
         if not git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
             return {
                 "state": "no_changes",
-                "message": "No source change to publish; CO can conclude the retained results.",
+                "message": "No source change to publish; XO can conclude the retained results.",
             }
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
@@ -104,7 +113,7 @@ class Orders:
             pr = provider._pr(context)
             self.match(pr["head"]["ref"], pr["base"]["ref"], workspace)
             if pr.get("merged") or pr["state"] == "closed":
-                return {"state": "closed", "message": "CO must inspect the published result before concluding."}
+                return {"state": "closed", "message": "XO must inspect the published result before concluding."}
         validation = Development(self.store, self.member).checks(workspace["root"]) if configured(self.store) else None
         if validation and (not validation["passed"] or validation["uncommitted"]):
             return {"state": "needs_attention", "validation": validation}
@@ -157,6 +166,7 @@ class Orders:
 
     def inspect(self, section="review", path=None, offset=None, page=1):
         scope = self.scope()
+        require_capability(scope["role"], "work_inspect")
         with self.spaces.lock(self.spaces.scope_lock(scope)):
             with self.store.connect() as db:
                 work = record(db, "work_orders", scope["work_order"])
@@ -193,6 +203,7 @@ class Orders:
 
     def respond(self, text, review=None, resolve=False):
         scope = self.scope("xo")
+        require_capability(scope["role"], "review_respond")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         if not review or not review.startswith("thread:"):
@@ -204,8 +215,7 @@ class Orders:
             if pr["state"] != "open":
                 raise ValueError("The work-order PR is closed.")
             thread = review.removeprefix("thread:")
-            key = hashlib.sha256(canonical([context["repository"], context["pr"], thread,
-                                           pr["head"]["sha"], text]).encode()).hexdigest()
+            key = digest([context["repository"], context["pr"], thread, pr["head"]["sha"], text])
             marker = "<!-- agentscient-response:" + key + " -->"
             cursor, existing = None, False
             while True:
@@ -228,8 +238,8 @@ class Orders:
             return {"review": review, "resolved": resolve or row["isResolved"], "evidence": receipt["reference"]}
 
     def finish(self, scope):
-        """Called under the work-order lock by CO's existing conclude outcome."""
-        self.scope("co")
+        """Called under the work-order lock by XO's conclude outcome."""
+        require_capability(self.scope("xo")["role"], "conclude")
         if scope["paused"]:
             raise ValueError("Work is paused.")
         with self.store.connect() as db:
@@ -247,13 +257,17 @@ class Orders:
                 (self.member, scope["work_order"]),
             ).fetchone()
         if not workspace:
-            return {}
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         workspace = dict(workspace)
         if not work["pull_request"]:
             self.sync(workspace)
             if git(workspace["root"], "diff", "--quiet", workspace["base_revision"], "HEAD", check=False).returncode:
-                raise ValueError("XO must submit the integrated work before CO can conclude it.")
-            return {}
+                raise ValueError("XO must submit the integrated work before concluding it.")
+            from .completion import Completion
+
+            return {"_completion": Completion(self.store, self.member).require("work_order")}
         provider = GitHub(self.store, self.member)
         context = provider._context(job=None)
         current = provider.pr_get(context)
@@ -276,8 +290,16 @@ class Orders:
         if current["pr"]["state"] != "merged" and current["ci"]["state"] != "passed":
             raise ValueError("CI has not passed for the current integrated PR revision.")
         CodexReviews(provider).require_ready(context, revision)
-        self.scope("co")
+        from .completion import Completion
+
+        gate = Completion(self.store, self.member).require(
+            "work_order", revision=revision,
+            mechanical={"ci": {"passed": current["ci"]["state"] == "passed", "revision": revision},
+                        "workspace": {"clean": True, "revision": revision}},
+        )
+        Completion(self.store, self.member).verify(gate)
+        self.scope("xo")
         merged = provider.pr_merge(context, revision=revision)
         if not merged["merged"]:
             raise ValueError("GitHub did not merge the work-order PR. Inspect its current review and CI.")
-        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"]}
+        return {"revision": revision, "merge_commit": merged["commit"], "pr": work["pull_request"], "_completion": gate}

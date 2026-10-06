@@ -16,14 +16,17 @@ import uuid
 from pathlib import Path
 
 from .control import REQUEST_BINDING, Control
+from .process_observation import ProcessObservation
 from .retirement import key, lease
+from .role_packages import adapter, descriptor
+from .role_views import RoleSet
 from .sessions import Lease
 from .store import Store
 from .telemetry import Trace, context
 from .workspaces import EDITORS, Workspaces, project_config
 
 SERVER = "serena"
-ROLES = {"coder", "audit", "docs", "research", "test_writer", "architect", "planner"}
+ROLES = RoleSet("workspace", "serena")
 TOOL = {
     "name": "serena_repl",
     "description": "Use Serena v2's persistent Python REPL for your current job. The service supplies the session and workspace. Start with s.info() or s.info('lsp', 'edit') for current facade documentation. Variables persist between calls. Source writes are limited to your role's mounted paths; Git, checks, Maker and delivery belong to the control-plane tools.",
@@ -38,7 +41,7 @@ TOOL = {
 
 def enabled(store, scope):
     return bool(
-        scope and scope["job"] and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
+        scope and (scope["job"] or adapter(scope["role"]) == "planner") and scope["role"] in ROLES and project_config(store).get("serena", {}).get("image")
     )
 
 
@@ -102,6 +105,9 @@ class Serena:
         self.log = None
         self.mutex = threading.RLock()
         self.workspace_lease = None
+        self.observation = None
+        self.gateway_connection = None
+        self.gateway_request_id = None
         atexit.register(self.close)
 
     def scope(self):
@@ -114,11 +120,14 @@ class Serena:
             raise ValueError("Serena is not configured for your current job and role.")
         if current["paused"]:
             raise ValueError("This work is paused. Use the control plane for reports or guidance.")
+        if current["role"] in EDITORS:
+            self.spaces.scope(write=True)
         identity = tuple(current[k] for k in ("job", "work_order", "role", "reports_to"))
         config = project_config(self.store)
         assignment = assignment_for(self.store, current)
         signature = (identity, json.dumps({"config": {key: config.get(key) for key in ("serena", "paths")},
-                                         "assignment": assignment, "policy": policy(self.store, config)}, sort_keys=True))
+                                         "assignment": assignment, "policy": policy(self.store, config),
+                                         "role_package": descriptor(current["role"])}, sort_keys=True))
         if self.signature is not None and self.signature != signature:
             self.close()
             raise ValueError("The role or workspace changed. Reconnect Serena for the current responsibility.")
@@ -267,6 +276,21 @@ class Serena:
         self.process.stdin.flush()
 
     def request(self, method, params, timeout=100):
+        observation = self.observation if method == "tools/call" else None
+        ident = self.ident + 1
+        if observation is not None:
+            try:
+                frame_context = context(self.store, self.member)
+            except Exception:
+                frame_context = observation.frame_context
+            observation.begin(ident, frame_context, self.gateway_request_id)
+        try:
+            return self._request(method, params, timeout)
+        finally:
+            if observation is not None:
+                observation.finish(ident)
+
+    def _request(self, method, params, timeout=100):
         self.ident += 1
         ident = self.ident
         self.write({"id": ident, "method": method, "params": params})
@@ -301,15 +325,20 @@ class Serena:
         path = self.store.directory / "telemetry" / (self.member + "-serena.log")
         path.parent.mkdir(mode=0o700, exist_ok=True)
         self.log = path.open("ab")
+        self.observation = ProcessObservation(self.store.directory, self.member, self.container,
+                                              context(self.store, self.member), self.gateway_connection)
         try:
             self.process = subprocess.Popen(
-                argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.log, start_new_session=True
+                argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
             )
         except Exception:
             self.workspace_lease.__exit__(None, None, None)
             self.workspace_lease = None
             self.log.close()
+            self.observation.close()
+            self.observation = None
             raise
+        self.observation.attach(self.process.stderr, self.log)
         self.signature = signature
         self.workspace_root = workspace["root"]
         threading.Thread(target=self.retire_when_released, args=(self.process, signature), daemon=True).start()
@@ -327,6 +356,7 @@ class Serena:
         if "serena_repl" not in {row["name"] for row in tools}:
             self.close()
             raise ValueError("The configured image does not provide Serena v2's REPL interface.")
+        self.observation.check_ready()
 
     def freeze(self, paused):
         result = subprocess.run(
@@ -347,7 +377,18 @@ class Serena:
             scope, signature = self.scope()
             token = REQUEST_BINDING.set((self.member, scope))
             try:
-                return self._call(arguments, scope, signature)
+                result = self._call(arguments, scope, signature)
+                from .diagnostics import deliver_guidance
+
+                guidance = deliver_guidance(self.store, self.member, "serena_repl", result=result)
+                if guidance:
+                    result["content"].append({"type": "text", "text": json.dumps(guidance, ensure_ascii=False)})
+                return result
+            except Exception as error:
+                from .diagnostics import deliver_guidance
+
+                error.diagnostic_guidance = deliver_guidance(self.store, self.member, "serena_repl", error=error)
+                raise
             finally:
                 REQUEST_BINDING.reset(token)
 
@@ -455,6 +496,9 @@ class Serena:
                 process.wait()
             for stream in (process.stdin, process.stdout):
                 stream.close()
+            if self.observation is not None:
+                self.observation.close()
+                self.observation = None
             if self.log:
                 self.log.close()
             self.paused = False
@@ -475,6 +519,7 @@ def serve(directory, member, generation=None):
     trace = Trace(directory, member, component="serena-mcp", context=lambda: {
         **context(provider.store, member), "connection_generation": provider.session_lease.generation,
     })
+    provider.gateway_connection = trace.connection
     initialized = False
     try:
         while line := sys.stdin.buffer.readline(131073):
@@ -507,7 +552,11 @@ def serve(directory, member, generation=None):
                     params = packet.get("params", {})
                     if params.get("name") != TOOL["name"]:
                         raise ValueError("Only the bound Serena REPL is available through this provider.")
-                    result = provider.call(params.get("arguments", {}))
+                    provider.gateway_request_id = ident
+                    try:
+                        result = provider.call(params.get("arguments", {}))
+                    finally:
+                        provider.gateway_request_id = None
                 else:
                     raise ValueError("Unsupported MCP method.")
                 response = {"id": ident, "result": result}
@@ -517,6 +566,8 @@ def serve(directory, member, generation=None):
                     if method == "tools/call"
                     else {"id": ident, "error": {"code": -32602, "message": str(error)[:1800]}}
                 )
+                if method == "tools/call" and getattr(error, "diagnostic_guidance", None):
+                    response["result"]["content"].append({"type": "text", "text": json.dumps(error.diagnostic_guidance, ensure_ascii=False)})
             trace.record("mcp_out", response)
             print(json.dumps({"jsonrpc": "2.0", **response}), flush=True)
     finally:

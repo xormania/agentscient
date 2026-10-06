@@ -8,20 +8,25 @@ from .advice import Advice
 from .advice import capabilities as advice_capabilities
 from .advice import configured as advice_configured
 from .artifacts import Artifacts
-from .commands import ROLE_TOOLS, Commands
+from .commands import Commands, role_tools
 from .commands import capabilities as command_capabilities
-from .control import REQUEST_BINDING, ROLES, Control
+from .control import REQUEST_BINDING, Control
 from .control import capabilities as control_capabilities
+from .decisions import capabilities as decision_capabilities
 from .delivery import Delivery
 from .delivery import capabilities as delivery_capabilities
 from .development import capabilities as development_capabilities
 from .development import configured as development_configured
+from .failures import Failure, failure_info
 from .github_tools import NAMES as GITHUB_NAMES
 from .github_tools import capabilities as github_capabilities
 from .operations import ACTIONS, Operations
+from .role_packages import adapter, validate_tools
+from .role_packages import role as role_package
+from .role_views import RoleSet
 from .store import UNSET, Store
 from .work import LINK_KINDS, STATUSES, Work
-from .workspaces import EDITORS, Workspaces, project_config
+from .workspaces import Workspaces, project_config
 
 SERVER = "agentscient_dev"
 OPERATOR_INSTRUCTIONS = (
@@ -76,6 +81,8 @@ CAPABILITIES = [
     spec("terminal_status", "Inspect an owned tmux session and its attach command.", {"member": NAME}, ("member",), readonly=True),
     spec("terminal_read", "Read recent output from an owned tmux terminal.",
          {"member": NAME, "lines": {"type": "integer", "minimum": 1, "maximum": 500}}, ("member",), readonly=True),
+    spec("config_status", "Inspect resolved operator configuration without loading credential values.",
+         {"role": NAME, "job": POSITIVE}, readonly=True),
     spec("runtime_status", "Inspect operator role policy, vendor availability and runtime choices.", readonly=True),
     spec("peers", "List configured live members, native session identities and current observed state.", readonly=True),
     spec(
@@ -263,7 +270,7 @@ CAPABILITIES.append(
         "Operator setup: bind a member's role, work scope, reporting relationship and brief.",
         {
             "member": NAME,
-            "role": {"type": "string", "enum": list(ROLES)},
+            "role": {"type": "string", "enum": list(RoleSet())},
             "work_order": POSITIVE,
             "job": POSITIVE,
             "reports_to": NAME,
@@ -302,6 +309,16 @@ OPERATOR_TOOLS = [
 
 TOOLS = control_capabilities(spec) + command_capabilities(spec)
 TOOLS += [
+    spec("roll_call", "CO: check initial system readiness and exchange a live duty acknowledgement with XO. "
+         "Use status to inspect the retained result; initial checks create no work order.",
+         {"action": {"type": "string", "enum": ["start", "status"]}}),
+    spec("readiness_report", "Report for duty after onboard: return the current readiness challenge and onboarding revision. "
+         "The service checks evidence and routes your receipt to your parent. Report any blockers explicitly.",
+         {"challenge": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+          "onboarding_revision": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "blockers": {"type": "array", "maxItems": 10,
+                       "items": {"type": "string", "minLength": 1, "maxLength": 600}}},
+         ("challenge", "onboarding_revision")),
     spec("onboard", "Load your current role onboarding, shared essentials, allowed tools and skill catalog.", readonly=True),
     spec("skill_read", "Load a relevant skill from your current role's onboard catalog.",
          {"name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$"}}, ("name",), readonly=True),
@@ -347,26 +364,31 @@ WORKSPACE_TOOLS = {"work_inspect", "work_save", "work_refresh", "work_recover", 
 TOOLS += development_capabilities(spec)
 TOOLS += delivery_capabilities(spec)
 TOOLS += advice_capabilities(spec)
+TOOLS += decision_capabilities(spec)
+validate_tools(row["name"] for row in TOOLS)
 
 
 def validate(value, schema, path="arguments"):
     import re
 
+    def invalid(message):
+        return Failure(message, category="invalid_request", reason="invalid_arguments", details={"path": path})
+
     types = {"object": dict, "string": str, "integer": int, "boolean": bool, "array": list}
     kind = schema.get("type")
     if kind in types and type(value) is not types[kind]:
-        raise ValueError(f"{path} must be {kind}")
+        raise invalid(f"{path} must be {kind}")
     if "enum" in schema and value not in schema["enum"]:
-        raise ValueError(f"{path} is not an allowed value")
+        raise invalid(f"{path} is not an allowed value")
     if kind == "object":
         if len(value) > schema.get("maxProperties", 100):
-            raise ValueError(f"{path} contains too many fields")
+            raise invalid(f"{path} contains too many fields")
         properties = schema.get("properties")
         if properties is not None:
             if set(schema.get("required", ())) - value.keys():
-                raise ValueError(f"{path} is missing required fields")
+                raise invalid(f"{path} is missing required fields")
             if schema.get("additionalProperties") is False and value.keys() - properties.keys():
-                raise ValueError(f"{path} contains unknown fields")
+                raise invalid(f"{path} contains unknown fields")
             for key, item in value.items():
                 if key in properties:
                     validate(item, properties[key], path + "." + key)
@@ -376,17 +398,17 @@ def validate(value, schema, path="arguments"):
                 validate(item, schema["additionalProperties"], path + "." + key)
     elif kind == "array":
         if not schema.get("minItems", 0) <= len(value) <= schema.get("maxItems", 100):
-            raise ValueError(f"{path} is outside its item bounds")
+            raise invalid(f"{path} is outside its item bounds")
         for item in value:
             validate(item, schema.get("items", {}), path + "[]")
     elif kind == "string":
         if "\0" in value or not schema.get("minLength", 0) <= len(value) <= schema.get("maxLength", 65536):
-            raise ValueError(f"{path} is outside its text bounds")
+            raise invalid(f"{path} is outside its text bounds")
         if "pattern" in schema and not re.fullmatch(schema["pattern"], value):
-            raise ValueError(f"{path} has an invalid format")
+            raise invalid(f"{path} has an invalid format")
     elif kind == "integer":
         if not schema.get("minimum", -(2**53)) <= value <= schema.get("maximum", 2**53):
-            raise ValueError(f"{path} is outside its numeric bounds")
+            raise invalid(f"{path} is outside its numeric bounds")
 
 
 class API:
@@ -408,38 +430,44 @@ class API:
     def tools(self):
         if self.operator:
             return OPERATOR_TOOLS
-        return self._tools(self.control.current())
+        return self._tools(self.control.current(), discovery=True)
 
-    def _tools(self, scope):
+    def _tools(self, scope, *, discovery=False):
         role = self.commands.role(scope)
-        common = {"work_context", "work_report", "guidance_request"} if scope else {"work_context"}
+        package = role_package(role) if role else None
+        groups = package["mcp"] if package else {}
+        if scope is None and role and adapter(role) != "co":
+            # A standby identity supplies onboarding, never work authority.
+            allowed = {"work_context", "onboard", "skill_read", "readiness_report"}
+            declared = {name for names in groups.values() for name in names}
+            return [row for row in TOOLS if row["name"] in allowed & declared]
+        # Appointed CO starts unbound. Native clients may cache this first list
+        # without honoring list_changed after direct binds its work. Advertise
+        # its configured reporting tools now; call() still checks actual scope.
+        bound_tools = scope or discovery and role and adapter(role) == "co"
+        allowed = set(groups.get("bound", [])) if bound_tools else {"work_context"}
         if role:
-            common |= {"onboard", "skill_read"}
-        if scope and advice_configured(self.store):
-            common.add("work_assess")
-            if role in {"xo", "nco"}:
-                common.add("assignment_advise")
-        if scope and scope["job"] and project_config(self.store):
-            common.add("work_inspect")
-            if role in EDITORS:
-                common |= WORKSPACE_TOOLS
-                common.add("review_respond")
-            if role == "audit":
-                common.add("review_record")
+            allowed |= set(groups["session"]) | set(groups["command"])
+        if scope and adapter(role) != "co" and advice_configured(self.store, role=role, job=scope["job"]):
+            allowed |= set(groups["advice"])
+        if scope and adapter(role) != "co" and (scope["job"] or adapter(role) in {"planner", "arbitrator"}) and project_config(self.store):
+            allowed |= set(groups["job"])
             if development_configured(self.store):
-                common |= {"framework_inspect", "work_check"}
-                if role in {"coder", "test_writer"}:
-                    common.add("framework_generate")
-        if scope and not scope["job"] and role in {"xo", "nco"} and project_config(self.store):
-            common.add("work_inspect")
-            if role == "xo":
-                common |= {"work_refresh", "work_submit", "review_respond"}
+                allowed |= set(groups["job_framework"])
+        if scope and not scope["job"] and adapter(role) in {"xo", "nco"} and project_config(self.store):
+            allowed |= set(groups["work_order"])
             if development_configured(self.store):
-                common.add("work_check")
-        allowed = common | ROLE_TOOLS.get(role, set())
+                allowed |= set(groups["work_order_framework"])
         if scope is None:
             allowed -= {"conclude", "restart_xo"}
-        return [row for row in TOOLS if row["name"] in allowed]
+        current = {row["name"]: row for row in command_capabilities(spec, role)}
+        rows = [current.get(row["name"], row) for row in TOOLS if row["name"] in allowed]
+        if "work_assess" in allowed:
+            from .configuration import resolve
+
+            configured = {row["name"]: row for row in advice_capabilities(spec, resolve(self.store, role, scope["job"]))}
+            rows = [configured.get(row["name"], row) for row in rows]
+        return rows
 
     def instructions(self):
         if self.operator:
@@ -452,12 +480,6 @@ class API:
         if self.operator:
             return self._operator_call(name, arguments, on_context=on_context)
         scope = self.control.snapshot()
-        allowed = self._tools(scope)
-        schema = next((row for row in allowed if row["name"] == name), None)
-        if schema is None:
-            self.store.event(self.member, "tool_denied", tool=str(name)[:80])
-            raise ValueError("Tool is not available in your current role and work context")
-        validate(arguments, schema["inputSchema"])
         token = REQUEST_BINDING.set((self.member, scope))
         try:
             with self.store.work_context(
@@ -465,14 +487,30 @@ class API:
             ):
                 if on_context:
                     on_context()
-                return self.run(name, arguments)
+                try:
+                    schema = next((row for row in self._tools(scope) if row["name"] == name), None)
+                    if schema is None:
+                        error = Failure("Tool is not available in your current role and work context",
+                                        category="not_permitted", reason="tool_not_permitted")
+                        event = self.store.event(self.member, "tool_denied", tool=str(name)[:80],
+                                                 failure=failure_info(error))
+                        self._diagnose(error, name, arguments=arguments, operation=f"event:{event}")
+                        raise error
+                    validate(arguments, schema["inputSchema"])
+                    return self.run(name, arguments)
+                except Exception as error:
+                    if not hasattr(error, "diagnostic_failure"):
+                        event = self.store.event(self.member, "tool_rejected", tool=str(name)[:80],
+                                                 failure=failure_info(error))
+                        self._diagnose(error, name, arguments=arguments, operation=f"event:{event}")
+                    raise
         finally:
             REQUEST_BINDING.reset(token)
 
     def _operator_call(self, name, arguments, *, on_context=None):
         outer = next((row for row in OPERATOR_TOOLS if row["name"] == name), None)
         if outer is None:
-            raise ValueError("Unknown MCP tool")
+            raise Failure("Unknown MCP tool", category="invalid_request", reason="unknown_tool")
         validate(arguments, outer["inputSchema"])
         if name != "capability_invoke" and on_context:
             on_context()
@@ -490,11 +528,15 @@ class API:
             }
         capability = arguments["capability"]
         if capability not in BY_NAME:
-            raise ValueError("Unknown capability; use capability_search")
+            raise Failure("Unknown capability; use capability_search", category="invalid_request", reason="unknown_capability")
+        definition = BY_NAME[capability]
+        if capability == "member_bind":
+            definition = {**definition, "inputSchema": {**definition["inputSchema"], "properties": {
+                **definition["inputSchema"]["properties"], "role": {"type": "string", "enum": list(RoleSet())}}}}
         if name == "capability_describe":
-            return BY_NAME[capability]
+            return definition
         args = arguments["arguments"]
-        validate(args, BY_NAME[capability]["inputSchema"])
+        validate(args, definition["inputSchema"])
         default_order = None if capability in {"work_order_create", "work_order_select"} else UNSET
         default_job = (
             None if capability.startswith("work_order_") or capability in {"job_create", "job_select"} else UNSET
@@ -504,27 +546,58 @@ class API:
                 on_context()
             return self.run(capability, args)
 
+    def _diagnose(self, error, capability, *, arguments=None, operation=None):
+        error.diagnostic_failure = failure_info(error)
+        if error.diagnostic_failure["reason"] == "sensitive_replay_arguments":
+            # A rejected credential-bearing call must not be copied into the
+            # recovery event after the decision service refused to retain it.
+            arguments = None
+        if not self.operator:
+            from .diagnostics import deliver_guidance
+
+            error.diagnostic_guidance = deliver_guidance(
+                self.store, self.member, capability, error=error,
+                failure=error.diagnostic_failure, operation=operation, arguments=arguments,
+            )
+
     def run(self, capability, args):
+        from .diagnostics import result_failure
+        from .recovery import capture_recovery, record_recovery
+
         started = time.monotonic()
         event = self.store.event(self.member, "operation_started", capability=capability)
+        candidates = capture_recovery(self.store, self.member, capability, args) if not self.operator and capability not in ACTIONS else []
         try:
-            result = self.invoke(capability, args)
+            from .decisions import request
+            with request(self.member, capability, args):
+                result = self.invoke(capability, args)
         except Exception as error:
+            record_recovery(self.store, self.member, candidates, operation=f"event:{event}", error=error)
+            self._diagnose(error, capability, arguments=args, operation=f"event:{event}")
             self.store.event(
                 self.member,
                 "operation_failed",
                 capability=capability,
                 operation=event,
                 error=str(error)[:1000],
+                failure=error.diagnostic_failure,
                 seconds=round(time.monotonic() - started, 6),
             )
             raise
+        # Worker receipts carry service-owned metadata from Operations.public;
+        # provider payloads elsewhere are data, not authoritative failure facts.
+        failure = result.get("failure") if capability in ACTIONS and isinstance(result, dict) else None
+        failure = failure or result_failure(result)
+        if failure and isinstance(result, dict):
+            result = {**result, "failure": failure}
+        record_recovery(self.store, self.member, candidates, operation=f"event:{event}", result=result)
         self.store.event(
             self.member,
             "operation_finished",
             capability=capability,
             operation=event,
             seconds=round(time.monotonic() - started, 6),
+            **({"failure": failure} if failure else {}),
             **(
                 {"work_order": result["work_order"]["id"], "job": result.get("job", {}).get("id")}
                 if capability in {"job_create", "work_order_create"}
@@ -533,12 +606,33 @@ class API:
                 else {}
             ),
         )
+        if not self.operator and capability not in ACTIONS:
+            from .diagnostics import deliver_guidance
+
+            guidance = deliver_guidance(self.store, self.member, capability, result=result,
+                                        operation=f"event:{event}", arguments=args)
+            if guidance and isinstance(result, dict):
+                result = {**result, "diagnostic_guidance": guidance}
         return result
 
     def invoke(self, name, args):
-        if name in {"assignment_advise", "work_assess"}:
-            advice = Advice(self.store, self.member)
-            return advice.assignment(**args) if name == "assignment_advise" else advice.assess(**args)
+        if name == "roll_call":
+            from . import standby
+
+            self.commands._capability(name)
+            if not self.commands.appointed_co():
+                raise ValueError("Only the appointed CO can initiate or inspect the initial roll call")
+            return standby.status(self) if args.get("action") == "status" else standby.start(self)
+        if name == "readiness_report":
+            from .duty import report
+
+            return report(self, **args)
+        if name == "decision_resolve":
+            from .decisions import Decisions
+
+            return Decisions(self.store, self.member).resolve(**args)
+        if name == "work_assess":
+            return Advice(self.store, self.member).assess(**args)
         if name in {"onboard", "skill_read"}:
             from .onboarding import Onboarding
 
@@ -547,6 +641,10 @@ class API:
             from . import terminals
 
             return getattr(terminals, name.removeprefix("terminal_"))(self.store, **args)
+        if name == "config_status":
+            from .readiness import config
+
+            return config(self.store.directory, **args)
         if name == "runtime_status":
             from .runtime import status
 
@@ -573,16 +671,33 @@ class API:
             return self.operations.inspect(offset=args.get("offset", 0))
         if name in WORKSPACE_TOOLS:
             return getattr(self.workspaces, name.removeprefix("work_"))(**args)
-        if name in {tool for names in ROLE_TOOLS.values() for tool in names}:
+        if name in {tool for names in role_tools().values() for tool in names}:
             return getattr(self.commands, name)(**args)
         if name == "work_context":
-            if not self.control.current() and self.commands.appointed_co():
-                return {
-                    "role": "co",
-                    "state": "ready_to_direct",
-                    "next_action": "Use direct with the user's authorized objective and boundaries.",
-                }
-            return self.control.work_context(**args)
+            from . import duty, standby
+
+            scope = self.control.current()
+            if not scope and self.commands.role(scope):
+                if args.get("reference"):
+                    return duty.messages(self.store, self.member, reference=args["reference"])
+                if args.get("section") == "messages":
+                    return duty.messages(self.store, self.member, after=args.get("after", 0))
+                if args.get("section", "brief") != "brief":
+                    raise ValueError("Before work, use the readiness brief, messages or roll_call status")
+                if self.commands.appointed_co():
+                    return {
+                        "role": self.commands.role(scope),
+                        "state": "ready_to_direct",
+                        "next_action": "Use roll_call for initial readiness, or direct with the user's authorized objective and boundaries.",
+                        "roll_call": standby.status(self),
+                    }
+                return {**standby.context(self.store, self.member), "readiness": duty.current(self.store, self.member)}
+            value = self.control.work_context(**args)
+            if args.get("section", "brief") == "brief" and not args.get("reference"):
+                readiness = duty.current(self.store, self.member)
+                if readiness:
+                    value["readiness"] = readiness
+            return value
         if name == "work_report":
             return self.control.report(**args)
         if name == "guidance_request":
@@ -617,7 +732,7 @@ class API:
             return self.store.events(**args)
         if name == "telemetry_usage":
             result = self.store.events(kind="native_usage", **args)
-            result["observed"] = bool(result["events"])
+            result["observed"] = any(row["data"].get("observation") is not None for row in result["events"])
             return result
         if name == "session_stop":
             from .launch import stop

@@ -43,7 +43,6 @@ class DiagnosisTests(unittest.TestCase):
         self.evidence = self.root / "runtime"
         self.evidence.mkdir()
         self.config = json.loads(triage.DEFAULT.read_text())
-        self.config["jev_policy"] = str(ROOT / "devtools/jev.json")
         self.config_path = self.root / "config.json"
         self.save_config()
         self.environment = patch.dict(os.environ, {"TYPESAFE_API_KEY": "fixture-key-never-publish",
@@ -85,7 +84,7 @@ class DiagnosisTests(unittest.TestCase):
     def test_no_secret_disabled_or_missing_log_never_calls_provider(self):
         client = Mock()
         with patch.dict(os.environ, {"TYPESAFE_API_KEY": ""}):
-            self.assertEqual("missing_TYPESAFE_API_KEY", self.assess(client)["reason"])
+            self.assertEqual("missing_credential", self.assess(client)["reason"])
         self.config["enabled"] = False
         self.save_config()
         self.assertEqual("disabled", self.assess(client)["status"])
@@ -96,6 +95,25 @@ class DiagnosisTests(unittest.TestCase):
         self.log.write_text("")
         self.assertEqual("no_log_evidence", self.assess(client)["reason"])
         client.evaluate.assert_not_called()
+
+    def test_canonical_connection_supports_custom_env_and_private_file_without_secret_leak(self):
+        policy = triage.defaults()
+        key = "file-credential-never-publish"
+        secret = self.root / "jev.key"
+        secret.write_text(key + "\n")
+        secret.chmod(0o600)
+        self.log.write_text(self.log.read_text().replace("connection refused", "connection refused " + key))
+        policy["connection"]["credential"] = {"file": str(secret)}
+        with patch.object(triage, "defaults", return_value=policy):
+            result = self.assess(Mock(evaluate=Mock(return_value=RESPONSE)))
+        self.assertEqual("assessed", result["status"], result)
+        self.assertNotIn(key, json.dumps(result))
+        policy["connection"]["credential"] = {"env": "OPERATOR_JEV"}
+        with patch.object(triage, "defaults", return_value=policy), \
+                patch.dict(os.environ, {"TYPESAFE_API_KEY": "", "OPERATOR_JEV": key}):
+            result = self.assess(Mock(evaluate=Mock(return_value=RESPONSE)))
+        self.assertEqual("assessed", result["status"], result)
+        self.assertNotIn(key, json.dumps(result))
 
     def test_unknown_choices_bad_model_and_incomplete_results_are_unavailable(self):
         cases = []
@@ -166,12 +184,38 @@ class DiagnosisTests(unittest.TestCase):
         self.log.write_text(("ERROR: cause\n" + "語" * 100 + "\n" + "details\n" * 60) * 20)
         state = triage.collect(self.log, self.evidence, self.config)
         self.assertEqual(8, len(state["candidates"]))
-        policy = triage.load_jev()
+        policy = triage.defaults()
         policy["transport"]["max_request_bytes"] = 4000
         request = triage.request_for(state, self.config, policy)
         self.assertLessEqual(len(json.dumps(request, ensure_ascii=False, allow_nan=False).encode()), 4000)
         self.assertGreater(state["log"]["omitted_candidates"], 12)
         self.assertGreaterEqual(len(state["candidates"]), 1)
+
+    def test_verbose_passing_matches_do_not_hide_the_final_failure_from_the_request(self):
+        original = ["test_expected_exception_" + str(index) + "_" + "context_" * 18 + " ... ok"
+                    for index in range(200)]
+        original.append("ERROR: intentional feedback calibration after all original checks passed")
+        self.log.write_text("\n".join(original) + "\n")
+        state = triage.collect(self.log, self.evidence, self.config)
+        request = triage.request_for(state, self.config, triage.defaults())
+        final = [candidate for candidate in request["state"]["candidates"]
+                 if original[-1] in candidate["text"]]
+        self.assertEqual(1, len(final))
+        self.assertEqual(len(original), final[0]["line_end"])
+        for candidate in request["state"]["candidates"]:
+            self.assertLessEqual(len(candidate["text"].encode()), self.config["limits"]["excerpt_bytes"])
+            source = "\n".join(original[candidate["line_start"] - 1:candidate["line_end"]])
+            self.assertTrue(source.startswith(candidate["text"]))
+
+    def test_oversized_leading_context_does_not_displace_the_matched_failure(self):
+        original = ["normal context " + "語" * 1000] * 5 + ["ERROR: actual startup failed"]
+        self.log.write_text("\n".join(original) + "\n")
+        state = triage.collect(self.log, self.evidence, self.config)
+        self.assertEqual(1, len(state["candidates"]))
+        candidate = state["candidates"][0]
+        self.assertIn(original[-1], candidate["text"])
+        self.assertEqual((6, 6), (candidate["line_start"], candidate["line_end"]))
+        self.assertLessEqual(len(candidate["text"].encode()), self.config["limits"]["excerpt_bytes"])
 
     def test_oversized_logs_keep_early_and_final_failures_at_original_line_numbers(self):
         self.config["limits"]["excerpt_lines"] = 8
@@ -308,7 +352,7 @@ class WorkflowTests(unittest.TestCase):
                                     env={**os.environ, "TYPESAFE_API_KEY": "", "GITHUB_STEP_SUMMARY": ""},
                                     capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertEqual("missing_TYPESAFE_API_KEY", json.loads(Path(directory + "/report/assessment.json").read_text())["reason"])
+            self.assertEqual("missing_credential", json.loads(Path(directory + "/report/assessment.json").read_text())["reason"])
 
 
 if __name__ == "__main__":
