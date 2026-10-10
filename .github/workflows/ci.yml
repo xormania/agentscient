@@ -142,7 +142,7 @@
           "name": "Retain Jev diagnosis",
           "if": "${{ always() && steps.verify.outcome == 'failure' }}",
           "continue-on-error": true,
-          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
           "with": {
             "name": "jev-ci-live-mcp-${{ github.run_id }}-${{ github.run_attempt }}",
             "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
@@ -153,7 +153,7 @@
         {
           "name": "Retain runtime fixture evidence",
           "if": "${{ always() }}",
-          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
           "with": {
             "name": "runtime-fixture-evidence",
             "path": "${{ runner.temp }}/runtime-evidence",
@@ -212,7 +212,7 @@
           "name": "Retain Jev diagnosis",
           "if": "${{ always() && steps.verify.outcome == 'failure' }}",
           "continue-on-error": true,
-          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
           "with": {
             "name": "jev-ci-maker-mate-${{ github.run_id }}-${{ github.run_attempt }}",
             "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
@@ -223,7 +223,7 @@
         {
           "name": "Retain Maker/Mate integration evidence",
           "if": "${{ always() }}",
-          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
           "with": {
             "name": "maker-mate-${{ github.run_id }}-${{ github.run_attempt }}",
             "path": "var/ci/maker-mate/",
@@ -304,7 +304,7 @@
           "name": "Retain Jev diagnosis",
           "if": "${{ always() && steps.verify.outcome == 'failure' }}",
           "continue-on-error": true,
-          "uses": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
           "with": {
             "name": "jev-ci-serena-${{ github.run_id }}-${{ github.run_attempt }}",
             "path": "${{ runner.temp }}/jev-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}/assessment/",
